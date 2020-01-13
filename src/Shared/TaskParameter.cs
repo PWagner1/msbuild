@@ -1,20 +1,16 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
-//-----------------------------------------------------------------------
-// </copyright>
-// <summary>Wrapper class to enable serialization of all allowed task parameter types.</summary>
-//-----------------------------------------------------------------------
 
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Security;
-using System.Security.Permissions;
 
 using Microsoft.Build.Collections;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
+using System.Reflection;
 
 namespace Microsoft.Build.BackEnd
 {
@@ -69,7 +65,11 @@ namespace Microsoft.Build.BackEnd
     /// Wrapper for task parameters, to allow proper serialization even 
     /// in cases where the parameter is not .NET serializable. 
     /// </summary>
-    internal class TaskParameter : MarshalByRefObject, INodePacketTranslatable
+    internal class TaskParameter :
+#if FEATURE_APPDOMAIN
+        MarshalByRefObject,
+#endif
+        ITranslatable
     {
         /// <summary>
         /// The TaskParameterType of the wrapped parameter
@@ -116,7 +116,7 @@ namespace Microsoft.Build.BackEnd
                     _parameterType = TaskParameterType.StringArray;
                     _wrappedParameter = wrappedParameter;
                 }
-                else if (typeof(ITaskItem[]).IsAssignableFrom(wrappedParameterType))
+                else if (typeof(ITaskItem[]).GetTypeInfo().IsAssignableFrom(wrappedParameterType.GetTypeInfo()))
                 {
                     _parameterType = TaskParameterType.ITaskItemArray;
                     ITaskItem[] inputAsITaskItemArray = (ITaskItem[])wrappedParameter;
@@ -132,7 +132,7 @@ namespace Microsoft.Build.BackEnd
 
                     _wrappedParameter = taskItemArrayParameter;
                 }
-                else if (wrappedParameterType.GetElementType().IsValueType)
+                else if (wrappedParameterType.GetElementType().GetTypeInfo().IsValueType)
                 {
                     _parameterType = TaskParameterType.ValueTypeArray;
                     _wrappedParameter = wrappedParameter;
@@ -155,7 +155,7 @@ namespace Microsoft.Build.BackEnd
                     _parameterType = TaskParameterType.ITaskItem;
                     _wrappedParameter = CreateNewTaskItemFrom((ITaskItem)wrappedParameter);
                 }
-                else if (wrappedParameterType.IsValueType)
+                else if (wrappedParameterType.GetTypeInfo().IsValueType)
                 {
                     _parameterType = TaskParameterType.ValueType;
                     _wrappedParameter = wrappedParameter;
@@ -205,7 +205,7 @@ namespace Microsoft.Build.BackEnd
         /// <summary>
         /// Serialize / deserialize this item. 
         /// </summary>
-        public void Translate(INodePacketTranslator translator)
+        public void Translate(ITranslator translator)
         {
             translator.TranslateEnum<TaskParameterType>(ref _parameterType, (int)_parameterType);
 
@@ -236,7 +236,7 @@ namespace Microsoft.Build.BackEnd
                     break;
                 case TaskParameterType.Invalid:
                     Exception exceptionParam = (Exception)_wrappedParameter;
-                    translator.TranslateDotNet(ref exceptionParam);
+                    translator.TranslateException(ref exceptionParam);
                     _wrappedParameter = exceptionParam;
                     break;
                 default:
@@ -245,6 +245,7 @@ namespace Microsoft.Build.BackEnd
             }
         }
 
+#if FEATURE_APPDOMAIN
         /// <summary>
         /// Overridden to give this class infinite lease time. Otherwise we end up with a limited
         /// lease (5 minutes I think) and instances can expire if they take long time processing.
@@ -255,11 +256,12 @@ namespace Microsoft.Build.BackEnd
             // null means infinite lease time
             return null;
         }
+#endif
 
         /// <summary>
         /// Factory for deserialization.
         /// </summary>
-        internal static TaskParameter FactoryForDeserialization(INodePacketTranslator translator)
+        internal static TaskParameter FactoryForDeserialization(ITranslator translator)
         {
             TaskParameter taskParameter = new TaskParameter();
             taskParameter.Translate(translator);
@@ -325,7 +327,7 @@ namespace Microsoft.Build.BackEnd
         /// <summary>
         /// Serialize / deserialize this item. 
         /// </summary>
-        private void TranslateITaskItemArray(INodePacketTranslator translator)
+        private void TranslateITaskItemArray(ITranslator translator)
         {
             if (!TranslateNullable(translator, _wrappedParameter))
             {
@@ -362,7 +364,7 @@ namespace Microsoft.Build.BackEnd
         /// <summary>
         /// Serialize / deserialize this item. 
         /// </summary>
-        private void TranslateITaskItem(INodePacketTranslator translator)
+        private void TranslateITaskItem(ITranslator translator)
         {
             if (translator.Mode == TranslationDirection.WriteToStream)
             {
@@ -379,7 +381,7 @@ namespace Microsoft.Build.BackEnd
         /// <summary>
         /// Write the given ITaskItem, using the given write translator
         /// </summary>
-        private void WriteITaskItem(INodePacketTranslator translator, ITaskItem wrappedItem)
+        private void WriteITaskItem(ITranslator translator, ITaskItem wrappedItem)
         {
             ErrorUtilities.VerifyThrow(translator.Mode == TranslationDirection.WriteToStream, "Cannot call this method when reading!");
 
@@ -446,7 +448,7 @@ namespace Microsoft.Build.BackEnd
         /// <summary>
         /// Read an ITaskItem into the given parameter, using the given read translator
         /// </summary>
-        private void ReadITaskItem(INodePacketTranslator translator, ref ITaskItem wrappedItem)
+        private void ReadITaskItem(ITranslator translator, ref ITaskItem wrappedItem)
         {
             ErrorUtilities.VerifyThrow(translator.Mode == TranslationDirection.ReadFromStream, "Cannot call this method when writing!");
 
@@ -470,7 +472,7 @@ namespace Microsoft.Build.BackEnd
         /// Writes out the boolean which says if this object is null or not.
         /// </summary>
         /// <typeparam name="T">The nullable type to translate.</typeparam>
-        private bool TranslateNullable<T>(INodePacketTranslator translator, T value)
+        private bool TranslateNullable<T>(ITranslator translator, T value)
         {
             bool haveRef = false;
 
@@ -490,7 +492,11 @@ namespace Microsoft.Build.BackEnd
         /// <summary>
         /// Super simple ITaskItem derivative that we can use as a container for read items.  
         /// </summary>
-        private class TaskParameterTaskItem : MarshalByRefObject, ITaskItem, ITaskItem2
+        private class TaskParameterTaskItem :
+#if FEATURE_APPDOMAIN
+            MarshalByRefObject,
+#endif
+            ITaskItem, ITaskItem2
         {
             /// <summary>
             /// The item spec 
@@ -697,6 +703,7 @@ namespace Microsoft.Build.BackEnd
                 return (IDictionary)clonedMetadata;
             }
 
+#if FEATURE_APPDOMAIN
             /// <summary>
             /// Overridden to give this class infinite lease time. Otherwise we end up with a limited
             /// lease (5 minutes I think) and instances can expire if they take long time processing.
@@ -707,6 +714,7 @@ namespace Microsoft.Build.BackEnd
                 // null means infinite lease time
                 return null;
             }
+#endif
 
             /// <summary>
             /// Returns the escaped value of the requested metadata name.

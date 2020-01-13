@@ -1,10 +1,5 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
-//-----------------------------------------------------------------------
-// </copyright>
-// <summary>A packet which contains information needed for the task host to 
-// configure itself for to execute a particular task.</summary>
-//-----------------------------------------------------------------------
 
 using System;
 using System.Collections.Generic;
@@ -15,6 +10,7 @@ using System.Threading;
 using System.Text;
 
 using Microsoft.Build.Shared;
+using System.Reflection;
 
 namespace Microsoft.Build.BackEnd
 {
@@ -42,17 +38,19 @@ namespace Microsoft.Build.BackEnd
         /// <summary>
         /// The culture
         /// </summary>
-        private CultureInfo _culture = Thread.CurrentThread.CurrentCulture;
+        private CultureInfo _culture = CultureInfo.CurrentCulture;
 
         /// <summary>
         /// The UI culture.
         /// </summary>
-        private CultureInfo _uiCulture = Thread.CurrentThread.CurrentUICulture;
+        private CultureInfo _uiCulture = CultureInfo.CurrentUICulture;
 
+#if FEATURE_APPDOMAIN
         /// <summary>
         /// The AppDomainSetup that we may want to use on AppDomainIsolated tasks. 
         /// </summary>
         private AppDomainSetup _appDomainSetup;
+#endif
 
         /// <summary>
         /// Line number where the instance of this task is defined. 
@@ -89,6 +87,8 @@ namespace Microsoft.Build.BackEnd
         /// </summary>
         private Dictionary<string, TaskParameter> _taskParameters;
 
+        private Dictionary<string, string> _globalParameters;
+
         /// <summary>
         /// Constructor
         /// </summary>
@@ -112,14 +112,17 @@ namespace Microsoft.Build.BackEnd
                 IDictionary<string, string> buildProcessEnvironment,
                 CultureInfo culture,
                 CultureInfo uiCulture,
+#if FEATURE_APPDOMAIN
                 AppDomainSetup appDomainSetup,
+#endif
                 int lineNumberOfTask,
                 int columnNumberOfTask,
                 string projectFileOfTask,
                 bool continueOnError,
                 string taskName,
                 string taskLocation,
-                IDictionary<string, object> taskParameters
+                IDictionary<string, object> taskParameters,
+                Dictionary<string, string> globalParameters
             )
         {
             ErrorUtilities.VerifyThrowInternalLength(taskName, "taskName");
@@ -140,7 +143,9 @@ namespace Microsoft.Build.BackEnd
 
             _culture = culture;
             _uiCulture = uiCulture;
+#if FEATURE_APPDOMAIN
             _appDomainSetup = appDomainSetup;
+#endif
             _lineNumberOfTask = lineNumberOfTask;
             _columnNumberOfTask = columnNumberOfTask;
             _projectFileOfTask = projectFileOfTask;
@@ -157,6 +162,8 @@ namespace Microsoft.Build.BackEnd
                     _taskParameters[parameter.Key] = new TaskParameter(parameter.Value);
                 }
             }
+
+            _globalParameters = globalParameters ?? new Dictionary<string, string>();
         }
 
         /// <summary>
@@ -216,6 +223,7 @@ namespace Microsoft.Build.BackEnd
             { return _uiCulture; }
         }
 
+#if FEATURE_APPDOMAIN
         /// <summary>
         /// The AppDomain configuration bytes that we may want to use to initialize
         /// AppDomainIsolated tasks. 
@@ -226,6 +234,7 @@ namespace Microsoft.Build.BackEnd
             get
             { return _appDomainSetup; }
         }
+#endif
 
         /// <summary>
         /// Line number where the instance of this task is defined. 
@@ -298,6 +307,16 @@ namespace Microsoft.Build.BackEnd
         }
 
         /// <summary>
+        /// Gets the global properties for the current project.
+        /// </summary>
+        public Dictionary<string, string> GlobalProperties
+        {
+            [DebuggerStepThrough]
+            get
+            { return _globalParameters; }
+        }
+
+        /// <summary>
         /// The NodePacketType of this NodePacket
         /// </summary>
         public NodePacketType Type
@@ -311,14 +330,16 @@ namespace Microsoft.Build.BackEnd
         /// Translates the packet to/from binary form.
         /// </summary>
         /// <param name="translator">The translator to use.</param>
-        public void Translate(INodePacketTranslator translator)
+        public void Translate(ITranslator translator)
         {
             translator.Translate(ref _nodeId);
             translator.Translate(ref _startupDirectory);
             translator.TranslateDictionary(ref _buildProcessEnvironment, StringComparer.OrdinalIgnoreCase);
             translator.TranslateCulture(ref _culture);
             translator.TranslateCulture(ref _uiCulture);
+#if FEATURE_APPDOMAIN
             translator.TranslateDotNet(ref _appDomainSetup);
+#endif
             translator.Translate(ref _lineNumberOfTask);
             translator.Translate(ref _columnNumberOfTask);
             translator.Translate(ref _projectFileOfTask);
@@ -326,12 +347,13 @@ namespace Microsoft.Build.BackEnd
             translator.Translate(ref _taskLocation);
             translator.TranslateDictionary(ref _taskParameters, StringComparer.OrdinalIgnoreCase, TaskParameter.FactoryForDeserialization);
             translator.Translate(ref _continueOnError);
+            translator.TranslateDictionary(ref _globalParameters, StringComparer.OrdinalIgnoreCase);
         }
 
         /// <summary>
         /// Factory for deserialization.
         /// </summary>
-        internal static INodePacket FactoryForDeserialization(INodePacketTranslator translator)
+        internal static INodePacket FactoryForDeserialization(ITranslator translator)
         {
             TaskHostConfiguration configuration = new TaskHostConfiguration();
             configuration.Translate(translator);
