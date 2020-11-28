@@ -59,18 +59,14 @@ namespace Microsoft.Build.Evaluation
 
         private ImmutableList<I> GetItems(string itemType)
         {
-            LazyItemList itemList = GetItemList(itemType);
-            if (itemList == null)
-            {
-                return ImmutableList<I>.Empty;
-            }
-
-            return itemList.GetMatchedItems(ImmutableHashSet<string>.Empty);
+            return _itemLists.TryGetValue(itemType, out LazyItemList itemList) ?
+                itemList.GetMatchedItems(ImmutableHashSet<string>.Empty) :
+                ImmutableList<I>.Empty;
         }
 
         public bool EvaluateConditionWithCurrentState(ProjectElement element, ExpanderOptions expanderOptions, ParserOptions parserOptions)
         {
-            return EvaluateCondition(element, expanderOptions, parserOptions, _expander, this);
+            return EvaluateCondition(element.Condition, element, expanderOptions, parserOptions, _expander, this);
         }
 
         private static bool EvaluateCondition(
@@ -106,17 +102,6 @@ namespace Microsoft.Build.Evaluation
 
                 return result;
             }
-        }
-
-        private static bool EvaluateCondition(
-            ProjectElement element,
-            ExpanderOptions expanderOptions,
-            ParserOptions parserOptions,
-            Expander<P, I> expander,
-            LazyItemEvaluator<P, I, M, D> lazyEvaluator
-            )
-        {
-            return EvaluateCondition(element.Condition, element, expanderOptions, parserOptions, expander, lazyEvaluator);
         }
 
         /// <summary>
@@ -304,7 +289,6 @@ namespace Microsoft.Build.Evaluation
 
                     return ComputeItems(this, globsToIgnore);
                 }
-
             }
 
             private static ImmutableList<ItemData>.Builder ComputeItems(LazyItemList lazyItemList, ImmutableHashSet<string> globsToIgnore)
@@ -418,19 +402,11 @@ namespace Microsoft.Build.Evaluation
 
         private void AddReferencedItemList(string itemType, IDictionary<string, LazyItemList> referencedItemLists)
         {
-            var itemList = GetItemList(itemType);
-            if (itemList != null)
+            if (_itemLists.TryGetValue(itemType, out LazyItemList itemList))
             {
                 itemList.MarkAsReferenced();
                 referencedItemLists[itemType] = itemList;
             }
-        }
-
-        private LazyItemList GetItemList(string itemType)
-        {
-            LazyItemList ret;
-            _itemLists.TryGetValue(itemType, out ret);
-            return ret;
         }
 
         public IEnumerable<ItemData> GetAllItemsDeferred()
@@ -460,7 +436,7 @@ namespace Microsoft.Build.Evaluation
                 ErrorUtilities.ThrowInternalErrorUnreachable();
             }
 
-            LazyItemList previousItemList = GetItemList(itemElement.ItemType);
+            _itemLists.TryGetValue(itemElement.ItemType, out LazyItemList previousItemList);
             LazyItemList newList = new LazyItemList(previousItemList, operation);
             _itemLists[itemElement.ItemType] = newList;
         }
@@ -516,9 +492,34 @@ namespace Microsoft.Build.Evaluation
 
         private RemoveOperation BuildRemoveOperation(string rootDirectory, ProjectItemElement itemElement, bool conditionResult)
         {
-            OperationBuilder operationBuilder = new OperationBuilder(itemElement, conditionResult);
+            RemoveOperationBuilder operationBuilder = new RemoveOperationBuilder(itemElement, conditionResult);
 
             ProcessItemSpec(rootDirectory, itemElement.Remove, itemElement.RemoveLocation, operationBuilder);
+
+            // Process MatchOnMetadata
+            if (itemElement.MatchOnMetadata.Length > 0)
+            {
+                string evaluatedmatchOnMetadata = _expander.ExpandIntoStringLeaveEscaped(itemElement.MatchOnMetadata, ExpanderOptions.ExpandProperties, itemElement.MatchOnMetadataLocation);
+
+                if (evaluatedmatchOnMetadata.Length > 0)
+                {
+                    var matchOnMetadataSplits = ExpressionShredder.SplitSemiColonSeparatedList(evaluatedmatchOnMetadata);
+
+                    foreach (var matchOnMetadataSplit in matchOnMetadataSplits)
+                    {
+                        AddItemReferences(matchOnMetadataSplit, operationBuilder, itemElement.MatchOnMetadataLocation);
+                        string metadataExpanded = _expander.ExpandIntoStringLeaveEscaped(matchOnMetadataSplit, ExpanderOptions.ExpandPropertiesAndItems, itemElement.MatchOnMetadataLocation);
+                        var metadataSplits = ExpressionShredder.SplitSemiColonSeparatedList(metadataExpanded);
+                        operationBuilder.MatchOnMetadata.AddRange(metadataSplits);
+                    }
+                }
+            }
+
+            operationBuilder.MatchOnMetadataOptions = MatchOnMetadataOptions.CaseSensitive;
+            if (Enum.TryParse(itemElement.MatchOnMetadataOptions, out MatchOnMetadataOptions options))
+            {
+                operationBuilder.MatchOnMetadataOptions = options;
+            }
 
             return new RemoveOperation(operationBuilder, this);
         }
@@ -527,10 +528,9 @@ namespace Microsoft.Build.Evaluation
         {
             builder.ItemSpec = new ItemSpec<P, I>(itemSpec, _outerExpander, itemSpecLocation, rootDirectory);
 
-            foreach (ItemFragment fragment in builder.ItemSpec.Fragments)
+            foreach (ItemSpecFragment fragment in builder.ItemSpec.Fragments)
             {
-                ItemExpressionFragment<P, I> itemExpression = fragment as ItemExpressionFragment<P, I>;
-                if (itemExpression != null)
+                if (fragment is ItemSpec<P, I>.ItemExpressionFragment itemExpression)
                 {
                     AddReferencedItemLists(builder, itemExpression.Capture);
                 }
@@ -579,7 +579,7 @@ namespace Microsoft.Build.Evaluation
             }
         }
 
-        private void AddItemReferences(string expression, IncludeOperationBuilder operationBuilder, IElementLocation elementLocation)
+        private void AddItemReferences(string expression, OperationBuilder operationBuilder, IElementLocation elementLocation)
         {
             if (expression.Length == 0)
             {

@@ -774,6 +774,31 @@
         <target state="translated">MSB3160: 文件“{0}”中的 XML 验证警告: {1}</target>
         <note>{StrBegin="MSB3160: "}</note>
       </trans-unit>
+      <trans-unit id="GenerateLauncher.CopyError">
+        <source>MSB3961: An error occurred trying to copy '{0}' to '{1}': {2}</source>
+        <target state="translated">MSB3961: 尝试将“{0}”复制到“{1}”时出错: {2}</target>
+        <note>{StrBegin="MSB3961: "}</note>
+      </trans-unit>
+      <trans-unit id="GenerateLauncher.General">
+        <source>MSB3962: An error occurred generating a launcher: {0}</source>
+        <target state="translated">MSB3962: 生成引导程序时出错: {0}</target>
+        <note>{StrBegin="MSB3962: "}</note>
+      </trans-unit>
+      <trans-unit id="GenerateLauncher.InvalidInput">
+        <source>MSB3963: Not enough data was provided to generate a launcher. Please provide a value for: 'EntryPoint'.</source>
+        <target state="translated">MSB3963: 未提供足够的数据来生成启动程序。请为 "EntryPoint" 提供一个值。</target>
+        <note>{StrBegin="MSB3963: "}</note>
+      </trans-unit>
+      <trans-unit id="GenerateLauncher.MissingLauncherExe">
+        <source>MSB3964: Could not find required file '{0}'.</source>
+        <target state="translated">MSB3964: 找不到所需的文件“{0}”。</target>
+        <note>{StrBegin="MSB3964: "}</note>
+      </trans-unit>
+      <trans-unit id="GenerateLauncher.NoOutputPath">
+        <source>MSB3965: No output path specified in build settings.</source>
+        <target state="translated">MSB3965: 生成设置中未指定输出路径。</target>
+        <note>{StrBegin="MSB3965: "}</note>
+      </trans-unit>
       <trans-unit id="GenerateManifest.AllowPartiallyTrustedCallers">
         <source>MSB3177: Reference '{0}' does not allow partially trusted callers.</source>
         <target state="translated">MSB3177: 引用“{0}”不允许部分信任的调用方。</target>
@@ -1306,6 +1331,11 @@
         <target state="translated">找到安装在“{0}”的 Microsoft Windows SDK。</target>
         <note />
       </trans-unit>
+      <trans-unit id="GetReferenceAssemblyPaths.OutOfDateSDK">
+        <source>MSB3971: The reference assemblies for "{0}" were not found. You might be using an older .NET SDK to target .NET 5.0 or higher. Update Visual Studio and/or your .NET SDK.</source>
+        <target state="new">MSB3971: The reference assemblies for "{0}" were not found. You might be using an older .NET SDK to target .NET 5.0 or higher. Update Visual Studio and/or your .NET SDK.</target>
+        <note>{StrBegin="MSB3971: "}</note>
+      </trans-unit>
       <trans-unit id="MakeDir.Comment">
         <source>Creating directory "{0}".</source>
         <target state="translated">正在创建目录“{0}”。</target>
@@ -1802,8 +1832,10 @@
         <note>{StrBegin="MSB3276: "}</note>
       </trans-unit>
       <trans-unit id="ResolveAssemblyReference.FoundConflicts">
-        <source>MSB3277: Found conflicts between different versions of "{0}" that could not be resolved.  These reference conflicts are listed in the build log when log verbosity is set to detailed.</source>
-        <target state="translated">MSB3277: 发现“{0}”的不同版本间存在无法解决的冲突。当日志详细程度设置为“详细”时，这些引用冲突将会在生成日志中列出。</target>
+        <source>MSB3277: Found conflicts between different versions of "{0}" that could not be resolved.
+{1}</source>
+        <target state="new">MSB3277: Found conflicts between different versions of "{0}" that could not be resolved.
+{1}</target>
         <note>{StrBegin="MSB3277: "}</note>
       </trans-unit>
       <trans-unit id="ResolveAssemblyReference.LogAttributeFormat">
@@ -2293,6 +2325,11 @@
         <target state="translated">MSB3473: “{0}”的路径无效。{1}</target>
         <note>{StrBegin="MSB3473: "}</note>
       </trans-unit>
+      <trans-unit id="SGen.TaskNotSupported">
+        <source>MSB3474: The task "{0}" is not supported on the .NET Core version of MSBuild. Use the Microsoft XML Serializer Generator package instead. See https://go.microsoft.com/fwlink/?linkid=858594 for more information.</source>
+        <target state="translated">MSB3474: MSBuild 的 .NET Core 版本上不支持任务“{0}”。请改用 Microsoft XML 序列化程序生成器包。有关详细信息，请参阅 https://go.microsoft.com/fwlink/?linkid=858594。</target>
+        <note>{StrBegin="MSB3474: "}</note>
+      </trans-unit>
       <trans-unit id="SignFile.CertNotInStore">
         <source>MSB3481: The signing certificate could not be located. Ensure that it is in the current user's personal store.</source>
         <target state="translated">MSB3481: 未能找到签名证书。请确保它在当前用户的个人存储中。</target>
@@ -2527,6 +2564,11 @@
         <source>MSB3762: No references were passed to the task. References to at least mscorlib and Windows.Foundation are required.</source>
         <target state="translated">MSB3762: 未向任务传递任何引用。至少需要对 mscorlib 和 Windows.Foundation 的引用。</target>
         <note>{StrBegin="MSB3762: "}</note>
+      </trans-unit>
+      <trans-unit id="Xaml.DuplicatePropertyName">
+        <source>MSB3724: Unable to create Xaml task.  Duplicate property name '{0}'.</source>
+        <target state="translated">MSB3724: 无法创建 Xaml 任务。属性名 "{0}" 重复。</target>
+        <note>{StrBegin="MSB3724: "}</note>
       </trans-unit>
       <trans-unit id="Xaml.TaskCreationFailed">
         <source>MSB3686: Unable to create Xaml task.  Compilation failed.  {0}</source>

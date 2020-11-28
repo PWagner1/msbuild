@@ -3,7 +3,6 @@ using System.IO;
 using System.IO.Compression;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
-using Microsoft.Build.Shared.FileSystem;
 using Microsoft.Build.Utilities;
 
 namespace Microsoft.Build.Logging
@@ -29,10 +28,14 @@ namespace Microsoft.Build.Logging
         // version 5:
         //   - new EvaluationFinished.ProfilerResult
         // version 6:
-        //   -  Ids and parent ids for the evaluation locations
+        //   - Ids and parent ids for the evaluation locations
         // version 7:
-        //   -  Include ProjectStartedEventArgs.GlobalProperties
-        internal const int FileFormatVersion = 7;
+        //   - Include ProjectStartedEventArgs.GlobalProperties
+        // version 8:
+        //   - This was used in a now-reverted change but is the same as 9.
+        // version 9:
+        //   - new record kinds: EnvironmentVariableRead, PropertyReassignment, UninitializedPropertyRead
+        internal const int FileFormatVersion = 9;
 
         private Stream stream;
         private BinaryWriter binaryWriter;
@@ -117,7 +120,7 @@ namespace Microsoft.Build.Logging
 
                 if (CollectProjectImports != ProjectImportsCollectionMode.None)
                 {
-                    projectImportsCollector = new ProjectImportsCollector(FilePath);
+                    projectImportsCollector = new ProjectImportsCollector(FilePath, CollectProjectImports == ProjectImportsCollectionMode.ZipFile);
                 }
 
                 if (eventSource is IEventSource3 eventSource3)
@@ -139,7 +142,22 @@ namespace Microsoft.Build.Logging
 
             binaryWriter.Write(FileFormatVersion);
 
+            LogInitialInfo();
+
             eventSource.AnyEventRaised += EventSource_AnyEventRaised;
+        }
+
+        private void LogInitialInfo()
+        {
+            LogMessage("BinLogFilePath=" + FilePath);
+            LogMessage("CurrentUICulture=" + System.Globalization.CultureInfo.CurrentUICulture.Name);
+        }
+
+        private void LogMessage(string text)
+        {
+            var args = new BuildMessageEventArgs(text, helpKeyword: null, senderName: "BinaryLogger", MessageImportance.Normal);
+            args.BuildEventContext = BuildEventContext.Invalid;
+            Write(args);
         }
 
         /// <summary>
@@ -153,20 +171,11 @@ namespace Microsoft.Build.Logging
 
             if (projectImportsCollector != null)
             {
-                projectImportsCollector.Close();
-
                 if (CollectProjectImports == ProjectImportsCollectionMode.Embed)
                 {
-                    var archiveFilePath = projectImportsCollector.ArchiveFilePath;
-
-                    // It is possible that the archive couldn't be created for some reason.
-                    // Only embed it if it actually exists.
-                    if (FileSystems.Default.FileExists(archiveFilePath))
-                    {
-                        eventArgsWriter.WriteBlob(BinaryLogRecordKind.ProjectImportArchive, File.ReadAllBytes(archiveFilePath));
-                        File.Delete(archiveFilePath);
-                    }
+                    eventArgsWriter.WriteBlob(BinaryLogRecordKind.ProjectImportArchive, projectImportsCollector.GetAllBytes());
                 }
+                projectImportsCollector.Close();
 
                 projectImportsCollector = null;
             }

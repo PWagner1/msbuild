@@ -130,7 +130,7 @@ namespace Microsoft.Build.Construction
         /// This can be used to see whether the file has been changed on disk
         /// by an external means.
         /// </summary>
-        private DateTime _lastWriteTimeWhenRead;
+        private DateTime _lastWriteTimeWhenReadUtc;
 
         /// <summary>
         /// Reason it was last marked dirty; unlocalized, for debugging
@@ -141,7 +141,6 @@ namespace Microsoft.Build.Construction
         /// Parameter to be formatted into the dirty reason
         /// </summary>
         private string _dirtyParameter = String.Empty;
-
 
         internal ProjectRootElementLink RootLink => (ProjectRootElementLink)Link;
 
@@ -617,7 +616,9 @@ namespace Microsoft.Build.Construction
         /// This can be used to see whether the file has been changed on disk
         /// by an external means.
         /// </summary>
-        public DateTime LastWriteTimeWhenRead => Link != null ? RootLink.LastWriteTimeWhenRead : _lastWriteTimeWhenRead;
+        public DateTime LastWriteTimeWhenRead => Link != null ? RootLink.LastWriteTimeWhenRead : _lastWriteTimeWhenReadUtc.ToLocalTime();
+
+        internal DateTime? StreamTimeUtc = null;
 
         /// <summary>
         /// This does not allow conditions, so it should not be called.
@@ -745,7 +746,6 @@ namespace Microsoft.Build.Construction
 
             return Create(projectCollection.ProjectRootElementCache, projectFileOptions);
         }
-
 
         /// <summary>
         /// Initialize an in-memory, empty ProjectRootElement instance that can be saved later.
@@ -981,8 +981,8 @@ namespace Microsoft.Build.Construction
         /// </remarks>
         public ProjectItemElement AddItem(string itemType, string include, IEnumerable<KeyValuePair<string, string>> metadata)
         {
-            ErrorUtilities.VerifyThrowArgumentLength(itemType, "itemType");
-            ErrorUtilities.VerifyThrowArgumentLength(include, "include");
+            ErrorUtilities.VerifyThrowArgumentLength(itemType, nameof(itemType));
+            ErrorUtilities.VerifyThrowArgumentLength(include, nameof(include));
 
             ProjectItemGroupElement itemGroupToAddTo = null;
 
@@ -1003,7 +1003,7 @@ namespace Microsoft.Build.Construction
                     itemGroupToAddTo = itemGroup;
                 }
 
-                if (itemGroupToAddTo != null && itemGroupToAddTo.Count > 0)
+                if (itemGroupToAddTo?.Count > 0)
                 {
                     break;
                 }
@@ -1530,7 +1530,11 @@ namespace Microsoft.Build.Construction
                 // come from disk.
                 if (fileInfo != null)
                 {
-                    _lastWriteTimeWhenRead = fileInfo.LastWriteTime;
+                    _lastWriteTimeWhenReadUtc = fileInfo.LastWriteTimeUtc;
+                    if (_lastWriteTimeWhenReadUtc > StreamTimeUtc)
+                    {
+                        StreamTimeUtc = null;
+                    }
                 }
 
                 _versionOnDisk = Version;
@@ -1584,6 +1588,7 @@ namespace Microsoft.Build.Construction
                 XmlDocument.Save(projectWriter);
             }
 
+            StreamTimeUtc = DateTime.UtcNow;
             _versionOnDisk = Version;
         }
 
@@ -2026,6 +2031,7 @@ namespace Microsoft.Build.Construction
         /// </summary>
         /// <param name="fullPath">The full path to the document to load.</param>
         /// <param name="preserveFormatting"><code>true</code> to preserve the formatting of the document, otherwise <code>false</code>.</param>
+        /// <param name="loadAsReadOnly">Whether to load the file in read-only mode.</param>
         private XmlDocumentWithLocation LoadDocument(string fullPath, bool preserveFormatting, bool loadAsReadOnly)
         {
             ErrorUtilities.VerifyThrowInternalRooted(fullPath);
@@ -2054,7 +2060,11 @@ namespace Microsoft.Build.Construction
                     XmlDocument.FullPath = fullPath;
                 }
 
-                _lastWriteTimeWhenRead = FileUtilities.GetFileInfoNoThrow(fullPath).LastWriteTime;
+                _lastWriteTimeWhenReadUtc = FileUtilities.GetFileInfoNoThrow(fullPath).LastWriteTimeUtc;
+                if (StreamTimeUtc < _lastWriteTimeWhenReadUtc)
+                {
+                    StreamTimeUtc = null;
+                }
             }
             catch (Exception ex)
             {

@@ -32,19 +32,27 @@
         <note />
       </trans-unit>
       <trans-unit id="CacheMissesNotAllowedInIsolatedGraphBuilds">
-        <source>MSB4252: Project "{0}" has a reference to "{1}" ({2} target(s)) but the build result for the reference is not in the engine cache. In isolated builds this could mean one of the following:
-    - the reference was not explicitly specified as a ProjectReference item in "{0}"
-    - the reference was not included in the provided input caches
-    - the reference was called with a target which is not specified in the ProjectReferenceTargets item in "{0}"
+        <source>MSB4252: Project "{0}" with global properties
+    ({1})
+    is building project "{2}" with global properties
+    ({3})
+    with the ({4}) target(s) but the build result for the built project is not in the engine cache. In isolated builds this could mean one of the following:
+    - the reference was called with a target which is not specified in the ProjectReferenceTargets item in project "{0}"
+    - the reference was called with global properties that do not match the static graph inferred nodes
+    - the reference was not explicitly specified as a ProjectReference item in project "{0}"
     </source>
-        <target state="translated">MSB4252: Projekt {0} má odkaz na {1} (počet cílů: {2}), ale výsledky sestavení pro tento odkaz v mezipaměti modulu chybí. V izolovaných buildech by to mohlo znamenat následující:
-    - Odkaz nebyl explicitně zadán jako položka ProjectReference v: {0}.
-    - Odkaz nebyl zahrnut do poskytnutých vstupních mezipamětí.
-    - Odkaz byl volán s cílem, který není zadán v položce ProjectReferenceTargets v: {0}.
+        <target state="translated">MSB4252: Projekt {0} s globálními vlastnostmi
+    ({1})
+    sestavuje projekt {2} s globálními vlastnostmi
+    ({3})
+    s cílem nebo cíli ({4}), ale výsledek sestavení pro sestavený projekt není v mezipaměti modulu. V izolovaných sestaveních to může znamenat jednu z těchto věcí:
+    – Odkaz byl volán s cílem, který není zadaný v položce ProjectReferenceTargets v projektu {0}.
+    – Odkaz byl volán s globálními vlastnostmi, které neodpovídají odvozeným uzlům statického grafu.
+    – Odkaz nebyl explicitně zadán jako položka ProjectReference v projektu {0}.
     </target>
         <note>
       {StrBegin="MSB4252:"}
-      LOCALIZATION: Do not localize the following words: ProjectReference.
+      LOCALIZATION: Do not localize the following words: ProjectReference, ProjectReferenceTargets
     </note>
       </trans-unit>
       <trans-unit id="CannotExpandItemMetadata">
@@ -53,6 +61,20 @@
         <note>{StrBegin="MSB4248: "}UE: This message is shown when metadata cannot be expanded in an expression for some reason e.g. trying to apply
     %(RootDir) to an item-spec that's not a valid path would result in this error.
     LOCALIZATION: "{1}" is a localized message explaining the problem.</note>
+      </trans-unit>
+      <trans-unit id="ChangeWave_InvalidFormat">
+        <source>Environment variable MSBUILDDISABLEFEATURESFROMVERSION is set to an invalid format. Enabling all change wave versions. Entered value: {0}.</source>
+        <target state="translated">Proměnná prostředí MSBUILDDISABLEFEATURESFROMVERSION je nastavená na neplatný formát. Povolují se všechny verze vlny změn. Zadaná hodnota: {0}</target>
+        <note>
+       Value should be of the format: xx.yy
+    </note>
+      </trans-unit>
+      <trans-unit id="ChangeWave_OutOfRotation">
+        <source>Environment variable MSBUILDDISABLEFEATURESFROMVERSION is set to a version that is out of rotation. Defaulting to Change Wave version: {0}. Entered value: {1}.</source>
+        <target state="translated">Proměnná prostředí MSBUILDDISABLEFEATURESFROMVERSION je nastavená na verzi, která je mimo rotaci. Nastavuje se výchozí verze vlny změn: {0}. Zadaná hodnota: {1}</target>
+        <note>
+       Refer to https://github.com/dotnet/msbuild/tree/master/documentation/wiki/ChangeWaves.md to see what the current Change Waves are.
+    </note>
       </trans-unit>
       <trans-unit id="CircularDependencyInProjectGraph">
         <source>MSB4251: There is a circular dependency involving the following projects: {0}</source>
@@ -67,6 +89,11 @@
         <target state="translated">MSB4257: Zadaný výstupní soubor mezipaměti pro výsledky je prázdný.</target>
         <note />
       </trans-unit>
+      <trans-unit id="EnvironmentVariableRead">
+        <source>Read environment variable "{0}"</source>
+        <target state="translated">Číst proměnnou prostředí {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ErrorReadingCacheFile">
         <source>MSB4256: Reading input result cache files from path "{0}" encountered an error: {1}</source>
         <target state="translated">MSB4256: Při čtení vstupních souborů mezipaměti pro výsledky z cesty {0} byla zjištěna chyba: {1}</target>
@@ -76,6 +103,11 @@
         <source>MSB4258: Writing output result cache file in path "{0}" encountered an error: {1}</source>
         <target state="translated">MSB4258: Při zápisu do výstupních souborů mezipaměti pro výsledky v cestě {0} byla zjištěna chyba: {1}</target>
         <note />
+      </trans-unit>
+      <trans-unit id="IllFormedPropertySpaceInCondition">
+        <source>MSB4259: Unexpected space at position "{1}" of condition "{0}". Did you forget to remove a space?</source>
+        <target state="new">MSB4259: Unexpected space at position "{1}" of condition "{0}". Did you forget to remove a space?</target>
+        <note>{StrBegin="MSB4259: "}</note>
       </trans-unit>
       <trans-unit id="InputCacheFilesDoNotExist">
         <source>MSB4255: The following input result cache files do not exist: "{0}"</source>
@@ -87,12 +119,22 @@
         <target state="translated">Řetězec verze nemá správný formát.</target>
         <note />
       </trans-unit>
+      <trans-unit id="IsolatedContextDoesNotSupportFileSystem">
+        <source>"EvaluationContext objects created with SharingPolicy.Isolated do not support being passed an MSBuildFileSystemBase file system."</source>
+        <target state="translated">Objekty EvaluationContext vytvořené pomocí SharingPolicy.Isolated nepodporují předávání souborového systému MSBuildFileSystemBase.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="LogLoggerVerbosity">
         <source>Logging verbosity is set to: {0}.</source>
         <target state="translated">Podrobnost protokolování je nastavená na: {0}.</target>
         <note>
       LOCALIZATION: {0} is an enum value of LoggerVerbosity.
     </note>
+      </trans-unit>
+      <trans-unit id="LogTaskInputs.Truncated">
+        <source>The parameters have been truncated beyond this point. To view all parameters, clear the MSBUILDTRUNCATETASKINPUTLOGGING environment variable.</source>
+        <target state="translated">Od tohoto místa dále jsou parametry zkrácené. Pokud si chcete zobrazit všechny parametry, vymažte proměnnou prostředí MSBUILDTRUNCATETASKINPUTLOGGING.</target>
+        <note />
       </trans-unit>
       <trans-unit id="MetaprojectGenerated">
         <source>Metaproject "{0}" generated.</source>
@@ -104,6 +146,11 @@
         <target state="translated">Operaci nelze dokončit, protože funkce BeginBuild ještě nebyla zavolána.</target>
         <note />
       </trans-unit>
+      <trans-unit id="NuGetAssemblyNotFound">
+        <source>A required NuGet assembly was not found. Expected Path: {0}</source>
+        <target state="translated">Požadované sestavení NuGet se nenašlo. Očekávaná cesta: {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NullReferenceFromProjectInstanceFactory">
         <source>MSB4253: A null reference was returned from a user-provided ProjectInstanceFactoryFunc callback. This is not allowed.</source>
         <target state="translated">MSB4253: Uživatelem zadané zpětné volání ProjectInstanceFactoryFunc vrátilo odkaz null. To není přípustné.</target>
@@ -111,6 +158,26 @@
       {StrBegin="MSB4253: "}
       LOCALIZATION:  Do not localize the following words: ProjectInstanceFactoryFunc.
     </note>
+      </trans-unit>
+      <trans-unit id="OM_MatchOnMetadataIsRestrictedToOnlyOneReferencedItem">
+        <source>Only one item type may be referenced when removing with MatchOnMetadata.</source>
+        <target state="translated">Při odebrání pomocí MatchOnMetadata je možné odkazovat jen na jeden typ položky.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OM_MatchOnMetadataOnlyApplicableToRemoveItems">
+        <source>MatchOnMetadata only applies to Remove operations on items.</source>
+        <target state="translated">MatchOnMetadata se vztahuje pouze na operace odebrání u položek.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OM_MatchOnMetadataOptionsOnlyApplicableToItemsWithMatchOnMetadata">
+        <source>MatchOnMetadataOptions is valid only when removing items using MatchOnMetadata.</source>
+        <target state="translated">MatchOnMetadataOptions je platné jen při odebírání položek pomocí MatchOnMetadata.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OM_NoMatchOnMetadataOutsideTargets">
+        <source>MatchOnMetadata cannot be used outside of a &lt;Target&gt;.</source>
+        <target state="translated">Klíčové slovo MyClass nejde použít vně položky &lt;Target&gt;.</target>
+        <note />
       </trans-unit>
       <trans-unit id="OM_TargetNameNullOrEmpty">
         <source>Method {0} cannot be called with a collection containing null or empty target names.</source>
@@ -125,6 +192,11 @@
       LOCALIZATION:  Do not localize the following words: ProjectGraph, ProjectReference, ToolsVersion.
     </note>
       </trans-unit>
+      <trans-unit id="PropertyAssignment">
+        <source>Property initial value: $({0})="{1}" Source: {2}</source>
+        <target state="translated">Počáteční hodnota vlastnosti: $({0})={1} Zdroj: {2}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SkippedConstraintsOnRequest">
         <source>MSB4260: Project "{0}" skipped graph isolation constraints on referenced project "{1}"</source>
         <target state="translated">MSB4260: Projekt {0} přeskočil omezení izolace grafu v odkazovaném projektu {1}.</target>
@@ -133,11 +205,16 @@
     </note>
       </trans-unit>
       <trans-unit id="StaticGraphAcceptsSingleSolutionEntryPoint">
-        <source>MSB4261: Static graph only accepts a solution as the only entry point. Multiple entry points detected: {0}</source>
-        <target state="translated">MSB4261: Statický graf přijímá pouze řešení jako jediný vstupní bod. Zjištěno více vstupních bodů: {0}</target>
+        <source>MSB4261: Multiple entry points with solutions detected: {0}. If static graph is loaded from a solution, that that solution must be the only entry point.</source>
+        <target state="translated">MSB4261: Bylo zjištěno více vstupních bodů s řešeními: {0}. Pokud se z řešení načte statický graf, musí být toto řešení jediným vstupním bodem.</target>
         <note>
       LOCALIZATION: {0} is a semicolon delimited list of files
     </note>
+      </trans-unit>
+      <trans-unit id="StaticGraphConstructionMetrics">
+        <source>"Static graph loaded in {0} seconds: {1} nodes, {2} edges"</source>
+        <target state="translated">Statický graf se načetl za {0} s: počet uzlů: {1}, počet hraničních uzlů: {2}</target>
+        <note />
       </trans-unit>
       <trans-unit id="StaticGraphDoesNotSupportSlnReferences">
         <source>MSB4263: Project "{0}" has a reference to solution file "{1}". Referencing solutions is not supported in static graph.
@@ -161,6 +238,11 @@
       LOCALIZATION: {0} is a file, {1} and {2} are semicolon delimited lists of messages
     </note>
       </trans-unit>
+      <trans-unit id="TaskReturnedFalseButDidNotLogError">
+        <source>MSB4181: The "{0}" task returned false but did not log an error.</source>
+        <target state="translated">MSB4181: Úloha {0} vrátila false, ale do protokolu se nezaznamenala chyba.</target>
+        <note>{StrBegin="MSB4181: "}</note>
+      </trans-unit>
       <trans-unit id="UndeclaredMSBuildTasksNotAllowedInIsolatedGraphBuilds">
         <source>MSB4254: The MSBuild task is building project(s) "{0}" which are not specified in the ProjectReference item. In isolated builds this probably means that the references are not explicitly specified as a ProjectReference item in "{1}"</source>
         <target state="translated">MSB4254: Úloha MSBuild sestavuje projekty {0}, které nejsou zadané v položce ProjectReference. V izolovaných sestaveních to pravděpodobně znamená, že tyto odkazy nejsou v {1} explicitně zadané jako položka ProjectReference.</target>
@@ -168,6 +250,11 @@
       {StrBegin="MSB4254:"}
       LOCALIZATION: Do not localize the following words: ProjectReference, MSBuild, task.
     </note>
+      </trans-unit>
+      <trans-unit id="UninitializedPropertyRead">
+        <source>Read uninitialized property "{0}"</source>
+        <target state="translated">Číst neinicializovanou vlastnost {0}</target>
+        <note />
       </trans-unit>
       <trans-unit id="UsingInputCaches">
         <source>Using input build results caches: {0}</source>

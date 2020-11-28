@@ -774,6 +774,31 @@
         <target state="translated">MSB3160: Ostrzeżenie walidacji kodu xml w pliku '{0}': {1}</target>
         <note>{StrBegin="MSB3160: "}</note>
       </trans-unit>
+      <trans-unit id="GenerateLauncher.CopyError">
+        <source>MSB3961: An error occurred trying to copy '{0}' to '{1}': {2}</source>
+        <target state="translated">MSB3961: Wystąpił błąd podczas próby skopiowania elementu „{0}” do elementu „{1}”: {2}</target>
+        <note>{StrBegin="MSB3961: "}</note>
+      </trans-unit>
+      <trans-unit id="GenerateLauncher.General">
+        <source>MSB3962: An error occurred generating a launcher: {0}</source>
+        <target state="translated">MSB3962: Wystąpił problem podczas generowania modułu uruchamiania: {0}</target>
+        <note>{StrBegin="MSB3962: "}</note>
+      </trans-unit>
+      <trans-unit id="GenerateLauncher.InvalidInput">
+        <source>MSB3963: Not enough data was provided to generate a launcher. Please provide a value for: 'EntryPoint'.</source>
+        <target state="translated">MSB3963: Podano za mało danych do wygenerowania modułu uruchamiania. Podaj wartość dla: „EntryPoint”.</target>
+        <note>{StrBegin="MSB3963: "}</note>
+      </trans-unit>
+      <trans-unit id="GenerateLauncher.MissingLauncherExe">
+        <source>MSB3964: Could not find required file '{0}'.</source>
+        <target state="translated">MSB3964: Nie można było znaleźć wymaganego pliku „{0}”.</target>
+        <note>{StrBegin="MSB3964: "}</note>
+      </trans-unit>
+      <trans-unit id="GenerateLauncher.NoOutputPath">
+        <source>MSB3965: No output path specified in build settings.</source>
+        <target state="translated">MSB3965: W ustawieniach kompilacji nie określono ścieżki wyjściowej.</target>
+        <note>{StrBegin="MSB3965: "}</note>
+      </trans-unit>
       <trans-unit id="GenerateManifest.AllowPartiallyTrustedCallers">
         <source>MSB3177: Reference '{0}' does not allow partially trusted callers.</source>
         <target state="translated">MSB3177: Odwołanie '{0}' nie zezwala na dostęp częściowo zaufanych wywołań.</target>
@@ -1306,6 +1331,11 @@
         <target state="translated">Znaleziono zestaw Microsoft Windows SDK zainstalowany w lokalizacji „{0}”.</target>
         <note />
       </trans-unit>
+      <trans-unit id="GetReferenceAssemblyPaths.OutOfDateSDK">
+        <source>MSB3971: The reference assemblies for "{0}" were not found. You might be using an older .NET SDK to target .NET 5.0 or higher. Update Visual Studio and/or your .NET SDK.</source>
+        <target state="new">MSB3971: The reference assemblies for "{0}" were not found. You might be using an older .NET SDK to target .NET 5.0 or higher. Update Visual Studio and/or your .NET SDK.</target>
+        <note>{StrBegin="MSB3971: "}</note>
+      </trans-unit>
       <trans-unit id="MakeDir.Comment">
         <source>Creating directory "{0}".</source>
         <target state="translated">Tworzenie katalogu „{0}”.</target>
@@ -1802,8 +1832,10 @@
         <note>{StrBegin="MSB3276: "}</note>
       </trans-unit>
       <trans-unit id="ResolveAssemblyReference.FoundConflicts">
-        <source>MSB3277: Found conflicts between different versions of "{0}" that could not be resolved.  These reference conflicts are listed in the build log when log verbosity is set to detailed.</source>
-        <target state="translated">MSB3277: Wykryto konflikty pomiędzy różnymi wersjami elementu „{0}”, których nie można rozwiązać. Takie konflikty odwołań są rejestrowane w dzienniku kompilacji po ustawieniu wysokiego poziomu szczegółowości.</target>
+        <source>MSB3277: Found conflicts between different versions of "{0}" that could not be resolved.
+{1}</source>
+        <target state="new">MSB3277: Found conflicts between different versions of "{0}" that could not be resolved.
+{1}</target>
         <note>{StrBegin="MSB3277: "}</note>
       </trans-unit>
       <trans-unit id="ResolveAssemblyReference.LogAttributeFormat">
@@ -2293,6 +2325,11 @@
         <target state="translated">MSB3473: Ścieżka elementu „{0}” jest nieprawidłowa. {1}</target>
         <note>{StrBegin="MSB3473: "}</note>
       </trans-unit>
+      <trans-unit id="SGen.TaskNotSupported">
+        <source>MSB3474: The task "{0}" is not supported on the .NET Core version of MSBuild. Use the Microsoft XML Serializer Generator package instead. See https://go.microsoft.com/fwlink/?linkid=858594 for more information.</source>
+        <target state="translated">MSB3474: zadanie „{0}” nie jest obsługiwane w wersji platformy .NET Core programu MSBuild. Zamiast tego użyj pakietu narzędzia Microsoft XML Serializer Generator. Aby uzyskać więcej informacji, zobacz https://go.microsoft.com/fwlink/?linkid=858594.</target>
+        <note>{StrBegin="MSB3474: "}</note>
+      </trans-unit>
       <trans-unit id="SignFile.CertNotInStore">
         <source>MSB3481: The signing certificate could not be located. Ensure that it is in the current user's personal store.</source>
         <target state="translated">MSB3481: Nie można zlokalizować certyfikatu podpisującego. Upewnij się, że znajduje się on w magazynie osobistym bieżącego użytkownika.</target>
@@ -2527,6 +2564,11 @@
         <source>MSB3762: No references were passed to the task. References to at least mscorlib and Windows.Foundation are required.</source>
         <target state="translated">MSB3762: Do zadania nie zostały przekazane informacje o żadnych odwołaniach. Wymagane są odwołania co najmniej do biblioteki mscorlib i elementu Windows.Foundation.</target>
         <note>{StrBegin="MSB3762: "}</note>
+      </trans-unit>
+      <trans-unit id="Xaml.DuplicatePropertyName">
+        <source>MSB3724: Unable to create Xaml task.  Duplicate property name '{0}'.</source>
+        <target state="translated">MSB3724: Nie można utworzyć zadania XAML. Zduplikowana nazwa właściwości „{0}”.</target>
+        <note>{StrBegin="MSB3724: "}</note>
       </trans-unit>
       <trans-unit id="Xaml.TaskCreationFailed">
         <source>MSB3686: Unable to create Xaml task.  Compilation failed.  {0}</source>
