@@ -1,5 +1,5 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections;
@@ -13,13 +13,18 @@ using Microsoft.Build.BackEnd;
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Construction;
+using Microsoft.Build.Engine.UnitTests.TestComparers;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Shared.Debugging;
+using Shouldly;
+using Xunit;
 using InvalidProjectFileException = Microsoft.Build.Exceptions.InvalidProjectFileException;
 using TaskItem = Microsoft.Build.Execution.ProjectItemInstance.TaskItem;
-using Xunit;
+
+#nullable disable
 
 namespace Microsoft.Build.UnitTests.BackEnd
 {
@@ -41,7 +46,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// <summary>
         /// The task execution host
         /// </summary>
-        private ITaskExecutionHost _host;
+        private TaskExecutionHost _host;
 
         /// <summary>
         /// The mock logging service
@@ -153,17 +158,16 @@ namespace Microsoft.Build.UnitTests.BackEnd
             {
                 var parameters = new Dictionary<string, (string, ElementLocation)>(StringComparer.OrdinalIgnoreCase);
                 _host.SetTaskParameters(parameters);
-            }
-           );
+            });
         }
         /// <summary>
         /// Validate that setting a non-existent parameter fails, but does not throw an exception.
         /// </summary>
         [Fact]
-        public void ValidateNonExistantParameter()
+        public void ValidateNonExistentParameter()
         {
             var parameters = new Dictionary<string, (string, ElementLocation)>(StringComparer.OrdinalIgnoreCase);
-            parameters["NonExistantParam"] = ("foo", ElementLocation.Create("foo.proj"));
+            parameters["NonExistentParam"] = ("foo", ElementLocation.Create("foo.proj"));
             Assert.False(_host.SetTaskParameters(parameters));
         }
 
@@ -202,7 +206,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         [Fact]
         public void TestSetBoolParamEmptyProperty()
         {
-            ValidateTaskParameterNotSet("BoolParam", "$(NonExistantProperty)");
+            ValidateTaskParameterNotSet("BoolParam", "$(NonExistentProperty)");
         }
 
         /// <summary>
@@ -211,7 +215,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         [Fact]
         public void TestSetBoolParamEmptyItem()
         {
-            ValidateTaskParameterNotSet("BoolParam", "@(NonExistantItem)");
+            ValidateTaskParameterNotSet("BoolParam", "@(NonExistentItem)");
         }
 
         #endregion
@@ -251,7 +255,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         [Fact]
         public void TestSetBoolArrayParamEmptyProperty()
         {
-            ValidateTaskParameterNotSet("BoolArrayParam", "$(NonExistantProperty)");
+            ValidateTaskParameterNotSet("BoolArrayParam", "$(NonExistentProperty)");
         }
 
         /// <summary>
@@ -260,7 +264,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         [Fact]
         public void TestSetBoolArrayParamEmptyItem()
         {
-            ValidateTaskParameterNotSet("BoolArrayParam", "@(NonExistantItem)");
+            ValidateTaskParameterNotSet("BoolArrayParam", "@(NonExistentItem)");
         }
 
         #endregion
@@ -300,7 +304,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         [Fact]
         public void TestSetIntParamEmptyProperty()
         {
-            ValidateTaskParameterNotSet("IntParam", "$(NonExistantProperty)");
+            ValidateTaskParameterNotSet("IntParam", "$(NonExistentProperty)");
         }
 
         /// <summary>
@@ -309,7 +313,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         [Fact]
         public void TestSetIntParamEmptyItem()
         {
-            ValidateTaskParameterNotSet("IntParam", "@(NonExistantItem)");
+            ValidateTaskParameterNotSet("IntParam", "@(NonExistentItem)");
         }
 
         #endregion
@@ -354,7 +358,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         [Fact]
         public void TestSetIntArrayParamEmptyProperty()
         {
-            ValidateTaskParameterNotSet("IntArrayParam", "$(NonExistantProperty)");
+            ValidateTaskParameterNotSet("IntArrayParam", "$(NonExistentProperty)");
         }
 
         /// <summary>
@@ -363,7 +367,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         [Fact]
         public void TestSetIntArrayParamEmptyItem()
         {
-            ValidateTaskParameterNotSet("IntArrayParam", "@(NonExistantItem)");
+            ValidateTaskParameterNotSet("IntArrayParam", "@(NonExistentItem)");
         }
 
         #endregion
@@ -403,7 +407,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         [Fact]
         public void TestSetStringParamEmptyProperty()
         {
-            ValidateTaskParameterNotSet("StringParam", "$(NonExistantProperty)");
+            ValidateTaskParameterNotSet("StringParam", "$(NonExistentProperty)");
         }
 
         /// <summary>
@@ -412,7 +416,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         [Fact]
         public void TestSetStringParamEmptyItem()
         {
-            ValidateTaskParameterNotSet("StringParam", "@(NonExistantItem)");
+            ValidateTaskParameterNotSet("StringParam", "@(NonExistentItem)");
         }
 
         #endregion
@@ -452,7 +456,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         [Fact]
         public void TestSetStringArrayParamEmptyProperty()
         {
-            ValidateTaskParameterNotSet("StringArrayParam", "$(NonExistantProperty)");
+            ValidateTaskParameterNotSet("StringArrayParam", "$(NonExistentProperty)");
         }
 
         /// <summary>
@@ -461,7 +465,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         [Fact]
         public void TestSetStringArrayParamEmptyItem()
         {
-            ValidateTaskParameterNotSet("StringArrayParam", "@(NonExistantItem)");
+            ValidateTaskParameterNotSet("StringArrayParam", "@(NonExistentItem)");
         }
 
         #endregion
@@ -486,8 +490,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             Assert.Throws<InvalidProjectFileException>(() =>
             {
                 ValidateTaskParameterItems("ItemParam", "@(ItemListContainingTwoItems)", _twoItems);
-            }
-           );
+            });
         }
         /// <summary>
         /// Validate that setting an item with a string results in an item with the evaluated include set to the string.
@@ -513,7 +516,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         [Fact]
         public void TestSetItemParamEmptyProperty()
         {
-            ValidateTaskParameterNotSet("ItemParam", "$(NonExistantProperty)");
+            ValidateTaskParameterNotSet("ItemParam", "$(NonExistentProperty)");
         }
 
         /// <summary>
@@ -522,7 +525,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         [Fact]
         public void TestSetItemParamEmptyItem()
         {
-            ValidateTaskParameterNotSet("ItemParam", "@(NonExistantItem)");
+            ValidateTaskParameterNotSet("ItemParam", "@(NonExistentItem)");
         }
 
         #endregion
@@ -580,7 +583,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         [Fact]
         public void TestSetItemArrayParamEmptyProperty()
         {
-            ValidateTaskParameterNotSet("ItemArrayParam", "$(NonExistantProperty)");
+            ValidateTaskParameterNotSet("ItemArrayParam", "$(NonExistentProperty)");
         }
 
         /// <summary>
@@ -589,7 +592,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         [Fact]
         public void TestSetItemArrayParamEmptyItem()
         {
-            ValidateTaskParameterNotSet("ItemArrayParam", "@(NonExistantItem)");
+            ValidateTaskParameterNotSet("ItemArrayParam", "@(NonExistentItem)");
         }
 
         #endregion
@@ -645,8 +648,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 Assert.True(_host.SetTaskParameters(parameters));
 
                 _host.Execute();
-            }
-           );
+            });
         }
         #endregion
 
@@ -896,7 +898,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         public void TestEmptyStringInStringArrayParameterIntoItemList()
         {
             SetTaskParameter("StringArrayParam", "");
-            ValidateOutputItems("StringArrayOutput", new ITaskItem[] { });
+            ValidateOutputItems("StringArrayOutput", Array.Empty<ITaskItem>());
         }
 
         /// <summary>
@@ -907,7 +909,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         public void TestEmptyStringParameterIntoItemList()
         {
             SetTaskParameter("StringParam", "");
-            ValidateOutputItems("StringOutput", new ITaskItem[] { });
+            ValidateOutputItems("StringOutput", Array.Empty<ITaskItem>());
         }
 
         /// <summary>
@@ -916,7 +918,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         [Fact]
         public void TestNullITaskItemArrayParameter()
         {
-            ValidateOutputItems("ItemArrayNullOutput", new ITaskItem[] { });
+            ValidateOutputItems("ItemArrayNullOutput", Array.Empty<ITaskItem>());
         }
 
         /// <summary>
@@ -927,9 +929,8 @@ namespace Microsoft.Build.UnitTests.BackEnd
         {
             Assert.Throws<InvalidProjectFileException>(() =>
             {
-                ValidateOutputItems("ArrayListOutput", new ITaskItem[] { });
-            }
-           );
+                ValidateOutputItems("ArrayListOutput", Array.Empty<ITaskItem>());
+            });
         }
         /// <summary>
         /// Attempts to gather outputs from a non-existent output.  This should fail.
@@ -939,9 +940,8 @@ namespace Microsoft.Build.UnitTests.BackEnd
         {
             Assert.Throws<InvalidProjectFileException>(() =>
             {
-                Assert.False(_host.GatherTaskOutputs("NonExistantOutput", ElementLocation.Create(".", 1, 1), true, "output"));
-            }
-           );
+                Assert.False(_host.GatherTaskOutputs("NonExistentOutput", ElementLocation.Create(".", 1, 1), true, "output"));
+            });
         }
         /// <summary>
         /// object[] should not be a supported output type.
@@ -952,8 +952,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             Assert.Throws<InvalidProjectFileException>(() =>
             {
                 ValidateOutputProperty("ObjectArrayOutput", "");
-            }
-           );
+            });
         }
         #endregion
 
@@ -985,8 +984,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 TargetLoggingContext tlc = new TargetLoggingContext(_loggingService, new BuildEventContext(1, 1, BuildEventContext.InvalidProjectContextId, 1));
 
                 ProjectInstance project = CreateTestProject();
-                _host.InitializeForTask
-                    (
+                _host.InitializeForTask(
                     this,
                     tlc,
                     project,
@@ -998,12 +996,10 @@ namespace Microsoft.Build.UnitTests.BackEnd
                     null,
 #endif
                     false,
-                    CancellationToken.None
-                    );
+                    CancellationToken.None);
                 _host.FindTask(null);
                 _host.InitializeForBatch(new TaskLoggingContext(_loggingService, tlc.BuildEventContext), _bucket, null);
-            }
-           );
+            });
         }
         /// <summary>
         /// Test that specifying a task with no using task logs an error, but does not throw.
@@ -1016,8 +1012,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             TargetLoggingContext tlc = new TargetLoggingContext(_loggingService, new BuildEventContext(1, 1, BuildEventContext.InvalidProjectContextId, 1));
 
             ProjectInstance project = CreateTestProject();
-            _host.InitializeForTask
-                (
+            _host.InitializeForTask(
                 this,
                 tlc,
                 project,
@@ -1029,18 +1024,110 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 null,
 #endif
                 false,
-                CancellationToken.None
-                );
+                CancellationToken.None);
 
             _host.FindTask(null);
             _host.InitializeForBatch(new TaskLoggingContext(_loggingService, tlc.BuildEventContext), _bucket, null);
             _logger.AssertLogContains("MSB4036");
         }
 
+        /// <summary>
+        /// https://github.com/dotnet/msbuild/issues/8864
+        /// </summary>
+        [Fact]
+        public void TestTaskDictionaryOutputItems()
+        {
+            string customTaskPath = Assembly.GetExecutingAssembly().Location;
+            MockLogger ml = ObjectModelHelpers.BuildProjectExpectSuccess($"""
+                    <Project ToolsVersion=`msbuilddefaulttoolsversion` xmlns=`msbuildnamespace`>
+                        <UsingTask TaskName=`TaskThatReturnsDictionaryTaskItem` AssemblyFile=`{customTaskPath}`/>
+                        <Target Name=`Build`>
+                           <TaskThatReturnsDictionaryTaskItem Key="a" Value="b">
+                                <Output TaskParameter="DictionaryTaskItemOutput" ItemName="Outputs"/>
+                            </TaskThatReturnsDictionaryTaskItem>
+                        </Target>
+                    </Project>
+                """);
+            ml.AssertLogContains("a=b");
+        }
+
+        [Theory]
+        [InlineData(typeof(OutOfMemoryException), true)]
+        [InlineData(typeof(ArgumentException), false)]
+        public void TaskExceptionHandlingTest(Type exceptionType, bool isCritical)
+        {
+            string testExceptionMessage = "Test Message";
+            string customTaskPath = Assembly.GetExecutingAssembly().Location;
+            MockLogger ml = new MockLogger() { AllowTaskCrashes = true };
+
+            using TestEnvironment env = TestEnvironment.Create();
+            var debugFolder = env.CreateFolder();
+            // inject the location for failure logs - not to interact with other tests
+            env.SetEnvironmentVariable("MSBUILDDEBUGPATH", debugFolder.Path);
+            // Force initing the DebugPath from the env var - as we need it to be unique for those tests.
+            // The ProjectCacheTests DataMemberAttribute usages (specifically SuccessfulGraphsWithBuildParameters) lead
+            //  to the DebugPath being set before this test runs - and hence the env var is ignored.
+            DebugUtils.SetDebugPath();
+
+            ObjectModelHelpers.BuildProjectExpectFailure($"""
+                     <Project ToolsVersion=`msbuilddefaulttoolsversion` xmlns=`msbuildnamespace`>
+                         <UsingTask TaskName=`TaskThatThrows` AssemblyFile=`{customTaskPath}`/>
+                         <Target Name=`Build`>
+                            <TaskThatThrows ExceptionType="{exceptionType.ToString()}" ExceptionMessage="{testExceptionMessage}">
+                             </TaskThatThrows>
+                         </Target>
+                     </Project>
+                  """,
+                ml);
+            // 'This is an unhandled exception from a task'
+            ml.AssertLogContains("MSB4018");
+            // 'An internal failure occurred while running MSBuild'
+            ml.AssertLogDoesntContain("MSB1025");
+            // 'This is an unhandled error in MSBuild'
+            ml.AssertLogDoesntContain(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("UnhandledMSBuildError", string.Empty));
+            ml.AssertLogContains(testExceptionMessage);
+
+            File.Exists(ExceptionHandling.DumpFilePath).ShouldBe(isCritical,
+                $"{ExceptionHandling.DumpFilePath} expected to exist: {isCritical}");
+            if (isCritical)
+            {
+                FileUtilities.DeleteNoThrow(ExceptionHandling.DumpFilePath);
+            }
+        }
+
+        [Fact]
+        public void TestTaskParameterLogging()
+        {
+            string customTaskPath = Assembly.GetExecutingAssembly().Location;
+            MockLogger ml = ObjectModelHelpers.BuildProjectExpectSuccess($"""
+                    <Project>
+                        <UsingTask TaskName=`TaskThatReturnsDictionaryTaskItem` AssemblyFile=`{customTaskPath}`/>
+                        <ItemGroup>
+                            <MyItem Include="item1"/>
+                            <MyItem Include="item2"/>
+                        </ItemGroup>
+                        <Target Name=`Build`>
+                           <TaskThatReturnsDictionaryTaskItem Key="a" Value="b" AdditionalParameters="@(MyItem)" />
+                        </Target>
+                    </Project>
+                """);
+
+            // Each parameter should be logged as TaskParameterEvent.
+            ml.TaskParameterEvents.Count.ShouldBe(3);
+            IList<string> messages = ml.TaskParameterEvents.Select(e => e.Message).ToList();
+            messages.ShouldContain($"{ItemGroupLoggingHelper.TaskParameterPrefix}Key=a");
+            messages.ShouldContain($"{ItemGroupLoggingHelper.TaskParameterPrefix}Value=b");
+            messages.ShouldContain($"{ItemGroupLoggingHelper.TaskParameterPrefix}\n    AdditionalParameters=\n        item1\n        item2");
+
+            // Parameters should not be logged as messages.
+            messages = ml.BuildMessageEvents.Select(e => e.Message).ToList();
+            messages.ShouldNotContain(m => m.StartsWith(ItemGroupLoggingHelper.TaskParameterPrefix));
+        }
+
         #endregion
 
         #region ITestTaskHost Members
-        #pragma warning disable xUnit1013
+#pragma warning disable xUnit1013
 
         /// <summary>
         /// Records that a parameter was set on the task.
@@ -1122,7 +1209,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             throw new NotImplementedException();
         }
 
-        #pragma warning restore xUnit1013
+#pragma warning restore xUnit1013
         #endregion
 
         #region Validation Routines
@@ -1134,11 +1221,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         {
             return type.GetTypeInfo().IsClass &&
                 !type.GetTypeInfo().IsAbstract &&
-#if FEATURE_TYPE_GETINTERFACE
                 (type.GetInterface("Microsoft.Build.Framework.ITaskFactory") != null);
-#else
-                type.GetInterfaces().Any(interfaceType => interfaceType.FullName == "Microsoft.Build.Framework.ITaskFactory");
-#endif
         }
 
         /// <summary>
@@ -1162,14 +1245,13 @@ namespace Microsoft.Build.UnitTests.BackEnd
 #else
             AssemblyLoadInfo loadInfo = AssemblyLoadInfo.Create(typeof(TaskBuilderTestTask.TaskBuilderTestTaskFactory).GetTypeInfo().FullName, null);
 #endif
-            LoadedType loadedType = new LoadedType(typeof(TaskBuilderTestTask.TaskBuilderTestTaskFactory), loadInfo);
+            LoadedType loadedType = new LoadedType(typeof(TaskBuilderTestTask.TaskBuilderTestTaskFactory), loadInfo, typeof(TaskBuilderTestTask.TaskBuilderTestTaskFactory).Assembly, typeof(ITaskItem));
 
             TaskBuilderTestTask.TaskBuilderTestTaskFactory taskFactory = new TaskBuilderTestTask.TaskBuilderTestTaskFactory();
             taskFactory.ThrowOnExecute = throwOnExecute;
             string taskName = "TaskBuilderTestTask";
             (_host as TaskExecutionHost)._UNITTESTONLY_TaskFactoryWrapper = new TaskFactoryWrapper(taskFactory, loadedType, taskName, null);
-            _host.InitializeForTask
-                (
+            _host.InitializeForTask(
                 this,
                 tlc,
                 project,
@@ -1181,11 +1263,10 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 null,
 #endif
                 false,
-                CancellationToken.None
-                );
+                CancellationToken.None);
 
             ProjectTaskInstance taskInstance = project.Targets["foo"].Tasks.First();
-            TaskLoggingContext talc = tlc.LogTaskBatchStarted(".", taskInstance);
+            TaskLoggingContext talc = tlc.LogTaskBatchStarted(".", taskInstance, typeof(TaskBuilderTestTask.TaskBuilderTestTaskFactory).Assembly.GetName().FullName);
 
             ItemDictionary<ProjectItemInstance> itemsByName = new ItemDictionary<ProjectItemInstance>();
 
@@ -1202,7 +1283,8 @@ namespace Microsoft.Build.UnitTests.BackEnd
             itemsByName.Add(item2);
             _twoItems = new ITaskItem[] { new TaskItem(item), new TaskItem(item2) };
 
-            _bucket = new ItemBucket(new string[0], new Dictionary<string, string>(), new Lookup(itemsByName, new PropertyDictionary<ProjectPropertyInstance>()), 0);
+            _bucket = new ItemBucket(Array.Empty<string>(), new Dictionary<string, string>(), new Lookup(itemsByName, new PropertyDictionary<ProjectPropertyInstance>()), 0);
+            _bucket.Initialize(null);
             _host.FindTask(null);
             _host.InitializeForBatch(talc, _bucket, null);
             _parametersSetOnTask = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
@@ -1437,11 +1519,11 @@ namespace Microsoft.Build.UnitTests.BackEnd
                     <Target Name='Skip' Inputs='testProject.proj' Outputs='testProject.proj' />
 
                     <Target Name='Error' >
-                        <ErrorTask1 ContinueOnError='True'/>                    
-                        <ErrorTask2 ContinueOnError='False'/>  
-                        <ErrorTask3 /> 
-                        <OnError ExecuteTargets='Foo'/>                  
-                        <OnError ExecuteTargets='Bar'/>                  
+                        <ErrorTask1 ContinueOnError='True'/>
+                        <ErrorTask2 ContinueOnError='False'/>
+                        <ErrorTask3 />
+                        <OnError ExecuteTargets='Foo'/>
+                        <OnError ExecuteTargets='Bar'/>
                     </Target>
 
                     <Target Name='Foo' Inputs='foo.cpp' Outputs='foo.o'>

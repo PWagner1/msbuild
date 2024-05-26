@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -180,7 +184,7 @@ namespace Microsoft.Build.UnitTests
                     <CppCompile>
                       <Defines>DEBUG</Defines>
                     </CppCompile>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                   <ItemGroup>
                     <CppCompile Include='b.cpp'/>
                   </ItemGroup>
@@ -207,7 +211,7 @@ namespace Microsoft.Build.UnitTests
                     <i Condition=`'%24'=='$'`>
                       <m Condition=`'%24'=='$'`>%24(xyz)</m>
                     </i>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                   <Target Name=`t`>
                     <Message Text=`[%(i.m)]`/>
                   </Target>
@@ -232,7 +236,7 @@ namespace Microsoft.Build.UnitTests
                     <j>
                       <m>m1</m>
                     </j>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                   <Target Name=`t`>
                     <Message Text=`[%(i.m)]`/>
                   </Target>
@@ -257,13 +261,13 @@ namespace Microsoft.Build.UnitTests
                       <m>m1</m>
                       <n>n1</n>
                     </i>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                   <ItemDefinitionGroup>
                     <i>
                       <m>m2</m>
                       <o>o1</o>
                     </i>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                   <Target Name=`t`>
                     <Message Text=`[%(i.m)-%(i.n)-%(i.o)]`/>
                   </Target>
@@ -286,7 +290,7 @@ namespace Microsoft.Build.UnitTests
                     <i>
                       <m>@(x)</m>
                     </i>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                 </Project>
             ", logger);
             p.Build("t");
@@ -337,16 +341,16 @@ namespace Microsoft.Build.UnitTests
                     <j>
                       <n>n1</n>
                     </j>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                   <ItemDefinitionGroup>
                     <i Condition=`'%(m)'=='m1'`>
                       <m>m2</m>
                     </i>
                     <!-- verify j metadata is distinct -->
                     <j Condition=`'%(j.n)'=='n1' and '%(n)'=='n1'`>
-                      <n>n2</n>   
+                      <n>n2</n>
                     </j>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                   <Target Name=`t`>
                     <Message Text=`[%(i.m)]`/>
                     <Message Text=`[%(j.n)]`/>
@@ -371,12 +375,12 @@ namespace Microsoft.Build.UnitTests
                     <i>
                       <m>m1</m>
                     </i>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                   <ItemDefinitionGroup>
                     <i Condition=`'%(i.m)'=='m1' and '%(m)'=='m1'`>
                       <m>m2</m>
                     </i>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                   <Target Name=`t`>
                     <Message Text=`[%(i.m)]`/>
                   </Target>
@@ -400,12 +404,12 @@ namespace Microsoft.Build.UnitTests
                     <i>
                       <m>m1</m>
                     </i>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                   <ItemDefinitionGroup>
                     <i Condition=`'%(m)'=='m2' or '%(i.m)'!='m1'`>
                       <m>m3</m>
                     </i>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                   <Target Name=`t`>
                     <Message Text=`[%(i.m)]`/>
                   </Target>
@@ -430,12 +434,12 @@ namespace Microsoft.Build.UnitTests
                       <m>m1</m>
                       <n>n1</n>
                     </i>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                   <ItemDefinitionGroup>
                     <i>
                       <m Condition=`'%(m)'=='m1' and '%(n)'=='n1' and '%(i.m)'=='m1'`>m2</m>
                     </i>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                   <Target Name=`t`>
                     <Message Text=`[%(i.m)]`/>
                   </Target>
@@ -460,12 +464,12 @@ namespace Microsoft.Build.UnitTests
                       <m>m1</m>
                       <n>n1</n>
                     </i>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                   <ItemDefinitionGroup>
                     <i>
                       <m Condition=`'%(m)'=='m2' or !('%(n)'=='n1') or '%(i.m)' != 'm1'`>m3</m>
                     </i>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                   <Target Name=`t`>
                     <Message Text=`[%(i.m)]`/>
                   </Target>
@@ -489,12 +493,12 @@ namespace Microsoft.Build.UnitTests
                     <i>
                       <m>m1</m>
                     </i>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                   <ItemDefinitionGroup>
                     <i Condition=`'%(j.m)'=='' and '%(j.m)'!='x'`>
                       <m Condition=`'%(j.m)'=='' and '%(j.m)'!='x'`>m2</m>
                     </i>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                   <Target Name=`t`>
                     <Message Text=`[%(i.m)]`/>
                   </Target>
@@ -507,8 +511,8 @@ namespace Microsoft.Build.UnitTests
 
         /// <summary>
         /// Make ItemDefinitionGroup inside a target produce a nice error.
-        /// It will normally produce an error due to the invalid child tag, but 
-        /// we want to error even if there's no child tag. This will make it 
+        /// It will normally produce an error due to the invalid child tag, but
+        /// we want to error even if there's no child tag. This will make it
         /// easier to support it inside targets in a future version.
         /// </summary>
         [Test]
@@ -561,7 +565,7 @@ namespace Microsoft.Build.UnitTests
                     <CppCompile>
                       <Defines>DEBUG</Defines>
                     </CppCompile>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                   <Target Name=`t`>
                     <Message Text=`[%(CppCompile.Identity)==%(CppCompile.Defines)]`/>
                   </Target>
@@ -587,7 +591,7 @@ namespace Microsoft.Build.UnitTests
                     <CppCompile>
                       <Defines>DEBUG</Defines>
                     </CppCompile>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                   <Target Name=`t`>
                     <Message Text=`[%(CppCompile.Identity)==%(CppCompile.Defines)]`/>
                     <Message Text=`[%(CppCompile.Identity)==%(CppCompile.WarningLevel)]`/>
@@ -612,7 +616,7 @@ namespace Microsoft.Build.UnitTests
                     <i>
                       <m>m1</m>
                     </i>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                   <Target Name=`t`>
                     <ItemGroup>
                       <i>
@@ -654,7 +658,7 @@ namespace Microsoft.Build.UnitTests
                     <i>
                       <m>m1</m>
                     </i>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                   <Target Name=`t`>
                     <ItemGroup>
                       <i Condition=`'%(i.m)'=='m1'`>
@@ -685,13 +689,13 @@ namespace Microsoft.Build.UnitTests
                     <CppCompile>
                       <Defines>DEBUG</Defines>
                     </CppCompile>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                 </Project>
             ");
                 Project p = ObjectModelHelpers.CreateInMemoryProject(@"
                     <Project ToolsVersion=`msbuilddefaulttoolsversion` xmlns=`msbuildnamespace`>
                       <ItemGroup>
-                        <CppCompile Include='a.cpp'/>                      
+                        <CppCompile Include='a.cpp'/>
                       </ItemGroup>
                       <Import Project='" + importedFile + @"'/>
                       <Target Name=`t`>
@@ -721,7 +725,7 @@ namespace Microsoft.Build.UnitTests
                     <i>
                       <m>m1</m>
                     </i>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                 </Project>
                 ");
 
@@ -742,7 +746,7 @@ namespace Microsoft.Build.UnitTests
                     <i>
                       <m>m1</m>
                     </i>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                   <ItemGroup>
                     <i Include='i2'>
                       <m>m2</m>
@@ -771,7 +775,7 @@ namespace Microsoft.Build.UnitTests
                       <m>m1</m>
                       <n>n1</n>
                     </i>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                   <Target Name=`t`>
                     <CreateItem Include=`i1` AdditionalMetadata=`n=n2`>
                       <Output ItemName=`i` TaskParameter=`Include`/>
@@ -797,7 +801,7 @@ namespace Microsoft.Build.UnitTests
                       <m>m1</m>
                       <n>n1</n>
                     </i>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                   <Target Name=`t`>
                     <ItemGroup>
                       <i Include=`i1`>
@@ -825,10 +829,10 @@ namespace Microsoft.Build.UnitTests
                       <m>m1</m>
                       <n>~%(m)~</n>
                     </i>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                     <ItemGroup>
                       <i Include=`i1`/>
-                    </ItemGroup>   
+                    </ItemGroup>
                   <Target Name=`t`>
                     <Message Text=`[%(i.m)][%(i.n)]`/>
                   </Target>
@@ -851,10 +855,10 @@ namespace Microsoft.Build.UnitTests
                       <m>~%(n)~</m>
                       <n>n1</n>
                     </i>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                     <ItemGroup>
                       <i Include=`i1`/>
-                    </ItemGroup>   
+                    </ItemGroup>
                   <Target Name=`t`>
                     <Message Text=`[%(i.m)][%(i.n)]`/>
                   </Target>
@@ -878,10 +882,10 @@ namespace Microsoft.Build.UnitTests
                       <n>%(i.m)</n>
                       <o>%(j.m)</o>
                     </i>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                     <ItemGroup>
                       <i Include=`i1`/>
-                    </ItemGroup>   
+                    </ItemGroup>
                   <Target Name=`t`>
                     <Message Text=`[%(i.m)][%(i.n)][%(i.o)]`/>
                   </Target>
@@ -910,7 +914,7 @@ namespace Microsoft.Build.UnitTests
                       <Defines Condition=`'$(BuildFlavor)'=='ret'`>$(Defines);RETAIL</Defines>
                       <Defines Condition=`'$(BuildFlavor)'=='chk'`>$(Defines);DEBUG</Defines>
                     </CppCompile>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                   <Target Name=`t`>
                     <Message Text=`[%(CppCompile.Identity)==%(CppCompile.Defines)]`/>
                   </Target>
@@ -953,7 +957,7 @@ namespace Microsoft.Build.UnitTests
                     <i>
                       <m>m2</m>
                     </i>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                   <Target Name=""t"">
                     <Message Text=""[CHILD:%(i.m)]""/>
                   </Target>
@@ -974,7 +978,7 @@ namespace Microsoft.Build.UnitTests
                     <i>
                       <m>m1</m>
                     </i>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                   <Target Name=`t`>
                     <Message Text=`[PARENT-before:%(i.m)]`/>
                     <MSBuild Projects=`" + otherProject + @"`/>
@@ -1011,7 +1015,7 @@ namespace Microsoft.Build.UnitTests
                     <i>
                       <n>n1</n>
                     </i>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                   <Target Name=""t"" Outputs=""@(i)"">
                     <Message Text=""[CHILD:%(i.Identity):m=%(i.m),n=%(i.n)]""/>
                   </Target>
@@ -1054,7 +1058,7 @@ namespace Microsoft.Build.UnitTests
             library.Add(group);
 
             BuildPropertyGroup properties = new BuildPropertyGroup();
-            properties.SetProperty("p1", "v1");            
+            properties.SetProperty("p1", "v1");
             library.Evaluate(properties);
 
             return library;

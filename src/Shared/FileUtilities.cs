@@ -1,9 +1,11 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 #if !CLR2COMPATIBILITY
 using System.Collections.Concurrent;
+#else
+using Microsoft.Build.Shared.Concurrent;
 #endif
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -15,8 +17,10 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
-using Microsoft.Build.Utilities;
+using Microsoft.Build.Framework;
 using Microsoft.Build.Shared.FileSystem;
+
+#nullable disable
 
 namespace Microsoft.Build.Shared
 {
@@ -41,6 +45,10 @@ namespace Microsoft.Build.Shared
         /// </summary>
         internal static string cacheDirectory = null;
 
+#if CLR2COMPATIBILITY
+        internal static string TempFileDirectory => Path.GetTempPath();
+#endif
+
         /// <summary>
         /// FOR UNIT TESTS ONLY
         /// Clear out the static variable used for the cache directory so that tests that
@@ -52,6 +60,8 @@ namespace Microsoft.Build.Shared
         }
 
         internal static readonly StringComparison PathComparison = GetIsFileSystemCaseSensitive() ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+
+        internal static readonly StringComparer PathComparer = GetIsFileSystemCaseSensitive() ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
 
         /// <summary>
         /// Determines whether the file system is case sensitive.
@@ -79,7 +89,7 @@ namespace Microsoft.Build.Shared
 
         /// <summary>
         /// Copied from https://github.com/dotnet/corefx/blob/056715ff70e14712419d82d51c8c50c54b9ea795/src/Common/src/System/IO/PathInternal.Windows.cs#L61
-        /// MSBuild should support the union of invalid path chars across the supported OSes, so builds can have the same behaviour crossplatform: https://github.com/Microsoft/msbuild/issues/781#issuecomment-243942514
+        /// MSBuild should support the union of invalid path chars across the supported OSes, so builds can have the same behaviour crossplatform: https://github.com/dotnet/msbuild/issues/781#issuecomment-243942514
         /// </summary>
         internal static readonly char[] InvalidPathChars = new char[]
         {
@@ -92,7 +102,7 @@ namespace Microsoft.Build.Shared
 
         /// <summary>
         /// Copied from https://github.com/dotnet/corefx/blob/387cf98c410bdca8fd195b28cbe53af578698f94/src/System.Runtime.Extensions/src/System/IO/Path.Windows.cs#L18
-        /// MSBuild should support the union of invalid path chars across the supported OSes, so builds can have the same behaviour crossplatform: https://github.com/Microsoft/msbuild/issues/781#issuecomment-243942514
+        /// MSBuild should support the union of invalid path chars across the supported OSes, so builds can have the same behaviour crossplatform: https://github.com/dotnet/msbuild/issues/781#issuecomment-243942514
         /// </summary>
         internal static readonly char[] InvalidFileNameChars = new char[]
         {
@@ -107,11 +117,8 @@ namespace Microsoft.Build.Shared
 
         internal static readonly string DirectorySeparatorString = Path.DirectorySeparatorChar.ToString();
 
-#if !CLR2COMPATIBILITY
         private static readonly ConcurrentDictionary<string, bool> FileExistenceCache = new ConcurrentDictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
-#else
-        private static readonly Microsoft.Build.Shared.Concurrent.ConcurrentDictionary<string, bool> FileExistenceCache = new Microsoft.Build.Shared.Concurrent.ConcurrentDictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
-#endif
+
         private static readonly IFileSystem DefaultFileSystem = FileSystems.Default;
 
         /// <summary>
@@ -121,7 +128,7 @@ namespace Microsoft.Build.Shared
         {
             if (cacheDirectory == null)
             {
-                cacheDirectory = Path.Combine(Path.GetTempPath(), String.Format(CultureInfo.CurrentUICulture, "MSBuild{0}-{1}", Process.GetCurrentProcess().Id, AppDomain.CurrentDomain.Id));
+                cacheDirectory = Path.Combine(TempFileDirectory, String.Format(CultureInfo.CurrentUICulture, "MSBuild{0}-{1}", Process.GetCurrentProcess().Id, AppDomain.CurrentDomain.Id));
             }
 
             return cacheDirectory;
@@ -162,6 +169,32 @@ namespace Microsoft.Build.Shared
             }
 
             return builder.ToString().GetHashCode();
+        }
+
+        /// <summary>
+        /// Returns whether MSBuild can write to the given directory. Throws for PathTooLongExceptions
+        /// but not other exceptions.
+        /// </summary>
+        internal static bool CanWriteToDirectory(string directory)
+        {
+            try
+            {
+                string testFilePath = Path.Combine(directory, $"MSBuild_{Guid.NewGuid().ToString("N")}_testFile.txt");
+                FileInfo file = new(testFilePath);
+                file.Directory.Create(); // If the directory already exists, this method does nothing.
+                File.WriteAllText(testFilePath, $"MSBuild process {Process.GetCurrentProcess().Id} successfully wrote to file.");
+                File.Delete(testFilePath);
+                return true;
+            }
+            catch (PathTooLongException)
+            {
+                ErrorUtilities.ThrowArgument("DebugPathTooLong", directory);
+                return false; // Should never reach here.
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
 
         /// <summary>
@@ -243,6 +276,58 @@ namespace Microsoft.Build.Shared
         }
 
         /// <summary>
+        /// Ensures the path is enclosed within single quotes.
+        /// </summary>
+        /// <param name="path">The path to check.</param>
+        /// <returns>The path enclosed by quotes.</returns>
+        internal static string EnsureSingleQuotes(string path)
+        {
+            return EnsureQuotes(path);
+        }
+
+        /// <summary>
+        /// Ensures the path is enclosed within double quotes.
+        /// </summary>
+        /// <param name="path">The path to check.</param>
+        /// <returns>The path enclosed by quotes.</returns>
+        internal static string EnsureDoubleQuotes(string path)
+        {
+            return EnsureQuotes(path, isSingleQuote: false);
+        }
+
+        /// <summary>
+        /// Ensures the path is enclosed within quotes.
+        /// </summary>
+        /// <param name="path">The path to check.</param>
+        /// <param name="isSingleQuote">Indicates if single or double quotes should be used</param>
+        /// <returns>The path enclosed by quotes.</returns>
+        internal static string EnsureQuotes(string path, bool isSingleQuote = true)
+        {
+            path = FixFilePath(path);
+
+            const char singleQuote = '\'';
+            const char doubleQuote = '\"';
+            var targetQuote = isSingleQuote ? singleQuote : doubleQuote;
+            var convertQuote = isSingleQuote ? doubleQuote : singleQuote;
+
+            if (!string.IsNullOrEmpty(path))
+            {
+                // Special case: convert the quotes.
+                if (path.Length > 1 && path[0] == convertQuote && path[path.Length - 1] == convertQuote)
+                {
+                    path = $"{targetQuote}{path.Substring(1, path.Length - 2)}{targetQuote}";
+                }
+                // Enclose the path in a set of the 'target' quote unless the string is already quoted with the 'target' quotes.
+                else if (path.Length == 1 || path[0] != targetQuote || path[path.Length - 1] != targetQuote)
+                {
+                    path = $"{targetQuote}{path}{targetQuote}";
+                }
+            }
+
+            return path;
+        }
+
+        /// <summary>
         /// Indicates if the given file-spec ends with a slash.
         /// </summary>
         /// <param name="fileSpec">The file spec.</param>
@@ -269,6 +354,11 @@ namespace Microsoft.Build.Shared
         /// </summary>
         internal static string TrimAndStripAnyQuotes(string path)
         {
+            if (path is null)
+            {
+                return path;
+            }
+
             // Trim returns the same string if trimming isn't needed
             path = path.Trim();
             path = path.Trim(new char[] { '"' });
@@ -286,7 +376,11 @@ namespace Microsoft.Build.Shared
             if (fullPath != null)
             {
                 int i = fullPath.Length;
-                while (i > 0 && fullPath[--i] != Path.DirectorySeparatorChar && fullPath[i] != Path.AltDirectorySeparatorChar) ;
+                while (i > 0 && fullPath[--i] != Path.DirectorySeparatorChar && fullPath[i] != Path.AltDirectorySeparatorChar)
+                {
+                    ;
+                }
+
                 return FixFilePath(fullPath.Substring(0, i));
             }
             return null;
@@ -448,9 +542,10 @@ namespace Microsoft.Build.Shared
 
         internal static string FixFilePath(string path)
         {
-            return string.IsNullOrEmpty(path) || Path.DirectorySeparatorChar == '\\' ? path : path.Replace('\\', '/');//.Replace("//", "/");
+            return string.IsNullOrEmpty(path) || Path.DirectorySeparatorChar == '\\' ? path : path.Replace('\\', '/'); // .Replace("//", "/");
         }
 
+#if !CLR2COMPATIBILITY
         /// <summary>
         /// If on Unix, convert backslashes to slashes for strings that resemble paths.
         /// The heuristic is if something resembles paths (contains slashes) check if the
@@ -474,60 +569,45 @@ namespace Microsoft.Build.Shared
             }
 
             // For Unix-like systems, we may want to convert backslashes to slashes
-#if FEATURE_SPAN
             Span<char> newValue = ConvertToUnixSlashes(value.ToCharArray());
-#else
-            string newValue = ConvertToUnixSlashes(value);
-#endif
 
             // Find the part of the name we want to check, that is remove quotes, if present
             bool shouldAdjust = newValue.IndexOf('/') != -1 && LooksLikeUnixFilePath(RemoveQuotes(newValue), baseDirectory);
             return shouldAdjust ? newValue.ToString() : value;
         }
 
-#if !FEATURE_SPAN
-        private static string ConvertToUnixSlashes(string path)
+        /// <summary>
+        /// If on Unix, convert backslashes to slashes for strings that resemble paths.
+        /// This overload takes and returns ReadOnlyMemory of characters.
+        /// </summary>
+        internal static ReadOnlyMemory<char> MaybeAdjustFilePath(ReadOnlyMemory<char> value, string baseDirectory = "")
         {
-            if (path.IndexOf('\\') == -1)
+            if (NativeMethodsShared.IsWindows || value.IsEmpty)
             {
-                return path;
+                return value;
             }
-            StringBuilder unixPath = StringBuilderCache.Acquire(path.Length);
-            CopyAndCollapseSlashes(path, unixPath);
-            return StringBuilderCache.GetStringAndRelease(unixPath);
-        }
 
-#if !CLR2COMPATIBILITY && !FEATURE_SPAN
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-        private static void CopyAndCollapseSlashes(string str, StringBuilder copy)
-        {
-            // Performs Regex.Replace(str, @"[\\/]+", "/")
-            for (int i = 0; i < str.Length; i++)
+            // Don't bother with arrays or properties or network paths.
+            if (value.Length >= 2)
             {
-                bool isCurSlash = IsAnySlash(str[i]);
-                bool isPrevSlash = i > 0 && IsAnySlash(str[i - 1]);
+                var span = value.Span;
 
-                if (!isCurSlash || !isPrevSlash)
+                // The condition is equivalent to span.StartsWith("$(") || span.StartsWith("@(") || span.StartsWith("\\\\")
+                if ((span[1] == '(' && (span[0] == '$' || span[0] == '@')) ||
+                    (span[1] == '\\' && span[0] == '\\'))
                 {
-                    copy.Append(str[i] == '\\' ? '/' : str[i]);
+                    return value;
                 }
             }
+
+            // For Unix-like systems, we may want to convert backslashes to slashes
+            Span<char> newValue = ConvertToUnixSlashes(value.ToArray());
+
+            // Find the part of the name we want to check, that is remove quotes, if present
+            bool shouldAdjust = newValue.IndexOf('/') != -1 && LooksLikeUnixFilePath(RemoveQuotes(newValue), baseDirectory);
+            return shouldAdjust ? newValue.ToString().AsMemory() : value;
         }
 
-        private static string RemoveQuotes(string path)
-        {
-            int endId = path.Length - 1;
-            char singleQuote = '\'';
-            char doubleQuote = '\"';
-
-            bool hasQuotes = path.Length > 2
-                && ((path[0] == singleQuote && path[endId] == singleQuote)
-                || (path[0] == doubleQuote && path[endId] == doubleQuote));
-
-            return hasQuotes ? path.Substring(1, endId - 1) : path;
-        }
-#else
         private static Span<char> ConvertToUnixSlashes(Span<char> path)
         {
             return path.IndexOf('\\') == -1 ? path : CollapseSlashes(path);
@@ -573,6 +653,7 @@ namespace Microsoft.Build.Shared
 #endif
         internal static bool IsAnySlash(char c) => c == '/' || c == '\\';
 
+#if !CLR2COMPATIBILITY
         /// <summary>
         /// If on Unix, check if the string looks like a file path.
         /// The heuristic is if something resembles paths (contains slashes) check if the
@@ -582,24 +663,8 @@ namespace Microsoft.Build.Shared
         /// that
         /// </summary>
         internal static bool LooksLikeUnixFilePath(string value, string baseDirectory = "")
-        {
-            if (NativeMethodsShared.IsWindows)
-            {
-                return false;
-            }
+            => LooksLikeUnixFilePath(value.AsSpan(), baseDirectory);
 
-            // The first slash will either be at the beginning of the string or after the first directory name
-            int directoryLength = value.IndexOf('/', 1) + 1;
-            bool shouldCheckDirectory = directoryLength != 0;
-
-            // Check for actual files or directories under / that get missed by the above logic
-            bool shouldCheckFileOrDirectory = !shouldCheckDirectory && value.Length > 0 && value[0] == '/';
-
-            return (shouldCheckDirectory && DefaultFileSystem.DirectoryExists(Path.Combine(baseDirectory, value.Substring(0, directoryLength))))
-                || (shouldCheckFileOrDirectory && DefaultFileSystem.DirectoryEntryExists(value));
-        }
-
-#if FEATURE_SPAN
         internal static bool LooksLikeUnixFilePath(ReadOnlySpan<char> value, string baseDirectory = "")
         {
             if (NativeMethodsShared.IsWindows)
@@ -616,7 +681,7 @@ namespace Microsoft.Build.Shared
             ReadOnlySpan<char> directory = value.Slice(0, directoryLength);
 
             return (shouldCheckDirectory && DefaultFileSystem.DirectoryExists(Path.Combine(baseDirectory, directory.ToString())))
-                || (shouldCheckFileOrDirectory && DefaultFileSystem.DirectoryEntryExists(value.ToString()));
+                || (shouldCheckFileOrDirectory && DefaultFileSystem.FileOrDirectoryExists(value.ToString()));
         }
 #endif
 
@@ -735,11 +800,13 @@ namespace Microsoft.Build.Shared
         /// <param name="first"></param>
         /// <param name="second"></param>
         /// <param name="currentDirectory"></param>
+        /// <param name="alwaysIgnoreCase"></param>
         /// <returns></returns>
-        internal static bool ComparePathsNoThrow(string first, string second, string currentDirectory)
+        internal static bool ComparePathsNoThrow(string first, string second, string currentDirectory, bool alwaysIgnoreCase = false)
         {
+            StringComparison pathComparison = alwaysIgnoreCase ? StringComparison.OrdinalIgnoreCase : PathComparison;
             // perf: try comparing the bare strings first
-            if (string.Equals(first, second, PathComparison))
+            if (string.Equals(first, second, pathComparison))
             {
                 return true;
             }
@@ -747,7 +814,7 @@ namespace Microsoft.Build.Shared
             var firstFullPath = NormalizePathForComparisonNoThrow(first, currentDirectory);
             var secondFullPath = NormalizePathForComparisonNoThrow(second, currentDirectory);
 
-            return string.Equals(firstFullPath, secondFullPath, PathComparison);
+            return string.Equals(firstFullPath, secondFullPath, pathComparison);
         }
 
         /// <summary>
@@ -850,7 +917,7 @@ namespace Microsoft.Build.Shared
         /// </remarks>
         internal static void DeleteWithoutTrailingBackslash(string path, bool recursive = false)
         {
-            //  Some tests (such as FileMatcher and Evaluation tests) were failing with an UnauthorizedAccessException or directory not empty.
+            // Some tests (such as FileMatcher and Evaluation tests) were failing with an UnauthorizedAccessException or directory not empty.
             //  This retry logic works around that issue.
             const int NUM_TRIES = 3;
             for (int i = 0; i < NUM_TRIES; i++)
@@ -859,17 +926,17 @@ namespace Microsoft.Build.Shared
                 {
                     Directory.Delete(EnsureNoTrailingSlash(path), recursive);
 
-                    //  If we got here, the directory was successfully deleted
+                    // If we got here, the directory was successfully deleted
                     return;
                 }
                 catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
                 {
                     if (i == NUM_TRIES - 1)
                     {
-                        //var files = Directory.GetFiles(path, "*.*", SearchOption.AllDirectories);
-                        //string fileString = string.Join(Environment.NewLine, files);
-                        //string message = $"Unable to delete directory '{path}'.  Contents:" + Environment.NewLine + fileString;
-                        //throw new IOException(message, ex);
+                        // var files = Directory.GetFiles(path, "*.*", SearchOption.AllDirectories);
+                        // string fileString = string.Join(Environment.NewLine, files);
+                        // string message = $"Unable to delete directory '{path}'.  Contents:" + Environment.NewLine + fileString;
+                        // throw new IOException(message, ex);
                         throw;
                     }
                 }
@@ -931,7 +998,7 @@ namespace Microsoft.Build.Shared
                 fileSystem ??= DefaultFileSystem;
 
                 return Traits.Instance.CacheFileExistence
-                    ? FileExistenceCache.GetOrAdd(fullPath, fileSystem.DirectoryExists)
+                    ? FileExistenceCache.GetOrAdd(fullPath, fullPath => fileSystem.DirectoryExists(fullPath))
                     : fileSystem.DirectoryExists(fullPath);
             }
             catch
@@ -955,7 +1022,7 @@ namespace Microsoft.Build.Shared
                 fileSystem ??= DefaultFileSystem;
 
                 return Traits.Instance.CacheFileExistence
-                    ? FileExistenceCache.GetOrAdd(fullPath, fileSystem.FileExists)
+                    ? FileExistenceCache.GetOrAdd(fullPath, fullPath => fileSystem.FileExists(fullPath))
                     : fileSystem.FileExists(fullPath);
             }
             catch
@@ -979,8 +1046,8 @@ namespace Microsoft.Build.Shared
                 fileSystem ??= DefaultFileSystem;
 
                 return Traits.Instance.CacheFileExistence
-                    ? FileExistenceCache.GetOrAdd(fullPath, fileSystem.DirectoryEntryExists)
-                    : fileSystem.DirectoryEntryExists(fullPath);
+                    ? FileExistenceCache.GetOrAdd(fullPath, fullPath => fileSystem.FileOrDirectoryExists(fullPath))
+                    : fileSystem.FileOrDirectoryExists(fullPath);
             }
             catch
             {
@@ -1035,7 +1102,9 @@ namespace Microsoft.Build.Shared
         private static bool HasExtension(string filename, string extension)
         {
             if (String.IsNullOrEmpty(filename))
+            {
                 return false;
+            }
 
             return filename.EndsWith(extension, PathComparison);
         }
@@ -1059,48 +1128,60 @@ namespace Microsoft.Build.Shared
             ErrorUtilities.VerifyThrowArgumentNull(basePath, nameof(basePath));
             ErrorUtilities.VerifyThrowArgumentLength(path, nameof(path));
 
-            if (basePath.Length == 0)
+            string fullBase = Path.GetFullPath(basePath);
+            string fullPath = Path.GetFullPath(path);
+
+            string[] splitBase = fullBase.Split(MSBuildConstants.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+            string[] splitPath = fullPath.Split(MSBuildConstants.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+
+            ErrorUtilities.VerifyThrow(splitPath.Length > 0, "Cannot call MakeRelative on a path of only slashes.");
+
+            // On a mac, the path could start with any number of slashes and still be valid. We have to check them all.
+            int indexOfFirstNonSlashChar = 0;
+            while (path[indexOfFirstNonSlashChar] == Path.DirectorySeparatorChar)
             {
-                return path;
+                indexOfFirstNonSlashChar++;
+            }
+            if (path.IndexOf(splitPath[0]) != indexOfFirstNonSlashChar)
+            {
+                // path was already relative so just return it
+                return FixFilePath(path);
             }
 
-            Uri baseUri = new Uri(EnsureTrailingSlash(basePath), UriKind.Absolute); // May throw UriFormatException
-
-            Uri pathUri = CreateUriFromPath(path);
-
-            if (!pathUri.IsAbsoluteUri)
+            int index = 0;
+            while (index < splitBase.Length && index < splitPath.Length && splitBase[index].Equals(splitPath[index], PathComparison))
             {
-                // the path is already a relative url, we will just normalize it...
-                pathUri = new Uri(baseUri, pathUri);
+                index++;
             }
 
-            Uri relativeUri = baseUri.MakeRelativeUri(pathUri);
-            string relativePath = Uri.UnescapeDataString(relativeUri.IsAbsoluteUri ? relativeUri.LocalPath : relativeUri.ToString());
-
-            string result = relativePath.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
-
-            return result;
-        }
-
-        /// <summary>
-        /// Helper function to create an Uri object from path.
-        /// </summary>
-        /// <param name="path">path string</param>
-        /// <returns>uri object</returns>
-        private static Uri CreateUriFromPath(string path)
-        {
-            ErrorUtilities.VerifyThrowArgumentLength(path, nameof(path));
-
-            Uri pathUri;
-
-            // Try absolute first, then fall back on relative, otherwise it
-            // makes some absolute UNC paths like (\\foo\bar) relative ...
-            if (!Uri.TryCreate(path, UriKind.Absolute, out pathUri))
+            if (index == splitBase.Length && index == splitPath.Length)
             {
-                pathUri = new Uri(path, UriKind.Relative);
+                return ".";
             }
 
-            return pathUri;
+            // If the paths have no component in common, the only valid relative path is the full path.
+            if (index == 0)
+            {
+                return fullPath;
+            }
+
+            StringBuilder sb = StringBuilderCache.Acquire();
+
+            for (int i = index; i < splitBase.Length; i++)
+            {
+                sb.Append("..").Append(Path.DirectorySeparatorChar);
+            }
+            for (int i = index; i < splitPath.Length; i++)
+            {
+                sb.Append(splitPath[i]).Append(Path.DirectorySeparatorChar);
+            }
+
+            if (fullPath[fullPath.Length - 1] != Path.DirectorySeparatorChar)
+            {
+                sb.Length--;
+            }
+
+            return StringBuilderCache.GetStringAndRelease(sb);
         }
 
         /// <summary>
@@ -1156,7 +1237,9 @@ namespace Microsoft.Build.Shared
         internal static string GetFolderAbove(string path, int count = 1)
         {
             if (count < 1)
+            {
                 return path;
+            }
 
             var parent = Directory.GetParent(path);
 
@@ -1223,7 +1306,7 @@ namespace Microsoft.Build.Shared
 
         internal static string NormalizeForPathComparison(this string s) => s.ToPlatformSlash().TrimTrailingSlashes();
 
-        // TODO: assumption on file system case sensitivity: https://github.com/Microsoft/msbuild/issues/781
+        // TODO: assumption on file system case sensitivity: https://github.com/dotnet/msbuild/issues/781
         internal static bool PathsEqual(string path1, string path2)
         {
             if (path1 == null && path2 == null)
@@ -1283,8 +1366,15 @@ namespace Microsoft.Build.Shared
                 }
 
                 // uppercase both chars - notice that we need just one compare per char
-                if ((uint)(charA - 'a') <= (uint)('z' - 'a')) charA -= 0x20;
-                if ((uint)(charB - 'a') <= (uint)('z' - 'a')) charB -= 0x20;
+                if ((uint)(charA - 'a') <= (uint)('z' - 'a'))
+                {
+                    charA -= 0x20;
+                }
+
+                if ((uint)(charB - 'a') <= (uint)('z' - 'a'))
+                {
+                    charB -= 0x20;
+                }
 
                 // Set path delimiters the same
                 if (charA == '\\')
@@ -1368,7 +1458,7 @@ namespace Microsoft.Build.Shared
             while (lookInDirectory != null);
 
             // When we didn't find the location, then return an empty string
-            return String.Empty;
+            return string.Empty;
         }
 
         /// <summary>
@@ -1395,7 +1485,7 @@ namespace Microsoft.Build.Shared
 
         internal static void EnsureDirectoryExists(string directoryPath)
         {
-            if (directoryPath != null && !DefaultFileSystem.DirectoryExists(directoryPath))
+            if (!string.IsNullOrEmpty(directoryPath) && !DefaultFileSystem.DirectoryExists(directoryPath))
             {
                 Directory.CreateDirectory(directoryPath);
             }

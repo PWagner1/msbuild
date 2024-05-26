@@ -1,5 +1,9 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
 
 using System;
 using System.Collections;
@@ -83,7 +87,7 @@ namespace Microsoft.Build.BuildEngine.Shared
         /// <summary>
         /// The project configuration in given solution configuration
         /// K: full solution configuration name (cfg + platform)
-        /// V: project configuration 
+        /// V: project configuration
         /// </summary>
         private Dictionary<string, ProjectConfigurationInSolution> projectConfigurations;
 
@@ -337,7 +341,7 @@ namespace Microsoft.Build.BuildEngine.Shared
         /// <param name="projectName">The name to be cleansed</param>
         /// <returns>string</returns>
         /// <owner>KieranMo</owner>
-        static private string CleanseProjectName(string projectName)
+        private static string CleanseProjectName(string projectName)
         {
             ErrorUtilities.VerifyThrow(projectName != null, "Null strings not allowed.");
 
@@ -352,7 +356,7 @@ namespace Microsoft.Build.BuildEngine.Shared
             // This is where we're going to work on the final string to return to the caller.
             StringBuilder cleanProjectName = new StringBuilder(projectName);
 
-            // Replace each unclean character with a clean one            
+            // Replace each unclean character with a clean one
             foreach (char uncleanChar in charsToCleanse)
             {
                 cleanProjectName.Replace(uncleanChar, cleanCharacter);
@@ -368,7 +372,7 @@ namespace Microsoft.Build.BuildEngine.Shared
         /// <param name="uniqueProjectName">The unique name for the project</param>
         /// <returns>string</returns>
         /// <owner>KieranMo</owner>
-        static internal string DisambiguateProjectTargetName(string uniqueProjectName)
+        internal static string DisambiguateProjectTargetName(string uniqueProjectName)
         {
             // Test our unique project name against those names that collide with Solution
             // entry point targets

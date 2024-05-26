@@ -1,5 +1,9 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
 
 using System;
 using System.Text;
@@ -99,9 +103,9 @@ namespace Microsoft.Build.BuildEngine.Shared
         #region PInvoke
 
         /// <summary>
-        /// Gets the current OEM code page which is used by console apps 
+        /// Gets the current OEM code page which is used by console apps
         /// (as opposed to the Windows/ANSI code page)
-        /// Basically for each ANSI code page (set in Regional settings) there's a corresponding OEM code page 
+        /// Basically for each ANSI code page (set in Regional settings) there's a corresponding OEM code page
         /// that needs to be used for instance when writing to batch files
         /// </summary>
         /// <owner>LukaszG</owner>
@@ -147,7 +151,7 @@ namespace Microsoft.Build.BuildEngine.Shared
         /// <summary>
         /// Gets the fully qualified filename of the currently executing .exe
         /// </summary>
-        [DllImport(kernel32Dll, SetLastError=true, CharSet = CharSet.Unicode)]
+        [DllImport(kernel32Dll, SetLastError = true, CharSet = CharSet.Unicode)]
         internal static extern int GetModuleFileName(HandleRef hModule, StringBuilder buffer, int length);
 
         [DllImport("kernel32.dll")]

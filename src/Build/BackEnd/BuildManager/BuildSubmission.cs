@@ -1,11 +1,13 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Globalization;
 using System.Threading;
 using Microsoft.Build.BackEnd;
 using Microsoft.Build.Shared;
-using System.Globalization;
+
+#nullable disable
 
 namespace Microsoft.Build.Execution
 {
@@ -165,13 +167,8 @@ namespace Microsoft.Build.Execution
         /// <summary>
         /// Indicates that all logging events for this submission are complete.
         /// </summary>
-        internal void CompleteLogging(bool waitForLoggingThread)
+        internal void CompleteLogging()
         {
-            if (waitForLoggingThread)
-            {
-                ((BackEnd.Logging.LoggingService)((IBuildComponentHost)BuildManager).LoggingService).WaitForThreadToProcessEvents();
-            }
-
             LoggingCompleted = true;
             CheckForCompletion();
         }
@@ -198,6 +195,13 @@ namespace Microsoft.Build.Execution
                 bool hasCompleted = (Interlocked.Exchange(ref _completionInvoked, 1) == 1);
                 if (!hasCompleted)
                 {
+                    // Did this submission have warnings elevated to errors? If so, mark it as
+                    // failed even though it succeeded (with warnings--but they're errors).
+                    if (((IBuildComponentHost)BuildManager).LoggingService.HasBuildSubmissionLoggedErrors(BuildResult.SubmissionId))
+                    {
+                        BuildResult.SetOverallResult(overallResult: false);
+                    }
+
                     _completionEvent.Set();
 
                     if (_completionCallback != null)

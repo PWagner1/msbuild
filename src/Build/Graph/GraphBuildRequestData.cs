@@ -1,12 +1,22 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Generic;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Shared;
 
+#nullable disable
+
 namespace Microsoft.Build.Graph
 {
+    public record GraphBuildOptions
+    {
+        /// <summary>
+        /// If false, the graph is constructed but the nodes are not built.
+        /// </summary>
+        public bool Build { get; init; } = true;
+    }
+
     /// <summary>
     /// GraphBuildRequestData encapsulates all of the data needed to submit a graph build request.
     /// </summary>
@@ -142,10 +152,18 @@ namespace Microsoft.Build.Graph
             ProjectGraphEntryPoints = projectGraphEntryPoints;
         }
 
+        public GraphBuildRequestData(IEnumerable<ProjectGraphEntryPoint> projectGraphEntryPoints, ICollection<string> targetsToBuild, HostServices hostServices, BuildRequestDataFlags flags, GraphBuildOptions graphBuildOptions)
+            : this(targetsToBuild, hostServices, flags, graphBuildOptions)
+        {
+            ErrorUtilities.VerifyThrowArgumentNull(projectGraphEntryPoints, nameof(projectGraphEntryPoints));
+
+            ProjectGraphEntryPoints = projectGraphEntryPoints;
+        }
+
         /// <summary>
         /// Common constructor.
         /// </summary>
-        private GraphBuildRequestData(ICollection<string> targetsToBuild, HostServices hostServices, BuildRequestDataFlags flags)
+        private GraphBuildRequestData(ICollection<string> targetsToBuild, HostServices hostServices, BuildRequestDataFlags flags, GraphBuildOptions graphBuildOptions = null)
         {
             ErrorUtilities.VerifyThrowArgumentNull(targetsToBuild, nameof(targetsToBuild));
             foreach (string targetName in targetsToBuild)
@@ -156,6 +174,7 @@ namespace Microsoft.Build.Graph
             HostServices = hostServices;
             TargetNames = new List<string>(targetsToBuild);
             Flags = flags;
+            GraphBuildOptions = graphBuildOptions ?? new GraphBuildOptions();
         }
 
         /// <summary>
@@ -182,6 +201,11 @@ namespace Microsoft.Build.Graph
         /// Extra flags for this BuildRequest.
         /// </summary>
         public BuildRequestDataFlags Flags { get; }
+
+        /// <summary>
+        /// Options for how the graph should be built.
+        /// </summary>
+        public GraphBuildOptions GraphBuildOptions { get; }
 
         /// <summary>
         /// Gets the HostServices object for this request.

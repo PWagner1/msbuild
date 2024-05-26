@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -121,7 +125,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         }
 
         /// <summary>
-        ///  Ctor Test 
+        ///  Ctor Test
         /// </summary>
         [Test]
         [ExpectedException(typeof(ArgumentException))]
@@ -153,7 +157,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         }
 
         /// <summary>
-        ///  Ctor Test 
+        ///  Ctor Test
         /// </summary>
         [Test]
         public void CtorArity4_NullStringOtherParams()
@@ -191,8 +195,8 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         }
 
         /// <summary>
-        ///  Ctor Test, this enforces lack of bounds checking and the lack of range checking (end can come before start) 
-        ///  on the line and column number params. 
+        ///  Ctor Test, this enforces lack of bounds checking and the lack of range checking (end can come before start)
+        ///  on the line and column number params.
         /// </summary>
         [Test]
         public void CtorArity9NegativeInts()
@@ -225,7 +229,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         }
 
         /// <summary>
-        /// XML Serialization Test, not supported, throws invalid operation Exception. 
+        /// XML Serialization Test, not supported, throws invalid operation Exception.
         /// </summary>
         [Test]
         [ExpectedException(typeof(InvalidOperationException))]
@@ -258,7 +262,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
             MemoryStream memoryStream = null;
             InvalidProjectFileException invalidProjectFileException =
                 new InvalidProjectFileException(projectFile, 1, 2, 3, 4, message, "errorSubCategory", "errorCode", "HelpKeyword");
-            
+
             try
             {
                 memoryStream = new MemoryStream();

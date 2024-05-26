@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.Reflection;
 using System.Collections;
@@ -47,7 +51,7 @@ namespace Microsoft.Build.UnitTests
 
         /// <summary>
         /// Un-registers the existing logger and registers a new copy.
-        /// We will use this when we do multiple builds so that we can safely 
+        /// We will use this when we do multiple builds so that we can safely
         /// assert on log messages for that particular build.
         /// </summary>
         private void ResetLogger()
@@ -144,7 +148,7 @@ namespace Microsoft.Build.UnitTests
                 Project p = ObjectModelHelpers.CreateInMemoryProject(@"
                 <Project ToolsVersion=`msbuilddefaulttoolsversion` xmlns=`msbuildnamespace`>
                   <Target Name=`t` Inputs=`" + newFile + "` Outputs=`" + oldFile + @"`>
-                    <Message Text=`building target !!`/>                  
+                    <Message Text=`building target !!`/>
                 </Target>
                 </Project>
             ", logger);
@@ -163,7 +167,7 @@ namespace Microsoft.Build.UnitTests
                 p.Build(new string[] { "t" });
 
                 logger.AssertLogDoesntContain("building target !!");
-                
+
 
             }
             finally
@@ -230,7 +234,7 @@ namespace Microsoft.Build.UnitTests
         {
             string targetOutputsString = "target_output";
             string targetInputsString = "target_input";
-            
+
             Target myTarget = myProject.Targets.AddNewTarget("BuildMe");
             myTarget.Inputs = targetInputsString;
             myTarget.Outputs = targetOutputsString;
@@ -278,11 +282,11 @@ namespace Microsoft.Build.UnitTests
 
             ITaskItem[] outputItems = BuildAndGatherOutputs("BuildMe");
 
-            
+
             Assertion.Assert(myLogger.FullLog.Contains("afoo"));
             Assertion.Assert(myLogger.FullLog.Contains("bfoo"));
             Assertion.AssertEquals(outputItems[0].ToString(), "1");
-            Assertion.AssertEquals(outputItems[1].ToString(), "2"); 
+            Assertion.AssertEquals(outputItems[1].ToString(), "2");
         }
 
         /// <summary>
@@ -336,7 +340,7 @@ namespace Microsoft.Build.UnitTests
 
             ITaskItem[] outputItems1 = BuildAndGatherOutputs("BuildMe");
 
-            
+
             Assertion.Assert(myLogger.FullLog.Contains("a2foo"));
             Assertion.Assert(myLogger.FullLog.Contains("b2foo"));
             Assertion.AssertEquals(outputItems1[0].ToString(), "1-1");
@@ -392,7 +396,7 @@ namespace Microsoft.Build.UnitTests
 
             ITaskItem[] outputItems1 = BuildAndGatherOutputs("BuildMe");
 
-            
+
             Assertion.Assert(myLogger.FullLog.Contains("a;bfoo"));
             Assertion.Assert(myLogger.FullLog.Contains("a2foo"));
             Assertion.Assert(myLogger.FullLog.Contains("b2foo"));
@@ -588,7 +592,7 @@ namespace Microsoft.Build.UnitTests
             Assertion.Assert(myLogger.FullLog.Contains("Exec"));
             Assertion.Assert(myLogger.FullLog.Contains("a;bfoo"));
             Assertion.AssertEquals(outputItems[0].ToString(), "1");
-            Assertion.AssertEquals(outputItems[1].ToString(), "2"); 
+            Assertion.AssertEquals(outputItems[1].ToString(), "2");
         }
 
         /// <summary>
@@ -872,7 +876,7 @@ namespace Microsoft.Build.UnitTests
                     <x Include=`a.ext;b.ext`/>
                   </ItemGroup>
                   <Target Name=`t` Condition=`@(x -> '%(filename)')=='a;b'`>
-                    <Message Text=`#@(x)#`/>                  
+                    <Message Text=`#@(x)#`/>
                 </Target>
                 </Project>
             ", logger);

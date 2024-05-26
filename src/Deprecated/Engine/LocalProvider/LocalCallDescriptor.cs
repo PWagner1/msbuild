@@ -1,5 +1,9 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
 
 using System;
 using System.Collections;
@@ -14,7 +18,7 @@ namespace Microsoft.Build.BuildEngine
     /// This call is used to contain, serialize and deserialize arguments for call
     /// made via INodeProvider and IEngineCallback interfaces. To make calls via these
     /// interfaces asyncronous the parameters are queued up for a IO thread which
-    /// reads/writes the shared memory buffer to transfer these parameters cross 
+    /// reads/writes the shared memory buffer to transfer these parameters cross
     /// process.
     /// </summary>
     internal abstract class LocalCallDescriptor
@@ -47,14 +51,14 @@ namespace Microsoft.Build.BuildEngine
                 return this.callType;
             }
         }
-        virtual internal bool NeedsReply
+        internal virtual bool NeedsReply
         {
             get
             {
                 return false;
             }
         }
-        virtual internal bool IsReply
+        internal virtual bool IsReply
         {
             get
             {
@@ -67,7 +71,7 @@ namespace Microsoft.Build.BuildEngine
         /// <summary>
         /// Appropriate action to take if this event is received on the parent process
         /// </summary>
-        internal virtual void HostAction( IEngineCallback engineCallback, LocalNodeProvider nodeProvider, int nodeId )
+        internal virtual void HostAction(IEngineCallback engineCallback, LocalNodeProvider nodeProvider, int nodeId)
         {
             ErrorUtilities.VerifyThrow(false, "This description doesn't support this operation");
         }
@@ -113,8 +117,8 @@ namespace Microsoft.Build.BuildEngine
 
         internal virtual void CreateFromStream(BinaryReader reader)
         {
-           callType = (LocalCallType)reader.ReadByte();
-           callNumber = reader.ReadInt32();
+            callType = (LocalCallType)reader.ReadByte();
+            callNumber = reader.ReadInt32();
         }
         #endregion
     }
@@ -196,7 +200,7 @@ namespace Microsoft.Build.BuildEngine
                 if (replyData is CacheEntry[])
                 {
                     writer.Write((byte)0);
-                    CacheEntry[] cacheArray =(CacheEntry[]) replyData;
+                    CacheEntry[] cacheArray = (CacheEntry[])replyData;
                     writer.Write((Int32)cacheArray.Length);
                     for (int i = 0; i < cacheArray.Length; i++)
                     {
@@ -234,7 +238,7 @@ namespace Microsoft.Build.BuildEngine
                 {
                     int numberOfEntries = reader.ReadInt32();
                     CacheEntry[] cacheArray = new CacheEntry[numberOfEntries];
-                    
+
                     for (int i = 0; i < numberOfEntries; i++)
                     {
                         if (reader.ReadByte() == 0)
@@ -266,8 +270,8 @@ namespace Microsoft.Build.BuildEngine
         {
         }
 
-        internal LocalCallDescriptorForPostBuildRequests(BuildRequest [] buildRequests)
-            :base(LocalCallType.PostBuildRequests)
+        internal LocalCallDescriptorForPostBuildRequests(BuildRequest[] buildRequests)
+            : base(LocalCallType.PostBuildRequests)
         {
             this.buildRequests = buildRequests;
         }
@@ -280,7 +284,7 @@ namespace Microsoft.Build.BuildEngine
         }
 
         #endregion
-    
+
         #region Methods
         internal override void HostAction(IEngineCallback engineCallback, LocalNodeProvider nodeProvider, int nodeId)
         {
@@ -312,7 +316,7 @@ namespace Microsoft.Build.BuildEngine
                 return buildRequests;
             }
         }
-        #endregion 
+        #endregion
 
         #region CustomSerializationToStream
         internal override void WriteToStream(BinaryWriter writer)
@@ -649,7 +653,7 @@ namespace Microsoft.Build.BuildEngine
         {
         }
 
-        internal LocalCallDescriptorForShutdownComplete(Node.NodeShutdownLevel shutdownLevel, int totalTaskTime )
+        internal LocalCallDescriptorForShutdownComplete(Node.NodeShutdownLevel shutdownLevel, int totalTaskTime)
             : base(LocalCallType.ShutdownComplete)
         {
             this.shutdownLevel = shutdownLevel;
@@ -693,7 +697,7 @@ namespace Microsoft.Build.BuildEngine
         {
             base.CreateFromStream(reader);
             shutdownLevel = (Node.NodeShutdownLevel)reader.ReadInt32();
-            totalTaskTime = reader.ReadInt32(); 
+            totalTaskTime = reader.ReadInt32();
         }
         #endregion
     }
@@ -713,7 +717,7 @@ namespace Microsoft.Build.BuildEngine
 
         internal LocalCallDescriptorForInitializeNode
         (
-            Hashtable environmentVariablesToSend, 
+            Hashtable environmentVariablesToSend,
             LoggerDescription[] nodeLoggers,
             int nodeId,
             BuildPropertyGroup parentGlobalProperties,
@@ -736,7 +740,7 @@ namespace Microsoft.Build.BuildEngine
         #region Methods
         internal override void NodeAction(Node node, LocalNode localNode)
         {
-            localNode.Activate(environmentVariables, nodeLoggers, nodeId, parentGlobalProperties, 
+            localNode.Activate(environmentVariables, nodeLoggers, nodeId, parentGlobalProperties,
                                toolsetSearchLocations, parentProcessId, parentStartupDirectory);
         }
         #endregion
@@ -764,7 +768,7 @@ namespace Microsoft.Build.BuildEngine
         {
             get
             {
-                    return nodeLoggers;
+                return nodeLoggers;
             }
         }
         internal int NodeId
@@ -886,7 +890,7 @@ namespace Microsoft.Build.BuildEngine
             #endregion
             toolsetSearchLocations = (ToolsetDefinitionLocations)reader.ReadByte();
             parentStartupDirectory = (string)reader.ReadString();
-          }
+        }
         #endregion
     }
     #endregion
@@ -984,8 +988,8 @@ namespace Microsoft.Build.BuildEngine
         #region CustomSerializationToStream
         internal override void WriteToStream(BinaryWriter writer)
         {
-             base.WriteToStream(writer);
-             writer.Write((Int32)requestId);
+            base.WriteToStream(writer);
+            writer.Write((Int32)requestId);
         }
 
         internal override void CreateFromStream(BinaryReader reader)
@@ -1072,7 +1076,7 @@ namespace Microsoft.Build.BuildEngine
         internal LocalCallDescriptorForPostIntrospectorCommand(TargetInProgessState child, TargetInProgessState parent)
             : base(LocalCallType.PostIntrospectorCommand)
         {
-            this.child  = child;
+            this.child = child;
             this.parent = parent;
         }
         #endregion
@@ -1212,7 +1216,7 @@ namespace Microsoft.Build.BuildEngine
                 writer.Write((Int32)entries.Length);
                 for (int i = 0; i < entries.Length; i++)
                 {
-                   CacheEntryCustomSerializer.WriteToStream(entries[i], writer);
+                    CacheEntryCustomSerializer.WriteToStream(entries[i], writer);
                 }
             }
             #endregion
@@ -1435,7 +1439,7 @@ namespace Microsoft.Build.BuildEngine
                 writer.Write((byte)1);
                 writer.Write(scopeName);
             }
-            #endregion 
+            #endregion
             #region ScopeProperties
             if (scopeProperties == null)
             {
@@ -1457,7 +1461,7 @@ namespace Microsoft.Build.BuildEngine
                 writer.Write((byte)1);
                 writer.Write(scopeToolsVersion);
             }
-            #endregion 
+            #endregion
             writer.Write((byte)cacheContentType);
         }
         internal override void CreateFromStream(BinaryReader reader)
@@ -1519,7 +1523,7 @@ namespace Microsoft.Build.BuildEngine
             cacheContentType = (CacheContentType)reader.ReadByte();
         }
         #endregion
-        
+
     }
     #endregion
 
@@ -1568,7 +1572,7 @@ namespace Microsoft.Build.BuildEngine
         /// </summary>
         ShutdownNode = 8,
         /// <summary>
-        /// Call type for the node to indicate that it has shutdown 
+        /// Call type for the node to indicate that it has shutdown
         /// </summary>
         ShutdownComplete = 9,
         /// <summary>

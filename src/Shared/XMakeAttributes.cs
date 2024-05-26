@@ -1,8 +1,13 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections.Generic;
+#if !CLR2COMPATIBILITY
+using System.Runtime.InteropServices;
+#endif
+
+#nullable disable
 
 namespace Microsoft.Build.Shared
 {
@@ -28,6 +33,7 @@ namespace Microsoft.Build.Shared
         internal const string update = "Update";
         internal const string matchOnMetadata = "MatchOnMetadata";
         internal const string matchOnMetadataOptions = "MatchOnMetadataOptions";
+        internal const string overrideUsingTask = "Override";
         internal const string keepMetadata = "KeepMetadata";
         internal const string removeMetadata = "RemoveMetadata";
         internal const string keepDuplicates = "KeepDuplicates";
@@ -76,6 +82,7 @@ namespace Microsoft.Build.Shared
             internal const string clr2 = "CLR2";
             internal const string clr4 = "CLR4";
             internal const string currentRuntime = "CurrentRuntime";
+            internal const string net = "NET";
             internal const string any = "*";
         }
 
@@ -83,6 +90,7 @@ namespace Microsoft.Build.Shared
         {
             internal const string x86 = "x86";
             internal const string x64 = "x64";
+            internal const string arm64 = "arm64";
             internal const string currentArchitecture = "CurrentArchitecture";
             internal const string any = "*";
         }
@@ -99,9 +107,9 @@ namespace Microsoft.Build.Shared
 
         private static readonly HashSet<string> KnownBatchingTargetAttributes = new HashSet<string> { name, condition, dependsOnTargets, beforeTargets, afterTargets };
 
-        private static readonly HashSet<string> ValidMSBuildRuntimeValues = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { MSBuildRuntimeValues.clr2, MSBuildRuntimeValues.clr4, MSBuildRuntimeValues.currentRuntime, MSBuildRuntimeValues.any };
+        private static readonly HashSet<string> ValidMSBuildRuntimeValues = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { MSBuildRuntimeValues.clr2, MSBuildRuntimeValues.clr4, MSBuildRuntimeValues.currentRuntime, MSBuildRuntimeValues.net, MSBuildRuntimeValues.any };
 
-        private static readonly HashSet<string> ValidMSBuildArchitectureValues = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { MSBuildArchitectureValues.x86, MSBuildArchitectureValues.x64, MSBuildArchitectureValues.currentArchitecture, MSBuildArchitectureValues.any };
+        private static readonly HashSet<string> ValidMSBuildArchitectureValues = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { MSBuildArchitectureValues.x86, MSBuildArchitectureValues.x64, MSBuildArchitectureValues.arm64, MSBuildArchitectureValues.currentArchitecture, MSBuildArchitectureValues.any };
 
         /// <summary>
         /// Returns true if and only if the specified attribute is one of the attributes that the engine specifically recognizes
@@ -155,7 +163,7 @@ namespace Microsoft.Build.Shared
         }
 
         /// <summary>
-        /// Compares two members of MSBuildRuntimeValues, returning true if they count as a match, and false otherwise.  
+        /// Compares two members of MSBuildRuntimeValues, returning true if they count as a match, and false otherwise.
         /// </summary>
         internal static bool RuntimeValuesMatch(string runtimeA, string runtimeB)
         {
@@ -163,7 +171,7 @@ namespace Microsoft.Build.Shared
 
             if (runtimeA == null || runtimeB == null)
             {
-                // neither one cares, or only one cares, so they match by default. 
+                // neither one cares, or only one cares, so they match by default.
                 return true;
             }
 
@@ -175,14 +183,14 @@ namespace Microsoft.Build.Shared
 
             if (runtimeA.Equals(MSBuildRuntimeValues.any, StringComparison.OrdinalIgnoreCase) || runtimeB.Equals(MSBuildRuntimeValues.any, StringComparison.OrdinalIgnoreCase))
             {
-                // one or both explicitly don't care -- still a match. 
+                // one or both explicitly don't care -- still a match.
                 return true;
             }
 
-            if ((runtimeA.Equals(MSBuildRuntimeValues.currentRuntime, StringComparison.OrdinalIgnoreCase) && runtimeB.Equals(MSBuildRuntimeValues.clr4, StringComparison.OrdinalIgnoreCase)) ||
-                (runtimeA.Equals(MSBuildRuntimeValues.clr4, StringComparison.OrdinalIgnoreCase) && runtimeB.Equals(MSBuildRuntimeValues.currentRuntime, StringComparison.OrdinalIgnoreCase)))
+            if ((runtimeA.Equals(MSBuildRuntimeValues.currentRuntime, StringComparison.OrdinalIgnoreCase) && runtimeB.Equals(GetCurrentMSBuildRuntime(), StringComparison.OrdinalIgnoreCase)) ||
+                (runtimeA.Equals(GetCurrentMSBuildRuntime(), StringComparison.OrdinalIgnoreCase) && runtimeB.Equals(MSBuildRuntimeValues.currentRuntime, StringComparison.OrdinalIgnoreCase)))
             {
-                // CLR4 is the current runtime, so this is also a match. 
+                // Matches the current runtime, so match.
                 return true;
             }
 
@@ -191,14 +199,14 @@ namespace Microsoft.Build.Shared
         }
 
         /// <summary>
-        /// Given two MSBuildRuntime values, returns the concrete result of merging the two.  If the merge fails, the merged runtime 
-        /// string is returned null, and the return value of the method is false.  Otherwise, if the merge succeeds, the method returns 
-        /// true with the merged runtime value.  E.g.: 
+        /// Given two MSBuildRuntime values, returns the concrete result of merging the two.  If the merge fails, the merged runtime
+        /// string is returned null, and the return value of the method is false.  Otherwise, if the merge succeeds, the method returns
+        /// true with the merged runtime value.  E.g.:
         /// "CLR4" + "CLR2" = null (false)
         /// "CLR2" + "don't care" = "CLR2" (true)
-        /// "current runtime" + "CLR4" = "CLR4" (true) 
+        /// "current runtime" + "CLR4" = "CLR4" (true)
         /// "current runtime" + "don't care" = "CLR4" (true)
-        /// If both specify "don't care", then defaults to the current runtime -- CLR4. 
+        /// If both specify "don't care", then defaults to the current runtime -- CLR4.
         /// A null or empty string is interpreted as "don't care".
         /// </summary>
         internal static bool TryMergeRuntimeValues(string runtimeA, string runtimeB, out string mergedRuntime)
@@ -216,13 +224,15 @@ namespace Microsoft.Build.Shared
                 runtimeB = MSBuildRuntimeValues.any;
             }
 
-            // if they're equal, then there's no problem -- just return the equivalent runtime.  
+            string actualCurrentRuntime = GetCurrentMSBuildRuntime();
+
+            // if they're equal, then there's no problem -- just return the equivalent runtime.
             if (runtimeA.Equals(runtimeB, StringComparison.OrdinalIgnoreCase))
             {
                 if (runtimeA.Equals(MSBuildRuntimeValues.currentRuntime, StringComparison.OrdinalIgnoreCase) ||
                     runtimeA.Equals(MSBuildRuntimeValues.any, StringComparison.OrdinalIgnoreCase))
                 {
-                    mergedRuntime = MSBuildRuntimeValues.clr4;
+                    mergedRuntime = actualCurrentRuntime;
                 }
                 else
                 {
@@ -232,27 +242,25 @@ namespace Microsoft.Build.Shared
                 return true;
             }
 
-            // if both A and B are one of CLR4, don't care, or current, then the end result will be CLR4 no matter what.  
+            // if both A and B are one of actual-current-runtime, don't care or current,
+            // then the end result will be current-runtime no matter what.
             if (
                 (
-                 runtimeA.Equals(MSBuildRuntimeValues.clr4, StringComparison.OrdinalIgnoreCase) ||
+                 runtimeA.Equals(actualCurrentRuntime, StringComparison.OrdinalIgnoreCase) ||
                  runtimeA.Equals(MSBuildRuntimeValues.currentRuntime, StringComparison.OrdinalIgnoreCase) ||
-                 runtimeA.Equals(MSBuildRuntimeValues.any, StringComparison.OrdinalIgnoreCase)
-                ) &&
+                 runtimeA.Equals(MSBuildRuntimeValues.any, StringComparison.OrdinalIgnoreCase)) &&
                 (
-                 runtimeB.Equals(MSBuildRuntimeValues.clr4, StringComparison.OrdinalIgnoreCase) ||
+                 runtimeB.Equals(actualCurrentRuntime, StringComparison.OrdinalIgnoreCase) ||
                  runtimeB.Equals(MSBuildRuntimeValues.currentRuntime, StringComparison.OrdinalIgnoreCase) ||
-                 runtimeB.Equals(MSBuildRuntimeValues.any, StringComparison.OrdinalIgnoreCase)
-                )
-               )
+                 runtimeB.Equals(MSBuildRuntimeValues.any, StringComparison.OrdinalIgnoreCase)))
             {
-                mergedRuntime = MSBuildRuntimeValues.clr4;
+                mergedRuntime = actualCurrentRuntime;
                 return true;
             }
 
-            // If A doesn't care, then it's B -- and we can say B straight out, because if B were one of the 
-            // special cases (current runtime or don't care) then it would already have been caught in the 
-            // previous clause. 
+            // If A doesn't care, then it's B -- and we can say B straight out, because if B were one of the
+            // special cases (current runtime or don't care) then it would already have been caught in the
+            // previous clause.
             if (runtimeA.Equals(MSBuildRuntimeValues.any, StringComparison.OrdinalIgnoreCase))
             {
                 mergedRuntime = runtimeB;
@@ -266,13 +274,13 @@ namespace Microsoft.Build.Shared
                 return true;
             }
 
-            // and now we've run out of things that it could be -- all the remaining options are non-matches.  
+            // and now we've run out of things that it could be -- all the remaining options are non-matches.
             mergedRuntime = null;
             return false;
         }
 
         /// <summary>
-        /// Compares two members of MSBuildArchitectureValues, returning true if they count as a match, and false otherwise.  
+        /// Compares two members of MSBuildArchitectureValues, returning true if they count as a match, and false otherwise.
         /// </summary>
         internal static bool ArchitectureValuesMatch(string architectureA, string architectureB)
         {
@@ -280,7 +288,7 @@ namespace Microsoft.Build.Shared
 
             if (architectureA == null || architectureB == null)
             {
-                // neither one cares, or only one cares, so they match by default. 
+                // neither one cares, or only one cares, so they match by default.
                 return true;
             }
 
@@ -292,7 +300,7 @@ namespace Microsoft.Build.Shared
 
             if (architectureA.Equals(MSBuildArchitectureValues.any, StringComparison.OrdinalIgnoreCase) || architectureB.Equals(MSBuildArchitectureValues.any, StringComparison.OrdinalIgnoreCase))
             {
-                // one or both explicitly don't care -- still a match. 
+                // one or both explicitly don't care -- still a match.
                 return true;
             }
 
@@ -310,9 +318,9 @@ namespace Microsoft.Build.Shared
 
         /// <summary>
         /// Given an MSBuildRuntime value that may be non-explicit -- e.g. "CurrentRuntime" or "Any" --
-        /// return the specific MSBuildRuntime value that it would map to in this case. If it does not map 
-        /// to any known runtime, just return it as is -- maybe someone else knows what to do with it; if 
-        /// not, they'll certainly have more context on logging or throwing the error. 
+        /// return the specific MSBuildRuntime value that it would map to in this case. If it does not map
+        /// to any known runtime, just return it as is -- maybe someone else knows what to do with it; if
+        /// not, they'll certainly have more context on logging or throwing the error.
         /// </summary>
         internal static string GetExplicitMSBuildRuntime(string runtime)
         {
@@ -320,26 +328,26 @@ namespace Microsoft.Build.Shared
                 MSBuildRuntimeValues.any.Equals(runtime, StringComparison.OrdinalIgnoreCase) ||
                 MSBuildRuntimeValues.currentRuntime.Equals(runtime, StringComparison.OrdinalIgnoreCase))
             {
-                // Default to CLR4.
-                return MSBuildRuntimeValues.clr4;
+                // Default to current.
+                return GetCurrentMSBuildRuntime();
             }
             else
             {
-                // either it's already a valid, specific runtime, or we don't know what to do with it.  Either way, return. 
+                // either it's already a valid, specific runtime, or we don't know what to do with it.  Either way, return.
                 return runtime;
             }
         }
 
         /// <summary>
-        /// Given two MSBuildArchitecture values, returns the concrete result of merging the two.  If the merge fails, the merged architecture 
-        /// string is returned null, and the return value of the method is false.  Otherwise, if the merge succeeds, the method returns 
-        /// true with the merged architecture value.  E.g.: 
+        /// Given two MSBuildArchitecture values, returns the concrete result of merging the two.  If the merge fails, the merged architecture
+        /// string is returned null, and the return value of the method is false.  Otherwise, if the merge succeeds, the method returns
+        /// true with the merged architecture value.  E.g.:
         /// "x86" + "x64" = null (false)
         /// "x86" + "don't care" = "x86" (true)
         /// "current architecture" + "x86" = "x86" (true) on a 32-bit process, and null (false) on a 64-bit process
         /// "current architecture" + "don't care" = "x86" (true) on a 32-bit process, and "x64" (true) on a 64-bit process
         /// A null or empty string is interpreted as "don't care".
-        /// If both specify "don't care", then defaults to whatever the current process architecture is.  
+        /// If both specify "don't care", then defaults to whatever the current process architecture is.
         /// </summary>
         internal static bool TryMergeArchitectureValues(string architectureA, string architectureB, out string mergedArchitecture)
         {
@@ -358,7 +366,7 @@ namespace Microsoft.Build.Shared
 
             string currentArchitecture = GetCurrentMSBuildArchitecture();
 
-            // if they're equal, then there's no problem -- just return the equivalent runtime.  
+            // if they're equal, then there's no problem -- just return the equivalent runtime.
             if (architectureA.Equals(architectureB, StringComparison.OrdinalIgnoreCase))
             {
                 if (architectureA.Equals(MSBuildArchitectureValues.currentArchitecture, StringComparison.OrdinalIgnoreCase) ||
@@ -374,27 +382,24 @@ namespace Microsoft.Build.Shared
                 return true;
             }
 
-            // if both A and B are one of CLR4, don't care, or current, then the end result will be CLR4 no matter what.  
+            // if both A and B are one of CLR4, don't care, or current, then the end result will be CLR4 no matter what.
             if (
                 (
                  architectureA.Equals(currentArchitecture, StringComparison.OrdinalIgnoreCase) ||
                  architectureA.Equals(MSBuildArchitectureValues.currentArchitecture, StringComparison.OrdinalIgnoreCase) ||
-                 architectureA.Equals(MSBuildArchitectureValues.any, StringComparison.OrdinalIgnoreCase)
-                ) &&
+                 architectureA.Equals(MSBuildArchitectureValues.any, StringComparison.OrdinalIgnoreCase)) &&
                 (
                  architectureB.Equals(currentArchitecture, StringComparison.OrdinalIgnoreCase) ||
                  architectureB.Equals(MSBuildArchitectureValues.currentArchitecture, StringComparison.OrdinalIgnoreCase) ||
-                 architectureB.Equals(MSBuildArchitectureValues.any, StringComparison.OrdinalIgnoreCase)
-                )
-               )
+                 architectureB.Equals(MSBuildArchitectureValues.any, StringComparison.OrdinalIgnoreCase)))
             {
                 mergedArchitecture = currentArchitecture;
                 return true;
             }
 
-            // If A doesn't care, then it's B -- and we can say B straight out, because if B were one of the 
-            // special cases (current runtime or don't care) then it would already have been caught in the 
-            // previous clause. 
+            // If A doesn't care, then it's B -- and we can say B straight out, because if B were one of the
+            // special cases (current runtime or don't care) then it would already have been caught in the
+            // previous clause.
             if (architectureA.Equals(MSBuildArchitectureValues.any, StringComparison.OrdinalIgnoreCase))
             {
                 mergedArchitecture = architectureB;
@@ -408,28 +413,62 @@ namespace Microsoft.Build.Shared
                 return true;
             }
 
-            // and now we've run out of things that it could be -- all the remaining options are non-matches.  
+            // and now we've run out of things that it could be -- all the remaining options are non-matches.
             mergedArchitecture = null;
             return false;
         }
 
         /// <summary>
-        /// Returns the MSBuildArchitecture value corresponding to the current process' architecture. 
+        /// Returns the MSBuildArchitecture value corresponding to the current process' architecture.
         /// </summary>
         /// <comments>
-        /// Revisit if we ever run on something other than Intel.  
+        /// Revisit if we ever run on something other than Intel.
         /// </comments>
         internal static string GetCurrentMSBuildArchitecture()
         {
+#if !CLR2COMPATIBILITY
+            string currentArchitecture = string.Empty;
+            switch (RuntimeInformation.ProcessArchitecture)
+            {
+                case Architecture.X86:
+                    currentArchitecture = MSBuildArchitectureValues.x86;
+                    break;
+                case Architecture.X64:
+                    currentArchitecture = MSBuildArchitectureValues.x64;
+                    break;
+                case Architecture.Arm64:
+                    currentArchitecture = MSBuildArchitectureValues.arm64;
+                    break;
+                default:
+                    // We're not sure what the architecture is, default to original 32/64bit logic.
+                    // This allows architectures like s390x to continue working.
+                    // https://github.com/dotnet/msbuild/issues/7729
+                    currentArchitecture = (IntPtr.Size == sizeof(Int64)) ? MSBuildArchitectureValues.x64 : MSBuildArchitectureValues.x86;
+                    break;
+            }
+#else
             string currentArchitecture = (IntPtr.Size == sizeof(Int64)) ? MSBuildArchitectureValues.x64 : MSBuildArchitectureValues.x86;
+#endif
             return currentArchitecture;
         }
 
         /// <summary>
+        /// Returns the MSBuildRuntime value corresponding to the current process' runtime.
+        /// </summary>
+        internal static string GetCurrentMSBuildRuntime()
+        {
+#if NET40_OR_GREATER
+            return MSBuildRuntimeValues.clr4;
+#else
+            return MSBuildRuntimeValues.net;
+#endif
+        }
+
+        /// <summary>
         /// Given an MSBuildArchitecture value that may be non-explicit -- e.g. "CurrentArchitecture" or "Any" --
-        /// return the specific MSBuildArchitecture value that it would map to in this case.  If it does not map 
-        /// to any known architecture, just return it as is -- maybe someone else knows what to do with it; if 
-        /// not, they'll certainly have more context on logging or throwing the error. 
+        /// return the specific MSBuildArchitecture value that it would map to in this case.  If it does not map
+        /// to any known architecture, just return it as is -- maybe someone else knows what to do with it; if
+        /// not, they'll certainly have more context on logging or throwing the error.
         /// </summary>
         internal static string GetExplicitMSBuildArchitecture(string architecture)
         {
@@ -442,7 +481,7 @@ namespace Microsoft.Build.Shared
             }
             else
             {
-                // either it's already a valid, specific architecture, or we don't know what to do with it.  Either way, return. 
+                // either it's already a valid, specific architecture, or we don't know what to do with it.  Either way, return.
                 return architecture;
             }
         }

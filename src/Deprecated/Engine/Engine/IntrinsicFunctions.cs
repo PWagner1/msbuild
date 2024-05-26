@@ -1,5 +1,9 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
 
 using System;
 using System.Collections.Generic;
@@ -112,7 +116,7 @@ namespace Microsoft.Build.BuildEngine
         }
 
         /// <summary>
-        /// Perform a bitwise OR on the first and second (first | second) 
+        /// Perform a bitwise OR on the first and second (first | second)
         /// </summary>
         internal static int BitwiseOr(int first, int second)
         {
@@ -120,7 +124,7 @@ namespace Microsoft.Build.BuildEngine
         }
 
         /// <summary>
-        /// Perform a bitwise AND on the first and second (first &amp; second) 
+        /// Perform a bitwise AND on the first and second (first &amp; second)
         /// </summary>
         internal static int BitwiseAnd(int first, int second)
         {
@@ -128,7 +132,7 @@ namespace Microsoft.Build.BuildEngine
         }
 
         /// <summary>
-        /// Perform a bitwise XOR on the first and second (first ^ second) 
+        /// Perform a bitwise XOR on the first and second (first ^ second)
         /// </summary>
         internal static int BitwiseXor(int first, int second)
         {
@@ -136,7 +140,7 @@ namespace Microsoft.Build.BuildEngine
         }
 
         /// <summary>
-        /// Perform a bitwise NOT on the first and second (~first) 
+        /// Perform a bitwise NOT on the first and second (~first)
         /// </summary>
         internal static int BitwiseNot(int first)
         {
@@ -193,6 +197,7 @@ namespace Microsoft.Build.BuildEngine
                     // of that error.
                     RegistryView view = (RegistryView)Enum.Parse(typeof(RegistryView), viewAsString, true);
 
+#pragma warning disable CA2000 // Dispose objects before losing scope is suppressed as a false positive.
                     using (RegistryKey key = GetBaseKeyFromKeyName(keyName, view, out subKeyName))
                     {
                         if (key != null)
@@ -213,6 +218,7 @@ namespace Microsoft.Build.BuildEngine
                             }
                         }
                     }
+#pragma warning restore CA2000 // Dispose objects before losing scope
                 }
             }
 
@@ -221,11 +227,11 @@ namespace Microsoft.Build.BuildEngine
         }
 
         /// <summary>
-        /// Given the absolute location of a file, and a disc location, returns relative file path to that disk location. 
+        /// Given the absolute location of a file, and a disc location, returns relative file path to that disk location.
         /// Throws UriFormatException.
         /// </summary>
         /// <param name="basePath">
-        /// The base path we want to relativize to. Must be absolute.  
+        /// The base path we want to relativize to. Must be absolute.
         /// Should <i>not</i> include a filename as the last segment will be interpreted as a directory.
         /// </param>
         /// <param name="path">
@@ -239,7 +245,7 @@ namespace Microsoft.Build.BuildEngine
 
             return result;
         }
-        
+
         /// <summary>
         /// Locate a file in either the directory specified or a location in the
         /// direcorty structure above that directory.
@@ -293,11 +299,11 @@ namespace Microsoft.Build.BuildEngine
 
         /// <summary>
         /// Returns true if a task host exists that can service the requested runtime and architecture
-        /// values, and false otherwise. 
+        /// values, and false otherwise.
         /// </summary>
         /// <comments>
         /// The old engine ignores the concept of the task host entirely, so it shouldn't really
-        /// matter what we return.  So we return "true" because regardless of the task host parameters, 
+        /// matter what we return.  So we return "true" because regardless of the task host parameters,
         /// the task will be successfully run (in-proc).
         /// </comments>
         internal static bool DoesTaskHostExist(string runtime, string architecture)

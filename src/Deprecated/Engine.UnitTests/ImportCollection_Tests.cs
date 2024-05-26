@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -109,19 +113,19 @@ namespace Microsoft.Build.UnitTests
                 ");
 
             Project project = ObjectModelHelpers.LoadProjectFileInTempProjectDirectory("main.proj", null);
-            
+
             ImportCollection imports = project.Imports;
             Assertion.AssertEquals(2, imports.Count);
-            
+
             imports.RemoveImport(imports[Path.Combine(ObjectModelHelpers.TempProjectDir, "import1.proj")]);
-            
+
             // First validate that the ImportCollection only contains a single Import
             Assertion.AssertEquals(1, imports.Count);
 
-            // Now validate that the ImportCollection properly updated its parent Project (by inspecting the 
+            // Now validate that the ImportCollection properly updated its parent Project (by inspecting the
             // project's in-memory Xml)
             int importCount = 0;
-            
+
             foreach (XmlNode childNode in project.ProjectElement)
             {
                 if (childNode.Name == XMakeElements.import)
@@ -173,7 +177,7 @@ namespace Microsoft.Build.UnitTests
             Project project = ObjectModelHelpers.LoadProjectFileInTempProjectDirectory("main.proj", null);
 
             ImportCollection imports = project.Imports;
-            
+
             // Should throw an InvalidOperationException
             imports.RemoveImport(imports[Path.Combine(ObjectModelHelpers.TempProjectDir, "import3.proj")]);
         }
@@ -194,7 +198,7 @@ namespace Microsoft.Build.UnitTests
                     <Project xmlns=`msbuildnamespace`>
 
                         <Import Project=`import1.proj` />
-            
+
                         <Target Name=`Build`>
                             <WashCar/>
                         </Target>
@@ -208,7 +212,7 @@ namespace Microsoft.Build.UnitTests
                     <Project xmlns=`msbuildnamespace`>
 
                         <Import Project=`import1.proj` />
-            
+
                         <Target Name=`Build`>
                             <WashCar/>
                         </Target>

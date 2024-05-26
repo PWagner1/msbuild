@@ -4,6 +4,7 @@ Param(
   [string] $configuration = "Debug",
   [switch] $prepareMachine,
   [bool] $buildStage1 = $True,
+  [bool] $onlyDocChanged = 0,
   [Parameter(ValueFromRemainingArguments=$true)][String[]]$properties
 )
 
@@ -26,23 +27,20 @@ function Stop-Processes() {
 }
 
 function KillProcessesFromRepo {
-  # Jenkins does not allow taskkill
-  if (-not $ci) {
-    # Kill compiler server and MSBuild node processes from bootstrapped MSBuild (otherwise a second build will fail to copy files in use)
-    foreach ($process in Get-Process | Where-Object {'msbuild', 'dotnet', 'vbcscompiler' -contains $_.Name})
+  # Kill compiler server and MSBuild node processes from bootstrapped MSBuild (otherwise a second build will fail to copy files in use)
+  foreach ($process in Get-Process | Where-Object {'msbuild', 'dotnet', 'vbcscompiler' -contains $_.Name})
+  {
+
+    if ([string]::IsNullOrEmpty($process.Path))
     {
+      Write-Host "Process $($process.Id) $($process.Name) does not have a Path. Skipping killing it."
+      continue
+    }
 
-      if ([string]::IsNullOrEmpty($process.Path))
-      {
-        Write-Host "Process $($process.Id) $($process.Name) does not have a Path. Skipping killing it."
-        continue
-      }
-
-      if ($process.Path.StartsWith($RepoRoot, [StringComparison]::InvariantCultureIgnoreCase))
-      {
-        Write-Host "Killing $($process.Name) from $($process.Path)"
-        taskkill /f /pid $process.Id
-      }
+    if ($process.Path.StartsWith($RepoRoot, [StringComparison]::InvariantCultureIgnoreCase))
+    {
+      Write-Host "Killing $($process.Name) from $($process.Path)"
+      taskkill /f /pid $process.Id
     }
   }
 }
@@ -53,6 +51,7 @@ $RepoRoot = [System.IO.Path]::GetFullPath($RepoRoot).TrimEnd($([System.IO.Path]:
 $ArtifactsDir = Join-Path $RepoRoot "artifacts"
 $Stage1Dir = Join-Path $RepoRoot "stage1"
 $Stage1BinDir = Join-Path $Stage1Dir "bin"
+$PerfLogDir = Join-Path $ArtifactsDir "log\$Configuration\PerformanceLogs"
 
 if ($msbuildEngine -eq '')
 {
@@ -62,16 +61,14 @@ if ($msbuildEngine -eq '')
 $msbuildToUse = "msbuild"
 
 try {
-
-  # turning off vbcscompiler.exe because it causes the move-item call below to fail
-  $env:UseSharedCompilation="false"
-
   KillProcessesFromRepo
 
   if ($buildStage1)
   {
     & $PSScriptRoot\Common\Build.ps1 -restore -build -ci -msbuildEngine $msbuildEngine /p:CreateBootstrap=true @properties
   }
+
+  KillProcessesFromRepo
 
   $bootstrapRoot = Join-Path $Stage1BinDir "bootstrap"
 
@@ -84,19 +81,12 @@ try {
     $buildToolPath = Join-Path $bootstrapRoot "net472\MSBuild\Current\Bin\MSBuild.exe"
     $buildToolCommand = "";
     $buildToolFramework = "net472"
-
-    if ($configuration -eq "Debug-MONO" -or $configuration -eq "Release-MONO")
-    {
-      # Copy MSBuild.dll to MSBuild.exe so we can run it without a host
-      $sourceDll = Join-Path $bootstrapRoot "net472\MSBuild\Current\Bin\MSBuild.dll"
-      Copy-Item -Path $sourceDll -Destination $msbuildToUse
-    }
   }
   else
   {
     $buildToolPath = $dotnetExePath
-    $buildToolCommand = Join-Path $bootstrapRoot "netcoreapp2.1\MSBuild\MSBuild.dll"
-    $buildToolFramework = "netcoreapp2.1"
+    $buildToolCommand = Join-Path $bootstrapRoot "net8.0\MSBuild\MSBuild.dll"
+    $buildToolFramework = "net8.0"
   }
 
   # Use separate artifacts folder for stage 2
@@ -117,17 +107,21 @@ try {
   $buildTool = @{ Path = $buildToolPath; Command = $buildToolCommand; Tool = $msbuildEngine; Framework = $buildToolFramework }
   $global:_BuildTool = $buildTool
 
-  # turn vbcscompiler back on to save on time. It speeds up the build considerably
-  $env:UseSharedCompilation="true"
-
   # Ensure that debug bits fail fast, rather than hanging waiting for a debugger attach.
   $env:MSBUILDDONOTLAUNCHDEBUGGER="true"
 
+  # Opt into performance logging. https://github.com/dotnet/msbuild/issues/5900
+  $env:DOTNET_PERFLOG_DIR=$PerfLogDir
+
   # When using bootstrapped MSBuild:
   # - Turn off node reuse (so that bootstrapped MSBuild processes don't stay running and lock files)
-  # - Do run tests
-  # - Don't try to create a bootstrap deployment
-  & $PSScriptRoot\Common\Build.ps1 -restore -build -test -ci /p:CreateBootstrap=false /nr:false @properties
+  # - Create bootstrap environment as it's required when also running tests
+  if ($onlyDocChanged) {
+    & $PSScriptRoot\Common\Build.ps1 -restore -build -ci /p:CreateBootstrap=false /nr:false @properties
+  }
+  else {
+    & $PSScriptRoot\Common\Build.ps1 -restore -build -test -ci /p:CreateBootstrap=true /nr:false @properties
+  }
 
   exit $lastExitCode
 }

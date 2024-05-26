@@ -1,5 +1,5 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections.Generic;
@@ -8,13 +8,15 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using Microsoft.Build.Framework;
-using Microsoft.Build.Utilities;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Utilities;
+
+#nullable disable
 
 namespace Microsoft.Build.Tasks
 {
     /// <summary>
-    /// Base class for task that determines the appropriate manifest resource name to 
+    /// Base class for task that determines the appropriate manifest resource name to
     /// assign to a given resx or other resource.
     /// </summary>
     public abstract class CreateManifestResourceName : TaskExtension
@@ -83,14 +85,12 @@ namespace Microsoft.Build.Tasks
         /// <param name="dependentUponFileName">The file name of the parent of this dependency. May be null</param>
         /// <param name="binaryStream">File contents binary stream, may be null</param>
         /// <returns>Returns the manifest name</returns>
-        protected abstract string CreateManifestName
-        (
+        protected abstract string CreateManifestName(
             string fileName,
             string linkFileName,
             string rootNamespaceName,
             string dependentUponFileName,
-            Stream binaryStream
-        );
+            Stream binaryStream);
 
         /// <summary>
         /// The derived class chooses whether this is a valid source file to work against.
@@ -118,10 +118,8 @@ namespace Microsoft.Build.Tasks
         /// </summary>
         /// <param name="createFileStream">CreateFileStream delegate</param>
         /// <returns>True if task succeeded.</returns>
-        internal bool Execute
-        (
-            CreateFileStream createFileStream
-        )
+        internal bool Execute(
+            CreateFileStream createFileStream)
         {
             ManifestResourceNames = new ITaskItem[ResourceFiles.Length];
             ResourceFilesWithManifestResourceNames = new ITaskItem[ResourceFiles.Length];
@@ -215,14 +213,12 @@ namespace Microsoft.Build.Tasks
                     // we're done with it.
                     using (binaryStream)
                     {
-                        manifestName = CreateManifestName
-                            (
+                        manifestName = CreateManifestName(
                                 fileName,
                                 resourceFile.GetMetadata(ItemMetadataNames.targetPath),
                                 RootNamespace,
                                 isDependentOnSourceFile ? dependentUpon : null,
-                                binaryStream
-                            );
+                                binaryStream);
                     }
 
                     // Emit an item with our manifest name.
@@ -233,8 +229,8 @@ namespace Microsoft.Build.Tasks
                     ResourceFilesWithManifestResourceNames[i].SetMetadata("ManifestResourceName", manifestName);
 
                     // Add a LogicalName metadata to Non-Resx resources
-                    // LogicalName isn't used for Resx resources because the ManifestResourceName metadata determines the filename of the 
-                    // .resources file which then is used as the embedded resource manifest name                    
+                    // LogicalName isn't used for Resx resources because the ManifestResourceName metadata determines the filename of the
+                    // .resources file which then is used as the embedded resource manifest name
                     if (string.IsNullOrEmpty(ResourceFilesWithManifestResourceNames[i].GetMetadata("LogicalName")) &&
                         string.Equals(ResourceFilesWithManifestResourceNames[i].GetMetadata("Type"), "Non-Resx", StringComparison.OrdinalIgnoreCase))
                     {
@@ -295,7 +291,7 @@ namespace Microsoft.Build.Tasks
         }
 
         /// <summary>
-        /// Make a folder subname into an Everett-compatible identifier 
+        /// Make a folder subname into an Everett-compatible identifier
         /// </summary>
         private static void MakeValidEverettSubFolderIdentifier(StringBuilder builder, string subName)
         {

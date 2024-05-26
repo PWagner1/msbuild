@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.Collections;
 using System.Diagnostics;
@@ -262,7 +266,7 @@ namespace Microsoft.Build.UnitTests
             Assertion.Assert("test 57", !FileUtilities.IsItemSpecModifier("createdxxxx"));
             Assertion.Assert("test 58", !FileUtilities.IsItemSpecModifier("Createdxxxx"));
             Assertion.Assert("test 59", !FileUtilities.IsItemSpecModifier("xxxxxxxxxxx"));
-            
+
             Assertion.Assert("test 60", !FileUtilities.IsItemSpecModifier("recursivexxx"));
             Assertion.Assert("test 61", !FileUtilities.IsItemSpecModifier("Recursivexxx"));
             Assertion.Assert("test 62", !FileUtilities.IsItemSpecModifier("accessedxxxx"));
@@ -270,7 +274,7 @@ namespace Microsoft.Build.UnitTests
             Assertion.Assert("test 64", !FileUtilities.IsItemSpecModifier("modifiedxxxx"));
             Assertion.Assert("test 65", !FileUtilities.IsItemSpecModifier("Modifiedxxxx"));
             Assertion.Assert("test 66", !FileUtilities.IsItemSpecModifier("xxxxxxxxxxxx"));
-            
+
             Assertion.Assert("test 67", !FileUtilities.IsItemSpecModifier(null));
         }
 

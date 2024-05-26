@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.IO;
 
@@ -126,7 +130,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         /// </summary>
         [Test]
         public void ToolsetImportPropertiesNull()
-        {           
+        {
             BuildPropertyGroup buildPropertyGroup = null;
             Toolset toolset = new Toolset("toolversion", "c:\aPath", buildPropertyGroup);
             Assertion.AssertEquals(0, toolset.BuildProperties.Count);
@@ -159,7 +163,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         }
 
         /// <summary>
-        /// Toolset Test. Get Path (note stripping of the last slash) 
+        /// Toolset Test. Get Path (note stripping of the last slash)
         /// </summary>
         [Test]
         public void ToolPathGetTrailingSlash()
@@ -169,7 +173,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         }
 
         /// <summary>
-        /// Toolset Test. Get Path (root path, don't strip slash) 
+        /// Toolset Test. Get Path (root path, don't strip slash)
         /// </summary>
         [Test]
         public void ToolPathGetRootPath()

@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -29,7 +33,7 @@ namespace Microsoft.Build.UnitTests
         public void Initialize()
         {
             // Create some items and place them in a dictionary
-            // Add some include information so that when we check the final 
+            // Add some include information so that when we check the final
             // item spec we can verify that the item was recreated properly
             BuildItem[] buildItems = new BuildItem[1];
             buildItems[0] = new BuildItem("BuildItem1", "Item1");

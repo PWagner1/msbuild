@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.IO;
 using System.Xml;
@@ -22,7 +26,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
     public class UsingTaskCollection_Tests
     {
         /// <summary>
-        /// Imports Cache issue causes xml not to be loaded 
+        /// Imports Cache issue causes xml not to be loaded
         /// This is a test case to reproduce some quirkiness  found when running tests out of order.
         /// </summary>
         [Test]
@@ -112,10 +116,10 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         }
 
         /// <summary>
-        /// IsSynchronized Test           
+        /// IsSynchronized Test
         /// </summary>
         [Test]
-        public void IsSynchronized() 
+        public void IsSynchronized()
         {
             Project p = new Project(new Engine());
             p.AddNewUsingTaskFromAssemblyFile("TaskName", "AssemblyFile.dll");
@@ -123,7 +127,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         }
 
         /// <summary>
-        /// SyncRoot Test, ensure that SyncRoot returns and we can take a lock on it.           
+        /// SyncRoot Test, ensure that SyncRoot returns and we can take a lock on it.
         /// </summary>
         [Test]
         public void SyncRoot()
@@ -145,7 +149,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         }
 
         /// <summary>
-        /// SyncRoot Test, copy into a strongly typed array and assert content against the source collection.        
+        /// SyncRoot Test, copy into a strongly typed array and assert content against the source collection.
         /// </summary>
         [Test]
         public void CopyTo_ZeroIndex()
@@ -164,7 +168,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         }
 
         /// <summary>
-        /// SyncRoot Test, copy into a strongly typed array and assert content against the source collection.        
+        /// SyncRoot Test, copy into a strongly typed array and assert content against the source collection.
         /// </summary>
         [Test]
         public void CopyTo_OffsetIndex()
@@ -185,7 +189,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         }
 
         /// <summary>
-        /// SyncRoot Test, copy into a strongly typed array with an offset where the array is too small      
+        /// SyncRoot Test, copy into a strongly typed array with an offset where the array is too small
         /// </summary>
         [Test]
         [ExpectedException(typeof(ArgumentException))]
@@ -200,7 +204,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         }
 
         /// <summary>
-        /// Copy to a weakly typed array, no offset. Itterate over collection 
+        /// Copy to a weakly typed array, no offset. Itterate over collection
         /// </summary>
         [Test]
         public void CopyTo_WeakAndGetEnumerator()

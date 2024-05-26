@@ -1,5 +1,5 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections;
@@ -8,6 +8,8 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Xml.Serialization;
 using Microsoft.Build.Shared;
+
+#nullable disable
 
 namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
 {
@@ -22,7 +24,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
             manifest.OnBeforeSave();
             var m = new MemoryStream();
             var s = new XmlSerializer(manifest.GetType());
-            var w = new StreamWriter(m);
+            using var w = new StreamWriter(m, System.Text.Encoding.UTF8, bufferSize: 1024, leaveOpen: true);
 
             int t1 = Environment.TickCount;
             s.Serialize(w, manifest);
@@ -30,6 +32,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
 
             w.Flush();
             m.Position = 0;
+
             return m;
         }
 
@@ -82,7 +85,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="manifest"></param>
         /// <param name="output"></param>
@@ -121,7 +124,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                 else
                 {
                     // May throw IO-related exceptions
-                    string temp = FileUtilities.GetTemporaryFile();
+                    string temp = FileUtilities.GetTemporaryFileName();
 
                     am.TrustInfo.Write(temp);
                     if (Util.logging)

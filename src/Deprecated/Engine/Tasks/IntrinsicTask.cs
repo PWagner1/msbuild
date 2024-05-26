@@ -1,5 +1,9 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
 
 using System;
 using System.Collections.Generic;
@@ -29,7 +33,7 @@ namespace Microsoft.Build.BuildEngine
             this.buildEventContext = eventContext;
             this.executionDirectory = executionDirectory;
             this.itemDefinitionLibrary = itemDefinitionLibrary;
-            
+
             ErrorUtilities.VerifyThrow(IsIntrinsicTaskName(taskNodeXmlElement.Name), "Only PropertyGroup and ItemGroup are known intrinsic tasks");
 
             switch (taskNodeXmlElement.Name)
@@ -64,13 +68,13 @@ namespace Microsoft.Build.BuildEngine
         #region Methods
 
         /// <summary>
-        /// Called to execute a task within a target. This method instantiates the task, sets its parameters, and executes it. 
+        /// Called to execute a task within a target. This method instantiates the task, sets its parameters, and executes it.
         /// </summary>
         internal void ExecuteTask(Lookup lookup)
         {
             ErrorUtilities.VerifyThrow(lookup != null, "Need to specify lookup.");
 
-            if ((conditionAttribute != null) 
+            if ((conditionAttribute != null)
                 && !Utilities.EvaluateCondition(conditionAttribute.Value, conditionAttribute, new Expander(lookup.ReadOnlyLookup), null, ParserOptions.AllowPropertiesAndItemLists, loggingServices, buildEventContext))
             {
                 return;
@@ -93,7 +97,7 @@ namespace Microsoft.Build.BuildEngine
         /// Execute a PropertyGroup element, including each child property
         /// </summary>
         private void ExecutePropertyGroup(Lookup lookup)
-        {          
+        {
             foreach (BuildProperty property in backingPropertyGroup)
             {
                 ArrayList buckets = null;
@@ -153,7 +157,7 @@ namespace Microsoft.Build.BuildEngine
                     // "Execute" each bucket
                     foreach (ItemBucket bucket in buckets)
                     {
-                        // Gather the outputs, but don't make them visible to other buckets 
+                        // Gather the outputs, but don't make them visible to other buckets
                         switch (child.ChildType)
                         {
                             case ChildType.BuildItemAdd:
@@ -200,7 +204,7 @@ namespace Microsoft.Build.BuildEngine
         }
 
         /// <summary>
-        /// Remove items from the world. Removes to items that are part of the project manifest are backed up, so 
+        /// Remove items from the world. Removes to items that are part of the project manifest are backed up, so
         /// they can be reverted when the project is reset after the end of the build.
         /// </summary>
         private void ExecuteRemove(BuildItemGroupChildXml child, ItemBucket bucket)
@@ -226,7 +230,7 @@ namespace Microsoft.Build.BuildEngine
         }
 
         /// <summary>
-        /// Modifies items in the world - specifically, changes their metadata. Changes to items that are part of the project manifest are backed up, so 
+        /// Modifies items in the world - specifically, changes their metadata. Changes to items that are part of the project manifest are backed up, so
         /// they can be reverted when the project is reset after the end of the build.
         /// </summary>
         /// <param name="child"></param>
@@ -325,16 +329,21 @@ namespace Microsoft.Build.BuildEngine
         private EngineLoggingServices loggingServices;
         // event contextual information where the event is fired from
         private BuildEventContext buildEventContext;
+
         // whether the backing type is a property group, or an item group
-        BackingType backingType;
+        private BackingType backingType;
+
         // backing property group, if any
-        BuildPropertyGroup backingPropertyGroup;
+        private BuildPropertyGroup backingPropertyGroup;
+
         // backing xml for a backing item group, if any
-        BuildItemGroupXml backingItemGroupXml;
+        private BuildItemGroupXml backingItemGroupXml;
+
         // children of the backing item group, if any
-        List<BuildItemGroupChildXml> backingBuildItemGroupChildren = null;
+        private List<BuildItemGroupChildXml> backingBuildItemGroupChildren = null;
+
         // directory in which the project is executing -- the current directory needed to expand wildcards
-        string executionDirectory;
+        private string executionDirectory;
         // the conditional expression that controls task execution
         private XmlAttribute conditionAttribute;
         // the library of default metadata that any new items should inherit
@@ -366,6 +375,6 @@ namespace Microsoft.Build.BuildEngine
                 || String.Equals(name, XMakeElements.itemGroup, StringComparison.Ordinal);
         }
 
-        #endregion  
+        #endregion
     }
 }

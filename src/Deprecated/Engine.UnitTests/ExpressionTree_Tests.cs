@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.Globalization;
 using System.Reflection;
@@ -19,7 +23,7 @@ namespace Microsoft.Build.UnitTests
     [TestFixture]
     public class ExpressionTreeTest
     {
-        private XmlAttribute dummyAttribute; 
+        private XmlAttribute dummyAttribute;
         private XmlAttribute DummyAttribute
         {
             get
@@ -108,7 +112,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// A whole bunch of conditionals, that should be true, false, or error 
+        /// A whole bunch of conditionals, that should be true, false, or error
         /// (many coincidentally like existing QA tests) to give breadth coverage.
         /// Please add more cases as they arise.
         /// </summary>
@@ -212,7 +216,7 @@ namespace Microsoft.Build.UnitTests
                     "0==0.0",
                     "1\n\t==1",
                     "+4==4",
-                    "44==+44.0 and -44==-44.0",                    
+                    "44==+44.0 and -44==-44.0",
                     "false==no",
                     "true==yes",
                     "true==!false",
@@ -281,7 +285,7 @@ namespace Microsoft.Build.UnitTests
                     "exists('%3b')",
                     "exists('%27')",
                     "exists('@(v);@(nonexistent)')",
-                    @"HASTRAILINGSLASH('foo\')", 
+                    @"HASTRAILINGSLASH('foo\')",
                     @"!HasTrailingSlash('foo')",
                     @"HasTrailingSlash('foo/')",
                     @"HasTrailingSlash($(has_trailing_slash))",

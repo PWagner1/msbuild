@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.IO;
 using System.Xml;
@@ -18,7 +22,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
     /// Test Fixture Class for the v9 Object Model Public Interface Compatibility Tests for the BuildItemGroup Class.
     /// </summary>
     [TestFixture]
-    public sealed class BuildItemGroup_Tests 
+    public sealed class BuildItemGroup_Tests
     {
         #region Common Helpers
         /// <summary>
@@ -85,7 +89,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         #endregion
 
         /// <summary>
-        /// Example test for BuildItemGroup 
+        /// Example test for BuildItemGroup
         /// ****Don't keep this test once you're done automating****
         /// </summary>
         [Test]
@@ -797,7 +801,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
                 Project p = new Project(new Engine());
                 BuildItemGroup group = p.AddNewItemGroup();
                 group.AddNewItem("foos", Path.Combine(ObjectModelHelpers.TempProjectDir, "*.foo"));
-                object o = p.EvaluatedItems; // this causes the failure 
+                object o = p.EvaluatedItems; // this causes the failure
                 group.RemoveItem(p.EvaluatedItems[0]); // Exception thrown here
                 Assertion.Fail("success as failure"); // should not get here due to exception above
             }
@@ -1152,7 +1156,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         {
             if (String.IsNullOrEmpty(importProjectContents))
             {
-                importProjectContents = @" 
+                importProjectContents = @"
                     <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
                         <ItemGroup>
                             <nImported Include='iImported' />
@@ -1171,7 +1175,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
 
             if (String.IsNullOrEmpty(parentProjectContents))
             {
-                parentProjectContents = @" 
+                parentProjectContents = @"
                     <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
                         <ItemGroup>
                             <n1Main Include='iMain' />

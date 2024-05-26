@@ -1,5 +1,9 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
 
 using System;
 using System.IO;
@@ -34,7 +38,7 @@ namespace Microsoft.Build.BuildEngine
         // Has the object been serialized using .net serialization (binary formatter)
         NetSerialization = 1,
         // Used to mark that the next int read represents how many bytes are in the
-        // large object which is about to be sent      
+        // large object which is about to be sent
         FrameMarker = 2,
         // Mark the end of the batch in sharedMemory.
         EndMarker = 3,
@@ -117,7 +121,7 @@ namespace Microsoft.Build.BuildEngine
                 InitializeStreams(type);
                 try
                 {
-                    // This could fail if two different administrator accounts try and 
+                    // This could fail if two different administrator accounts try and
                     // access each others nodes as events and semaphores are protected
                     // against cross account access
                     InitializeSynchronization();
@@ -152,8 +156,8 @@ namespace Microsoft.Build.BuildEngine
             IntPtr pSDNative = IntPtr.Zero;
             try
             {
-                // Check to see if the user is an administrator, this is done to prevent non 
-                // administrator processes from accessing the shared memory. On a vista machine 
+                // Check to see if the user is an administrator, this is done to prevent non
+                // administrator processes from accessing the shared memory. On a vista machine
                 // the check does not differentiate beween the application being elevated to have
                 // administrator rights or the application being started with administrator rights.
                 // If the user is an administator create a new set of securityAttributes which make
@@ -174,19 +178,19 @@ namespace Microsoft.Build.BuildEngine
                     Marshal.StructureToPtr(saAttr, pointerToSecurityAttributes, true);
                 }
 
-               // The file mapping has either the default (current user) security permissions or 
-               // permissions restricted to only administrator users depending on the check above.
-               // If pointerToSecurityAttributes is null the default permissions are used.
-               this.pageFileMapping =
-                    NativeMethods.CreateFileMapping
-                    (
-                        NativeMethods.InvalidHandle,
-                        pointerToSecurityAttributes,
-                        NativeMethods.PAGE_READWRITE,
-                        0,
-                        size + 4,
-                        memoryMapName
-                    );
+                // The file mapping has either the default (current user) security permissions or
+                // permissions restricted to only administrator users depending on the check above.
+                // If pointerToSecurityAttributes is null the default permissions are used.
+                this.pageFileMapping =
+                     NativeMethods.CreateFileMapping
+                     (
+                         NativeMethods.InvalidHandle,
+                         pointerToSecurityAttributes,
+                         NativeMethods.PAGE_READWRITE,
+                         0,
+                         size + 4,
+                         memoryMapName
+                     );
 
                 // If only new mappings are allowed and the current one has been created by somebody else
                 // delete the mapping. Note that we would like to compare the GetLastError value against
@@ -209,7 +213,7 @@ namespace Microsoft.Build.BuildEngine
 
             if (!this.pageFileMapping.IsInvalid && !pageFileMapping.IsClosed)
             {
-                // Maps a view of a file mapping into the address space of the calling process so that we can use the 
+                // Maps a view of a file mapping into the address space of the calling process so that we can use the
                 // view to read and write to the shared memory region.
                 this.pageFileView =
                     NativeMethods.MapViewOfFile
@@ -218,8 +222,8 @@ namespace Microsoft.Build.BuildEngine
                         NativeMethods.FILE_MAP_ALL_ACCESS, // Give the map read, write, and copy access
                         0,  // Start mapped view at high order offset 0
                         0,  // Start mapped view at low order offset 0
-                         // The size of the shared memory plus some extra space for an int
-                         // to write the number of bytes written
+                            // The size of the shared memory plus some extra space for an int
+                            // to write the number of bytes written
                         (IntPtr)(size + 4)
                     );
 
@@ -371,7 +375,7 @@ namespace Microsoft.Build.BuildEngine
             get
             {
                 // If the flag is set true is returned
-                // A timeout of 0 means the WaitOne will time out 
+                // A timeout of 0 means the WaitOne will time out
                 // instantly and return false if the flag is not set.
                 return fullFlag.WaitOne(0, false);
             }
@@ -599,7 +603,7 @@ namespace Microsoft.Build.BuildEngine
         {
             // Get the object by peeking at the queue rather than dequeueing the object. This is done
             // because we only want to dequeue the object when it has completely been put in shared memory.
-            // This may be done right away if the object is small enough to fit in the shared memory or 
+            // This may be done right away if the object is small enough to fit in the shared memory or
             // may happen after a the object is sent as a number of smaller chunks.
             object objectToWrite = objectsToWrite.Peek();
             Debug.Assert(objectToWrite != null, "Expect to get a non-null object from the queue");
@@ -699,19 +703,19 @@ namespace Microsoft.Build.BuildEngine
             {
                 if (NumberOfUnreadBatches > 0)
                 {
-                    // The read stream is a memory stream where data read from the shared memory section 
-                    // will be copied to. From  this memory stream LocalCallDescriptors are deserialized. 
+                    // The read stream is a memory stream where data read from the shared memory section
+                    // will be copied to. From  this memory stream LocalCallDescriptors are deserialized.
                     // Stream position may not be 0 if we are reading a multipart object
                     int readStartPosition = (int)readStream.Position;
 
-                    // Read the first int from the memory file. This indicates the number of bytes written to 
+                    // Read the first int from the memory file. This indicates the number of bytes written to
                     // shared memory by the write method.
                     int endWritePosition = Marshal.ReadInt32((IntPtr)((int)pageFileView));
 
                     // Copy the bytes written into the shared memory section into the readStream memory stream.
                     Marshal.Copy
                     (
-                        (IntPtr)((int)pageFileView + 4 + readStream.Position), // Source 
+                        (IntPtr)((int)pageFileView + 4 + readStream.Position), // Source
                         readBuffer, //Destination
                         (int)(readStream.Position + (readBytesTotal - readBytesRemaining)), // Start Index
                         (int)(endWritePosition - readStream.Position) //Length of data
@@ -770,8 +774,8 @@ namespace Microsoft.Build.BuildEngine
                             }
                         }
 
-                        // Deserialized the objects in the read stream and add them into the arrayList as long as 
-                        // we did not encounter a frameMarker which says a large object is next or the end marker 
+                        // Deserialized the objects in the read stream and add them into the arrayList as long as
+                        // we did not encounter a frameMarker which says a large object is next or the end marker
                         // which marks the end of the batch.
                         while (((int)ObjectType.EndMarker != objectId) && ((int)ObjectType.FrameMarker != objectId))
                         {
@@ -907,7 +911,7 @@ namespace Microsoft.Build.BuildEngine
 
         private BinaryFormatter binaryFormatter;
 
-        // Binary reader and writer used to read and write from the memory streams used to contain the deserialized LocalCallDescriptors before and after they are copied 
+        // Binary reader and writer used to read and write from the memory streams used to contain the deserialized LocalCallDescriptors before and after they are copied
         // to and from the shared memory region.
         private BinaryWriter binaryWriter;
         private BinaryReader binaryReader;
@@ -922,16 +926,16 @@ namespace Microsoft.Build.BuildEngine
         private MemoryStream readStream;
 
         // The count on a semaphore is decremented each time a thread enters the semaphore,
-        // and incremented when a thread releases the semaphore. 
-        // When the count is zero, subsequent requests block until other threads release the semaphore. 
+        // and incremented when a thread releases the semaphore.
+        // When the count is zero, subsequent requests block until other threads release the semaphore.
         // A semaphore is considered siginaled when the count > 1 and not siginaled when the count is 0.
 
         // unreadBatchCounter is used to track how many batches are remaining to be read from shared memory.
         private Semaphore unreadBatchCounter;
 
         //Used to inform the shared memory reader threads the writer thread has written something in shared memory to read.
-	//The semaphore is incremented when the shared memory is full and when there is an unreadBatch availiable to be read or the shared memory is full.
-	//The semaphore is decremented when the shared memory reader thread is about to read from the shared memory.
+        //The semaphore is incremented when the shared memory is full and when there is an unreadBatch availiable to be read or the shared memory is full.
+        //The semaphore is decremented when the shared memory reader thread is about to read from the shared memory.
         private Semaphore readActionCounter;
 
         // Whether or not the shared memory is full
@@ -956,10 +960,10 @@ namespace Microsoft.Build.BuildEngine
 
         // Because we are using reflection to get the writeToStream and readFromStream methods from the classes in the framework assembly we found
         // we were spending a lot of time reflecting for these methods. The loggingTypeCache, caches the methodInfo for the classes and then look them
-        // up when serializing or deserializing the objects. 
+        // up when serializing or deserializing the objects.
         private Hashtable loggingTypeCache;
 
-        // Keep a pointer to the queue which contains the large object which is being deserialized. We do this because we want to make sure 
+        // Keep a pointer to the queue which contains the large object which is being deserialized. We do this because we want to make sure
         // after the object is properly sent we dequeue off the correct queue.
         private DualQueue<LocalCallDescriptor> largeObjectsQueue;
         #endregion

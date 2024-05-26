@@ -1,11 +1,13 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Microsoft.Build.Shared;
+
+#nullable disable
 
 namespace Microsoft.Build.Utilities
 {
@@ -107,23 +109,23 @@ namespace Microsoft.Build.Utilities
         }
 
         /// <summary>
-        /// The SDK's display name, or null if one is not defined. 
+        /// The SDK's display name, or null if one is not defined.
         /// </summary>
         public string DisplayName => Manifest?.DisplayName;
 
         /// <summary>
-        /// Extension sdks within this platform, 
+        /// Extension sdks within this platform,
         /// </summary>
         internal Dictionary<string, string> ExtensionSDKs { get; }
 
         /// <summary>
-        /// Set of platforms supported by this SDK. 
+        /// Set of platforms supported by this SDK.
         /// </summary>
         internal Dictionary<string, string> Platforms { get; }
 
         /// <summary>
         /// Reference to manifest object
-        /// Makes it is instantiated only once 
+        /// Makes it is instantiated only once
         /// </summary>
         private SDKManifest Manifest
         {
@@ -176,7 +178,7 @@ namespace Microsoft.Build.Utilities
         }
 
         /// <summary>
-        /// Returns true if this SDK supports the given platform, or false otherwise. 
+        /// Returns true if this SDK supports the given platform, or false otherwise.
         /// </summary>
         public bool ContainsPlatform(string targetPlatformIdentifier, string targetPlatformVersion)
         {
@@ -185,7 +187,7 @@ namespace Microsoft.Build.Utilities
         }
 
         /// <summary>
-        /// Given an identifier and version, construct a string to use as a key for that combination. 
+        /// Given an identifier and version, construct a string to use as a key for that combination.
         /// </summary>
         internal static string GetSdkKey(string sdkIdentifier, string sdkVersion) => string.Format(CultureInfo.InvariantCulture, "{0}, Version={1}", sdkIdentifier, sdkVersion);
     }

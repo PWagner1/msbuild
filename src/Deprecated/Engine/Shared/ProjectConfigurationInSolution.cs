@@ -1,5 +1,9 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
 
 using System;
 
@@ -39,17 +43,19 @@ namespace Microsoft.Build.BuildEngine.Shared
         /// This is a hacky method to remove the space in the "Any CPU" platform in project configurations.
         /// The problem is that this platform is stored as "AnyCPU" in project files, but the project system
         /// reports it as "Any CPU" to the solution configuration manager. Because of that all solution configurations
-        /// contain the version with a space in it, and when we try and give that name to actual projects, 
+        /// contain the version with a space in it, and when we try and give that name to actual projects,
         /// they have no clue what we're talking about. We need to remove the space in project platforms so that
         /// the platform name matches the one used in projects.
         /// </summary>
         /// <param name="platformName"></param>
         /// <returns></returns>
         /// <owner>LukaszG</owner>
-        static private string RemoveSpaceFromAnyCpuPlatform(string platformName)
+        private static string RemoveSpaceFromAnyCpuPlatform(string platformName)
         {
             if (string.Equals(platformName, "Any CPU", StringComparison.OrdinalIgnoreCase))
+            {
                 return "AnyCPU";
+            }
 
             return platformName;
         }

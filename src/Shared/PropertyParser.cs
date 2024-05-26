@@ -1,11 +1,13 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Text;
 using System.Collections.Generic;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
+using Microsoft.NET.StringTools;
+
+#nullable disable
 
 #if BUILD_ENGINE
 namespace Microsoft.Build.BackEnd
@@ -18,8 +20,8 @@ namespace Microsoft.Build.Tasks
     internal static class PropertyParser
     {
         /// <summary>
-        /// Given a string of semi-colon delimited name=value pairs, this method parses it and creates 
-        /// a hash table containing the property names as keys and the property values as values.  
+        /// Given a string of semi-colon delimited name=value pairs, this method parses it and creates
+        /// a hash table containing the property names as keys and the property values as values.
         /// </summary>
         /// <returns>true on success, false on failure.</returns>
         internal static bool GetTable(TaskLoggingHelper log, string parameterName, string[] propertyList, out Dictionary<string, string> propertiesTable)
@@ -41,9 +43,9 @@ namespace Microsoft.Build.Tasks
                     int indexOfEqualsSign = propertyNameValuePair.IndexOf('=');
 
                     // If we found one, then grab the stuff before it and put it into "propertyName",
-                    // and grab the stuff after it and put it into "propertyValue".  But trim the 
-                    // whitespace from beginning and end of both name and value.  (When authoring a 
-                    // project/targets file, people like to use whitespace and newlines to pretty up 
+                    // and grab the stuff after it and put it into "propertyValue".  But trim the
+                    // whitespace from beginning and end of both name and value.  (When authoring a
+                    // project/targets file, people like to use whitespace and newlines to pretty up
                     // the file format.)
                     if (indexOfEqualsSign != -1)
                     {
@@ -61,7 +63,7 @@ namespace Microsoft.Build.Tasks
                     }
 
                     // Bag the property and its value.  Trim whitespace from beginning and end of
-                    // both name and value.  (When authoring a project/targets file, people like to 
+                    // both name and value.  (When authoring a project/targets file, people like to
                     // use whitespace and newlines to pretty up the file format.)
                     propertiesTable[propertyName] = propertyValue;
                 }
@@ -71,9 +73,9 @@ namespace Microsoft.Build.Tasks
         }
 
         /// <summary>
-        /// Given a string of semi-colon delimited name=value pairs, this method parses it and creates 
-        /// a hash table containing the property names as keys and the property values as values.  
-        /// This method escapes any special characters found in the property values, in case they 
+        /// Given a string of semi-colon delimited name=value pairs, this method parses it and creates
+        /// a hash table containing the property names as keys and the property values as values.
+        /// This method escapes any special characters found in the property values, in case they
         /// are going to be passed to a method (such as that expects the appropriate escaping to have happened
         /// already.
         /// </summary>
@@ -97,9 +99,9 @@ namespace Microsoft.Build.Tasks
                     if (indexOfEqualsSign != -1)
                     {
                         // If we found one, then grab the stuff before it and put it into "propertyName",
-                        // and grab the stuff after it and put it into "propertyValue".  But trim the 
-                        // whitespace from beginning and end of both name and value.  (When authoring a 
-                        // project/targets file, people like to use whitespace and newlines to pretty up 
+                        // and grab the stuff after it and put it into "propertyValue".  But trim the
+                        // whitespace from beginning and end of both name and value.  (When authoring a
+                        // project/targets file, people like to use whitespace and newlines to pretty up
                         // the file format.)
                         string propertyName = propertyNameValueString.Substring(0, indexOfEqualsSign).Trim();
                         string propertyValue = EscapingUtilities.Escape(propertyNameValueString.Substring(indexOfEqualsSign + 1).Trim());
@@ -146,8 +148,7 @@ namespace Microsoft.Build.Tasks
                             // There was a property definition previous to this one.  Append the current string
                             // to that previous value, using semicolon as a separator.
                             string propertyValue = EscapingUtilities.Escape(propertyNameValueString.Trim());
-                            finalPropertiesList[finalPropertiesList.Count - 1].Value.Append(';');
-                            finalPropertiesList[finalPropertiesList.Count - 1].Value.Append(propertyValue);
+                            finalPropertiesList[finalPropertiesList.Count - 1].Value.Add(propertyValue);
                         }
                         else
                         {
@@ -163,9 +164,22 @@ namespace Microsoft.Build.Tasks
                 // needs to pass onto the engine.
                 log?.LogMessageFromText(parameterName, MessageImportance.Low);
 
+                using SpanBasedStringBuilder stringBuilder = Strings.GetSpanBasedStringBuilder();
                 foreach (PropertyNameValuePair propertyNameValuePair in finalPropertiesList)
                 {
-                    string propertyValue = OpportunisticIntern.StringBuilderToString(propertyNameValuePair.Value);
+                    stringBuilder.Clear();
+                    bool needsSemicolon = false;
+                    foreach (string valueFragment in propertyNameValuePair.Value)
+                    {
+                        if (needsSemicolon)
+                        {
+                            stringBuilder.Append(";");
+                        }
+                        needsSemicolon = true;
+                        stringBuilder.Append(valueFragment);
+                    }
+
+                    string propertyValue = stringBuilder.ToString();
                     finalPropertiesTable[propertyNameValuePair.Name] = propertyValue;
                     log?.LogMessageFromText(
                         $"  {propertyNameValuePair.Name}={propertyValue}",
@@ -187,14 +201,17 @@ namespace Microsoft.Build.Tasks
             internal string Name { get; }
 
             /// <summary>
-            /// Property value
+            /// Property value fragments. Join with semicolon to get the final value.
             /// </summary>
-            internal StringBuilder Value { get; }
+            internal List<string> Value { get; }
 
             internal PropertyNameValuePair(string propertyName, string propertyValue)
             {
                 Name = propertyName;
-                Value = new StringBuilder(propertyValue);
+                Value = new List<string>
+                {
+                    propertyValue
+                };
             }
         }
     }

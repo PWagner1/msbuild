@@ -9,7 +9,7 @@ Goals:
  * structure (preserves the exact build event args that can later be replayed to reconstruct the exact events and information as if a real build was running). File logs erase structure and are harder to parse (especially for multicore /m builds). Build analyzer tools are conceivable that could benefit from the structure in a binary log. An API is available to load and query binary logs.
  * optionally collect the project files (and all imported targets files) used during the build. This can help analyzing the logs and even view preprocessed source for all projects (with all imported projects inlined).
 
-See http://msbuildlog.com for more information.
+See https://msbuildlog.com/ for more information.
 
 # Creating a binary log during a build
 
@@ -38,6 +38,10 @@ Note that only `*.csproj`, `*.targets` and other MSBuild project formats are col
 
 If the binary log contains the projects/imports files the MSBuild Structured Log Viewer will display all the files contained in the log, let you search through them and even display preprocessed view for any project where all imported projects are inlined (similar to `msbuild /pp` switch).
 
+# Logging all environment variables
+
+By default, MSBuild logs only the environment variables that are used to influence MSBuild, which is a subset of what is set in the environment. This reduces, but does not eliminate, the likelihood of leaking sensitive information through logs. This behavior can be changed to log the full environment by setting the environment variable `MSBUILDLOGALLENVIRONMENTVARIABLES=1`.
+
 # Replaying a binary log
 
 Instead of passing the project/solution to MSBuild.exe you can now pass a binary log to "build". This will replay all events to all other loggers (just the console by default). Here's an example of replaying a `.binlog` file to the diagnostic verbosity text log:
@@ -62,19 +66,17 @@ Once you have the `StructuredLogger.dll` on disk you can pass it to MSBuild like
 # Using MSBuild Structured Log Viewer
 
 You can use the MSBuild Structured Log Viewer tool to view `.binlog` files:
-http://msbuildlog.com
+https://msbuildlog.com/
 
 # Collecting binary logs from Visual Studio builds
 
-If you need to capture a binary log in Visual Studio, instead of the command line, you'll need a Visual Studio plugin: https://marketplace.visualstudio.com/items?itemName=VisualStudioProductTeam.ProjectSystemTools
-
-After installing that, enable logging and run your build ([more details](https://github.com/dotnet/project-system-tools)).
+[see more details](Providing-Binary-Logs.md#capturing-binary-logs-through-visual-studio)
 
 # Binary log file format
 
 The implementation of the binary logger is here:
 https://source.dot.net/#Microsoft.Build/Logging/BinaryLogger/BinaryLogger.cs
-https://github.com/Microsoft/msbuild/blob/master/src/Build/Logging/BinaryLogger/BinaryLogger.cs
+https://github.com/dotnet/msbuild/blob/main/src/Build/Logging/BinaryLogger/BinaryLogger.cs
 
 It is a `GZipStream`-compressed binary stream of serialized `BuildEventArgs` objects. The event args objects are serialized and deserialized using:
  * https://source.dot.net/#Microsoft.Build/Logging/BinaryLogger/BuildEventArgsWriter.cs
@@ -82,14 +84,108 @@ It is a `GZipStream`-compressed binary stream of serialized `BuildEventArgs` obj
 
 ## Incrementing the file format
 
-Every .binlog file has the first three bytes that indicate the file version. The current file format version is 9 (`00 00 09`).
+Every .binlog file has the first four bytes that indicate the file version. The current file format is indicated in [`BinaryLogger.cs`](/src/Build/Logging/BinaryLogger/BinaryLogger.cs).
 
 When incrementing the file format, keep this in mind:
- * Increment the version and add a summary of the changes: https://github.com/Microsoft/msbuild/blob/master/src/Build/Logging/BinaryLogger/BinaryLogger.cs#L22
+ * Increment the version and add a summary of the changes: https://github.com/dotnet/msbuild/blob/main/src/Build/Logging/BinaryLogger/BinaryLogger.cs#L22
  * In BuildEventArgsWriter.cs, just add fields, etc. without worrying. 
  * In BuildEventArgsReader.cs, add exactly the same changes, but wrapped in an `if`-statement like this: `if (fileFormatVersion > version where the field was introduced)
  * Open an issue over at https://github.com/KirillOsenkov/MSBuildStructuredLog/issues/new so I can adapt the Structured Log Viewer to these changes.
 
 The format is backwards compatible, i.e. MSBuild will be able to play back .binlog files created with an older version of MSBuild. The Viewer will also be able to open files of any older version. Since the viewer updates automatically and I can push out updates easily, we can consider the Viewer is always able to read all .binlogs.
 
-However MSBuild of version 15.3 won't be able to read .binlogs created with MSBuild version 15.6. This means the format is unfortunately not forwards-compatible. It is not self-describing, i.e. it doesn't carry its schema around for performance and compactness reasons. This is not a problem with a Viewer because Viewer is always up-to-date (there isn't an "old version" of the Viewer unless people go to great lengths to prevent it from auto-updating).
+## Forward compatibility reading
+
+From version 18, the binlog contains as well the minimum version of reader that can interpret it (stored in bytes 4 to 8). Support for best effort forward compatibility is added by this version. It is “best effort” only because the binlog format is not self-describing, i.e. it doesn't carry its schema around for performance and compactness reasons.
+
+This is not of a high importance for users of the Viewer because Viewer is always up-to-date (there isn't an "old version" of the Viewer unless people go to great lengths to prevent it from auto-updating).
+
+## Reading API
+
+We recommend usage of `BinaryLogReplayEventSource`. It provides simplified helpers for creating and configuring `BuildEventArgsReader` and subscribing to the events.
+
+```csharp
+var logReader = new BinaryLogReplayEventSource()
+{
+    AllowForwardCompatibility = true
+};
+
+// Handling of the structured events contained within the log
+logReader.AnyEventRaised += (_, e) =>
+{
+    if (e is BuildErrorEventArgs error)
+    {
+        //...
+    }
+
+    // ...
+};
+
+// Starts the synchronous log reading loop.
+logReader.Replay(path_to_binlog_file);
+
+```
+
+### Handling the recoverable reading errors
+
+In compatibility mode (default for `BinaryLogReplayEventSource`. Only supported for binlogs of version 18 and higher) reader is capable of skipping unknown event types and unknown parts of known events (`BuildEventArgsReader` can configure the behavior via 2 separate properties - `SkipUnknownEvents` and `SkipUnknownEventParts`).
+
+The unknown events and event parts are regarded as recoverable errors, since the reader is able to continue reading subsequent records in the binlog. However the specific user logic should have the last call in deciding whether errors are really recoverable (e.g. is presence of unrecognized or unparseable event ok? It might be fine when searching only for specific events - e.g. errors but not acceptable when trying to provide definitive overview of the built).
+
+To allow the calling code to decide - based on the type of error, type of events getting the error, or the number of errors - the `RecoverableReadError` event is exposed (from both `BinaryLogReplayEventSource` and `BuildEventArgsReader`).
+
+```csharp
+/// <summary>
+/// An event args for <see cref="IBinaryLogReaderErrors.RecoverableReadError"/> event.
+/// </summary>
+public sealed class BinaryLogReaderErrorEventArgs : EventArgs
+{
+    /// <summary>
+    /// Type of the error that occurred during reading.
+    /// </summary>
+    public ReaderErrorType ErrorType { get; }
+
+    /// <summary>
+    /// Kind of the record that encountered the error.
+    /// </summary>
+    public BinaryLogRecordKind RecordKind { get; }
+
+    /// <summary>
+    /// Materializes the error message.
+    /// Until it's called the error message is not materialized and no string allocations are made.
+    /// </summary>
+    /// <returns>The error message.</returns>
+    public string GetFormattedMessage() => _formatErrorMessage();
+}
+
+/// <summary>
+/// Receives recoverable errors during reading.
+/// Communicates type of the error, kind of the record that encountered the error and the message detailing the error.
+/// In case of <see cref="ReaderErrorType.UnknownEventData"/> this is raised before returning the structured representation of a build event
+/// that has some extra unknown data in the binlog. In case of other error types this event is raised and the offending build event is skipped and not returned.
+/// </summary>
+event Action<BinaryLogReaderErrorEventArgs>? RecoverableReadError;
+```
+
+Our sample usage of the [Reading API](#reading-api) can be enhanced with recoverable errors handling e.g. as such:
+
+```csharp
+
+// Those can be raised only during forward compatibility reading mode.
+logReader.RecoverableReadError += errorEventArgs =>
+{
+    // ...
+
+    // e.g. we can decide to ignore the error and continue reading or break reading
+    //  based on the type of the error or/and type of the record or/and the frequency of the error
+
+    // Would we decide to completely ignore some errors - we can aid better performance by not materializing the actual error message.
+    // Otherwise the error message can be materialized via the provided method on the event argument:
+    Console.WriteLine($"Recoverable reader error: {errorEventArgs.GetFormattedMessage()}");
+};
+
+```
+
+When authoring changes to the specific BuildEventArg types - it is always strongly recommended to **prefer append-only changes**. 
+
+This prevents the possibility of collision where some fields are removed in one version and then different fields with same binary size are added in future version. Such a sequence of format changes might not be caught by the decoder and might lead to unnoticed corrupt interpretation of data. For this reason the author of specific OM changes should always check whether there is a possibility of unrecognizable format collision (same binary size, different representation) within binlog versions of a same [minimum reader version support](#forward-compatibility-reading). If this is possible, the [minimum reader version support](#forward-compatibility-reading) should be incremented.

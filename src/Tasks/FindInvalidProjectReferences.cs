@@ -1,10 +1,12 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using Microsoft.Build.Framework;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using Microsoft.Build.Framework;
+
+#nullable disable
 
 namespace Microsoft.Build.Tasks
 {
@@ -15,15 +17,13 @@ namespace Microsoft.Build.Tasks
     {
         #region Fields
 
-        ///<summary>
+        /// <summary>
         /// Regex for breaking up the platform moniker
         /// Example: XNA, Version=8.0
         /// </summary>
-        private static readonly Regex s_platformMonikerFormat = new Regex
-        (
+        private static readonly Regex s_platformMonikerFormat = new Regex(
              @"(?<PLATFORMIDENTITY>^[^,]*),\s*Version=(?<PLATFORMVERSION>.*)",
-            RegexOptions.IgnoreCase
-        );
+            RegexOptions.IgnoreCase);
 
         /// <summary>
         /// Reference moniker metadata
@@ -62,7 +62,7 @@ namespace Microsoft.Build.Tasks
         public string TargetPlatformIdentifier { get; set; }
 
         /// <summary>
-        /// Invalid references to be unresolved 
+        /// Invalid references to be unresolved
         /// </summary>
         [Output]
         public ITaskItem[] InvalidReferences { get; private set; }
@@ -87,7 +87,7 @@ namespace Microsoft.Build.Tasks
                     string referenceIdentity = item.ItemSpec;
                     string referencePlatformMoniker = item.GetMetadata(ReferencePlatformMonikerMetadata);
 
-                    // For each moniker, compare version, issue localized message if the referenced project targets 
+                    // For each moniker, compare version, issue localized message if the referenced project targets
                     // a platform with version higher than the current project and make the reference invalid by adding it to
                     // an invalid reference list output
                     if (ParseMoniker(referencePlatformMoniker, out _, out Version version))

@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -78,7 +82,7 @@ namespace Microsoft.Build.UnitTests
             TaskRegistry taskRegistry = (TaskRegistry) t.GetTaskRegistry(null);
 
             Console.WriteLine(mockLogger.FullLog);
-            Assert.AreEqual(1, mockLogger.WarningCount, "Expected a warning for invalid character in toolpath"); 
+            Assert.AreEqual(1, mockLogger.WarningCount, "Expected a warning for invalid character in toolpath");
         }
 
         public ToolsetState_Tests()
@@ -150,7 +154,7 @@ namespace Microsoft.Build.UnitTests
               new DefaultTasksFile("d:\\directory1\\directory2\\f.tasks",
                       @"<Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
                             <UsingTask TaskName='f1' AssemblyName='f' />
-                       </Project>"), 
+                       </Project>"),
               new DefaultTasksFile("c:\\directory1\\directory2\\g.custom.tasks",
                       @"<Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
                             <UsingTask TaskName='g1' AssemblyName='g' />

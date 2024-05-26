@@ -1,12 +1,21 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Text;
 using System.IO;
 using System.Diagnostics;
+using System.Threading;
+
+#if !CLR2COMPATIBILITY
+using System.Buffers;
+#endif
 
 using ErrorUtilities = Microsoft.Build.Shared.ErrorUtilities;
+
+using Microsoft.NET.StringTools;
+
+#nullable disable
 
 namespace Microsoft.Build
 {
@@ -25,9 +34,21 @@ namespace Microsoft.Build
 #endif
 
         /// <summary>
+        /// A cache of recently used buffers. This is a pool of size 1 to avoid allocating moderately sized
+        /// <see cref="Buffer"/> objects repeatedly. Used in scenarios that don't have a good context to attach
+        /// a shared buffer to.
+        /// </summary>
+        private static Buffer s_bufferPool;
+
+        /// <summary>
         /// Shared buffer saves allocating these arrays many times.
         /// </summary>
         private Buffer _buffer;
+
+        /// <summary>
+        /// True if <see cref="_buffer"/> is owned by this instance, false if it was passed by the caller.
+        /// </summary>
+        private bool _isPrivateBuffer;
 
         /// <summary>
         /// The decoder used to translate from UTF8 (or whatever).
@@ -37,8 +58,8 @@ namespace Microsoft.Build
         /// <summary>
         /// Comment about constructing.
         /// </summary>
-        private InterningBinaryReader(Stream input, Buffer buffer)
-            : base(input, buffer.Encoding)
+        private InterningBinaryReader(Stream input, Buffer buffer, bool isPrivateBuffer)
+            : base(input, Encoding.UTF8)
         {
             if (input == null)
             {
@@ -46,15 +67,17 @@ namespace Microsoft.Build
             }
 
             _buffer = buffer;
-            _decoder = buffer.Encoding.GetDecoder();
+            _isPrivateBuffer = isPrivateBuffer;
+            _decoder = Encoding.UTF8.GetDecoder();
         }
 
         /// <summary>
         /// Read a string while checking the string precursor for intern opportunities.
         /// Taken from ndp\clr\src\bcl\system\io\binaryreader.cs-ReadString()
         /// </summary>
-        override public String ReadString()
+        public override String ReadString()
         {
+            char[] resultBuffer = null;
             try
             {
                 MemoryStream memoryStream = this.BaseStream as MemoryStream;
@@ -63,7 +86,7 @@ namespace Microsoft.Build
                 int n = 0;
                 int stringLength;
                 int readLength;
-                int charsRead;
+                int charsRead = 0;
 
                 // Length of the string in bytes, not chars
                 stringLength = Read7BitEncodedInt();
@@ -78,8 +101,6 @@ namespace Microsoft.Build
                 }
 
                 char[] charBuffer = _buffer.CharBuffer;
-
-                StringBuilder sb = null;
                 do
                 {
                     readLength = ((stringLength - currPos) > MaxCharsBuffer) ? MaxCharsBuffer : (stringLength - currPos);
@@ -96,14 +117,16 @@ namespace Microsoft.Build
                         int length = (int)memoryStream.Length;
                         n = (rawPosition + readLength) < length ? readLength : length - rawPosition;
 
-                        // Attempt to track down an intermittent failure -- n should not ever be negative, but 
-                        // we're occasionally seeing it when we do the decoder.GetChars below -- by providing 
+                        // Attempt to track down an intermittent failure -- n should not ever be negative, but
+                        // we're occasionally seeing it when we do the decoder.GetChars below -- by providing
                         // a bit more information when we do hit the error, in the place where (by code inspection)
-                        // the actual error seems most likely to be occurring. 
+                        // the actual error seems most likely to be occurring.
                         if (n < 0)
                         {
                             ErrorUtilities.ThrowInternalError("From calculating based on the memorystream, about to read n = {0}. length = {1}, rawPosition = {2}, readLength = {3}, stringLength = {4}, currPos = {5}.", n, length, rawPosition, readLength, stringLength, currPos);
                         }
+
+                        memoryStream.Seek(n, SeekOrigin.Current);
                     }
 
                     if (rawBuffer == null)
@@ -124,71 +147,122 @@ namespace Microsoft.Build
                         throw new EndOfStreamException();
                     }
 
-                    charsRead = _decoder.GetChars(rawBuffer, rawPosition, n, charBuffer, 0);
-
-                    memoryStream?.Seek(readLength, SeekOrigin.Current);
-
                     if (currPos == 0 && n == stringLength)
                     {
-                        return OpportunisticIntern.CharArrayToString(charBuffer, charsRead);
+                        charsRead = _decoder.GetChars(rawBuffer, rawPosition, n, charBuffer, 0);
+                        return Strings.WeakIntern(charBuffer.AsSpan(0, charsRead));
                     }
+#if !CLR2COMPATIBILITY
+                    resultBuffer ??= ArrayPool<char>.Shared.Rent(stringLength); // Actual string length in chars may be smaller.
+#else
+                    // Since NET35 is only used in rare TaskHost processes, we decided to leave it as-is.
+                    resultBuffer ??= new char[stringLength]; // Actual string length in chars may be smaller.
+#endif
+                    charsRead += _decoder.GetChars(rawBuffer, rawPosition, n, resultBuffer, charsRead);
 
-                    if (sb == null)
-                    {
-                        sb = new StringBuilder(stringLength); // Actual string length in chars may be smaller.
-                    }
-
-                    sb.Append(charBuffer, 0, charsRead);
                     currPos += n;
                 }
                 while (currPos < stringLength);
 
-                return OpportunisticIntern.StringBuilderToString(sb);
+                var retval = Strings.WeakIntern(resultBuffer.AsSpan(0, charsRead));
+
+                return retval;
             }
             catch (Exception e)
             {
                 Debug.Assert(false, e.ToString());
                 throw;
             }
+#if !CLR2COMPATIBILITY
+            finally
+            {
+                // resultBuffer shall always be either Rented or null
+                if (resultBuffer != null)
+                {
+                    ArrayPool<char>.Shared.Return(resultBuffer);
+                }
+            }
+#endif
         }
 
         /// <summary>
         /// A shared buffer to avoid extra allocations in InterningBinaryReader.
         /// </summary>
-        internal static SharedReadBuffer CreateSharedBuffer()
+        /// <remarks>
+        /// The caller is responsible for managing the lifetime of the returned buffer and for passing it to <see cref="Create"/>.
+        /// </remarks>
+        internal static BinaryReaderFactory CreateSharedBuffer()
         {
             return new Buffer();
         }
 
         /// <summary>
+        /// A placeholder instructing InterningBinaryReader to use pooled buffer (to avoid extra allocations).
+        /// </summary>
+        /// <remarks>
+        /// Lifetime of the pooled buffer is managed by InterningBinaryReader (tied to BinaryReader lifetime wrapping the buffer)
+        /// </remarks>
+        internal static BinaryReaderFactory PoolingBuffer => NullBuffer.Instance;
+
+        /// <summary>
+        /// Gets a buffer from the pool or creates a new one.
+        /// </summary>
+        /// <returns>The <see cref="Buffer"/>. Should be returned to the pool after we're done with it.</returns>
+        private static Buffer GetPooledBuffer()
+        {
+            Buffer buffer = Interlocked.Exchange(ref s_bufferPool, null);
+            if (buffer != null)
+            {
+                return buffer;
+            }
+            return new Buffer();
+        }
+
+        #region IDisposable pattern
+
+        /// <summary>
+        /// Returns our buffer to the pool if we were not passed one by the caller.
+        /// </summary>
+        protected override void Dispose(bool disposing)
+        {
+            if (_isPrivateBuffer)
+            {
+                // If we created this buffer then try to return it to the pool. If s_bufferPool is non-null we leave it alone,
+                // the idea being that it's more likely to have lived longer than our buffer.
+                Interlocked.CompareExchange(ref s_bufferPool, _buffer, null);
+            }
+            base.Dispose(disposing);
+        }
+
+        #endregion
+
+        /// <summary>
         /// Create a BinaryReader. It will either be an interning reader or standard binary reader
         /// depending on whether the interning reader is possible given the buffer and stream.
         /// </summary>
-        internal static BinaryReader Create(Stream stream, SharedReadBuffer sharedBuffer)
+        private static BinaryReader Create(Stream stream, BinaryReaderFactory sharedBuffer)
         {
             Buffer buffer = (Buffer)sharedBuffer;
-
-            if (buffer == null)
+            if (buffer != null)
             {
-                buffer = new Buffer();
+                return new InterningBinaryReader(stream, buffer, false);
             }
-
-            return new InterningBinaryReader(stream, buffer);
+            return new InterningBinaryReader(stream, GetPooledBuffer(), true);
         }
 
         /// <summary>
-        /// Holds thepreallocated buffer. 
+        /// Holds thepreallocated buffer.
         /// </summary>
-        private class Buffer : SharedReadBuffer
+        private class Buffer : BinaryReaderFactory
         {
+            private char[] _charBuffer;
+            private byte[] _byteBuffer;
+
             /// <summary>
             /// Yes, we are constructing.
             /// </summary>
             internal Buffer()
             {
-                this.Encoding = new UTF8Encoding();
-                this.CharBuffer = new char[MaxCharsBuffer];
-                this.ByteBuffer = new byte[Encoding.GetMaxByteCount(MaxCharsBuffer)];
             }
 
             /// <summary>
@@ -196,8 +270,11 @@ namespace Microsoft.Build
             /// </summary>
             internal char[] CharBuffer
             {
-                get;
-                private set;
+                get
+                {
+                    _charBuffer ??= new char[MaxCharsBuffer];
+                    return _charBuffer;
+                }
             }
 
             /// <summary>
@@ -205,25 +282,30 @@ namespace Microsoft.Build
             /// </summary>
             internal byte[] ByteBuffer
             {
-                get;
-                private set;
+                get
+                {
+                    _byteBuffer ??= new byte[Encoding.UTF8.GetMaxByteCount(MaxCharsBuffer)];
+                    return _byteBuffer;
+                }
             }
 
-            /// <summary>
-            /// The encoding.
-            /// </summary>
-            internal UTF8Encoding Encoding
+            public override BinaryReader Create(Stream stream)
             {
-                get;
-                private set;
+                return InterningBinaryReader.Create(stream, this);
             }
         }
-    }
 
-    /// <summary>
-    /// Opaque holder of shared buffer.
-    /// </summary>
-    abstract internal class SharedReadBuffer
-    {
+        private class NullBuffer : BinaryReaderFactory
+        {
+            private NullBuffer()
+            { }
+
+            public static readonly BinaryReaderFactory Instance = new NullBuffer();
+
+            public override BinaryReader Create(Stream stream)
+            {
+                return InterningBinaryReader.Create(stream, null);
+            }
+        }
     }
 }

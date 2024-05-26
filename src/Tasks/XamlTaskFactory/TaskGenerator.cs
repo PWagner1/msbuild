@@ -1,13 +1,14 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.CodeDom;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Globalization;
-using System.CodeDom;
-
 using Microsoft.Build.Shared;
+
+#nullable disable
 
 namespace Microsoft.Build.Tasks.Xaml
 {
@@ -395,7 +396,7 @@ namespace Microsoft.Build.Tasks.Xaml
                 // generate the constructor for this class
                 GenerateConstructor(taskClass);
 
-                // generate the property for ToolName 
+                // generate the property for ToolName
                 GenerateToolNameProperty(taskClass);
 
                 // generate all of the properties
@@ -759,7 +760,7 @@ namespace Microsoft.Build.Tasks.Xaml
             // set statments
             GenerateCommon(property, propertyName, TypeInteger, typeof(Int32), NumberProperty);
 
-            // if a min or max exists, check those boundaries        
+            // if a min or max exists, check those boundaries
             CodeExpression[] parameters;
             string name = property.SwitchName != String.Empty ? property.Prefix + property.SwitchName : property.Name;
             if (!String.IsNullOrEmpty(property.Min) && !String.IsNullOrEmpty(property.Max))
@@ -834,7 +835,7 @@ namespace Microsoft.Build.Tasks.Xaml
                 {
                     if (ContainsCurrentPlatform(val.SwitchName))
                     {
-                        // Create the array of argument expressions.                        
+                        // Create the array of argument expressions.
                         var argumentInitializers = new List<CodeObjectCreateExpression>(val.Arguments.Count);
                         foreach (Argument arg in val.Arguments)
                         {
@@ -940,7 +941,9 @@ namespace Microsoft.Build.Tasks.Xaml
         private bool ContainsCurrentPlatform(Property property)
         {
             if (Platform == null)
+            {
                 return true;
+            }
 
             if (property.Values.Count > 0)
             {
@@ -964,17 +967,20 @@ namespace Microsoft.Build.Tasks.Xaml
         {
             // If we don't have a platform defined it meens all
             if (Platform == null)
-                return true;
-
-            if (_relationsParser.SwitchRelationsList.ContainsKey(SwitchValue))
             {
-                SwitchRelations rel = _relationsParser.SwitchRelationsList[SwitchValue];
+                return true;
+            }
+
+            if (_relationsParser.SwitchRelationsList.TryGetValue(SwitchValue, out SwitchRelations rel))
+            {
                 if (rel.ExcludedPlatforms.Count > 0)
                 {
                     foreach (string excludedPlatform in rel.ExcludedPlatforms)
                     {
                         if (Platform == excludedPlatform)
+                        {
                             return false;
+                        }
                     }
                 }
                 if (rel.IncludedPlatforms.Count > 0)
@@ -983,7 +989,9 @@ namespace Microsoft.Build.Tasks.Xaml
                     foreach (string includedPlatform in rel.IncludedPlatforms)
                     {
                         if (Platform == includedPlatform)
+                        {
                             isIncluded = true;
+                        }
                     }
                     return isIncluded;
                 }
@@ -996,9 +1004,8 @@ namespace Microsoft.Build.Tasks.Xaml
         /// </summary>
         private void GenerateOverrides(Property property, CodeMemberProperty propertyName)
         {
-            if (_relationsParser.SwitchRelationsList.ContainsKey(property.SwitchName))
+            if (_relationsParser.SwitchRelationsList.TryGetValue(property.SwitchName, out SwitchRelations rel))
             {
-                SwitchRelations rel = _relationsParser.SwitchRelationsList[property.SwitchName];
                 if (rel.Overrides.Count > 0)
                 {
                     foreach (string overrided in rel.Overrides)
@@ -1185,8 +1192,8 @@ namespace Microsoft.Build.Tasks.Xaml
                             }
                         }
 
-                        checkRequired.TrueStatements.Add(new CodeMethodInvokeExpression
-                            (new CodeThisReferenceExpression(), "RemoveSwitchToolBasedOnValue",
+                        checkRequired.TrueStatements.Add(new CodeMethodInvokeExpression(
+                            new CodeThisReferenceExpression(), "RemoveSwitchToolBasedOnValue",
                             new CodeSnippetExpression(SurroundWithQuotes(switchRelations.Key))));
 
                         addValidateRelationsMethod.Statements.Add(checkRequired);

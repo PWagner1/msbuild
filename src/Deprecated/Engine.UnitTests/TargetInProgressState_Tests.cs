@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -39,7 +43,7 @@ namespace Microsoft.Build.UnitTests
                       <Target Name='t' DependsOnTargets='Build'/>
                     <Import Project=`$(MSBuildBinPath)\Microsoft.CSharp.Targets` />
                     </Project>
-                "); 
+                ");
             EngineCallback engineCallback = new EngineCallback(engine);
             Target build = project.Targets["Build"];
             List<ProjectBuildState> waitingBuildStates = null;
@@ -56,8 +60,8 @@ namespace Microsoft.Build.UnitTests
             initiatingRequest.AddBlockingTarget("Build");
             BuildRequest [] outstandingBuildRequests = null;
             string projectName = "SuperTestProject";
-            
-            
+
+
 
             TargetInProgessState targetInProgress1 = new TargetInProgessState(
                                                               engineCallback,
@@ -67,7 +71,7 @@ namespace Microsoft.Build.UnitTests
                                                               outstandingBuildRequests,
                                                               projectName
                                                           );
-            
+
             targetInProgress1.ParentTargetsForBuildRequests = null;
             Assertion.AssertNull(targetInProgress1.ParentTargetsForBuildRequests);
             Assertion.Assert(!targetInProgress1.RequestedByHost);
@@ -208,7 +212,7 @@ namespace Microsoft.Build.UnitTests
                 originalWrapper.name = string.Empty;
                 originalWrapper.nodeId = 6;
                 originalWrapper.projectId = 8;
-                
+
                 stream.Position = 0;
                 // Serialize
                 originalWrapper.WriteToStream(writer);

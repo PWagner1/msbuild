@@ -1,15 +1,17 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.IO;
+using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
 using Microsoft.Build.Utilities;
+
+#nullable disable
 
 namespace Microsoft.Build.Tasks
 {
@@ -17,9 +19,7 @@ namespace Microsoft.Build.Tasks
     /// This class defines an "Exec" MSBuild task, which simply invokes the specified process with the specified arguments, waits
     /// for it to complete, and then returns True if the process completed successfully, and False if an error occurred.
     /// </summary>
-    /// <comments>
-    /// UNDONE: ToolTask has a "UseCommandProcessor" flag that duplicates much of the code in this class. Remove the duplication.
-    /// </comments>
+    // UNDONE: ToolTask has a "UseCommandProcessor" flag that duplicates much of the code in this class. Remove the duplication.
     public class Exec : ToolTaskExtension
     {
         #region Constructors
@@ -55,6 +55,9 @@ namespace Microsoft.Build.Tasks
         private Encoding _standardErrorEncoding;
         private Encoding _standardOutputEncoding;
         private string _command;
+
+        // '^' before _any_ character escapes that character, don't escape it.
+        private static readonly char[] _charactersToEscape = { '(', ')', '=', ';', '!', ',', '&', ' ' };
 
         #endregion
 
@@ -126,14 +129,6 @@ namespace Microsoft.Build.Tasks
         protected override Encoding StandardErrorEncoding => _standardErrorEncoding;
 
         /// <summary>
-        /// Whether or not to use UTF8 encoding for the cmd file and console window.
-        /// Values: Always, Never, Detect
-        /// If set to Detect, the current code page will be used unless it cannot represent 
-        /// the Command string. In that case, UTF-8 is used.
-        /// </summary>
-        public string UseUtf8Encoding { get; set; }
-
-        /// <summary>
         /// Project visible property specifying the encoding of the captured task standard output stream
         /// </summary>
         [Output]
@@ -188,7 +183,7 @@ namespace Microsoft.Build.Tasks
         /// if they aren't used.  ConsoleOutput is a combination of stdout and stderr.
         /// </summary>
         [Output]
-        public ITaskItem[] ConsoleOutput => !ConsoleToMSBuild ? Array.Empty<ITaskItem>(): _nonEmptyOutput.ToArray();
+        public ITaskItem[] ConsoleOutput => !ConsoleToMSBuild ? Array.Empty<ITaskItem>() : _nonEmptyOutput.ToArray();
 
         #endregion
 
@@ -201,7 +196,7 @@ namespace Microsoft.Build.Tasks
             var encoding = EncodingUtilities.BatchFileEncoding(Command + WorkingDirectory, UseUtf8Encoding);
 
             // Temporary file with the extension .Exec.bat
-            _batchFile = FileUtilities.GetTemporaryFile(".exec.cmd");
+            _batchFile = FileUtilities.GetTemporaryFileName(".exec.cmd");
 
             // UNICODE Batch files are not allowed as of WinXP. We can't use normal ANSI code pages either,
             // since console-related apps use OEM code pages "for historical reasons". Sigh.
@@ -253,29 +248,6 @@ namespace Microsoft.Build.Tasks
                 {
                     // Use sh rather than bash, as not all 'nix systems necessarily have Bash installed
                     sw.WriteLine("#!/bin/sh");
-                }
-
-                if (NativeMethodsShared.IsUnixLike && NativeMethodsShared.IsMono)
-                {
-                    // Extract the command we are going to run. Note that the command name may
-                    // be preceded by whitespace
-                    var m = Regex.Match(Command, @"^\s*((?:(?:(?<!\\)[^\0 !$`&*()+])|(?:(?<=\\)[^\0]))+)(.*)");
-                    if (m.Success && m.Groups.Count > 1 && m.Groups[1].Captures.Count > 0)
-                    {
-                        string exe = m.Groups[1].Captures[0].ToString();
-                        string commandLine = (m.Groups.Count > 2 && m.Groups[2].Captures.Count > 0) ?
-                            m.Groups[2].Captures[0].Value : "";
-
-
-                        // If we are trying to run a .exe file, prepend mono as the file may
-                        // not be runnable
-                        if (exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
-                            || exe.EndsWith(".exe\"", StringComparison.OrdinalIgnoreCase)
-                            || exe.EndsWith(".exe'", StringComparison.OrdinalIgnoreCase))
-                        {
-                            Command = "mono " + FileUtilities.FixFilePath(exe) + commandLine;
-                        }
-                    }
                 }
 
                 sw.WriteLine(Command);
@@ -336,17 +308,23 @@ namespace Microsoft.Build.Tasks
         {
             if (IgnoreExitCode)
             {
-                Log.LogMessageFromResources(MessageImportance.Normal, "Exec.CommandFailedNoErrorCode", Command, ExitCode);
+                // Don't log when EchoOff and IgnoreExitCode.
+                if (!EchoOff)
+                {
+                    Log.LogMessageFromResources(MessageImportance.Normal, "Exec.CommandFailedNoErrorCode", Command, ExitCode);
+                }
                 return true;
             }
 
+            // Don't emit expanded form of Command when EchoOff is set.
+            string commandForLog = EchoOff ? "..." : Command;
             if (ExitCode == NativeMethods.SE_ERR_ACCESSDENIED)
             {
-                Log.LogErrorWithCodeFromResources("Exec.CommandFailedAccessDenied", Command, ExitCode);
+                Log.LogErrorWithCodeFromResources("Exec.CommandFailedAccessDenied", commandForLog, ExitCode);
             }
             else
             {
-                Log.LogErrorWithCodeFromResources("Exec.CommandFailed", Command, ExitCode);
+                Log.LogErrorWithCodeFromResources("Exec.CommandFailed", commandForLog, ExitCode);
             }
             return false;
         }
@@ -371,7 +349,7 @@ namespace Microsoft.Build.Tasks
         /// <param name="message"></param>
         protected override void LogToolCommand(string message)
         {
-            //Dont print the command line if Echo is Off.
+            // Dont print the command line if Echo is Off.
             if (!EchoOff)
             {
                 base.LogToolCommand(Command);
@@ -409,7 +387,10 @@ namespace Microsoft.Build.Tasks
 
             if (ConsoleToMSBuild)
             {
-                string trimmedTextLine = singleLine.Trim();
+                string trimmedTextLine = ChangeWaves.AreFeaturesEnabled(ChangeWaves.Wave17_10) ?
+                    singleLine.TrimEnd() :
+                    singleLine.Trim();
+
                 if (trimmedTextLine.Length > 0)
                 {
                     // The lines read may be unescaped, so we need to escape them
@@ -514,7 +495,7 @@ namespace Microsoft.Build.Tasks
                 var systemCmd = ToolLocationHelper.GetPathToSystemFile("cmd.exe");
 
 #if WORKAROUND_COREFX_19110
-                // Work around https://github.com/Microsoft/msbuild/issues/2273 and
+                // Work around https://github.com/dotnet/msbuild/issues/2273 and
                 // https://github.com/dotnet/corefx/issues/19110, which result in
                 // a bad path being returned above on Nano Server SKUs of Windows.
                 if (!FileSystems.Default.FileExists(systemCmd))
@@ -590,7 +571,12 @@ namespace Microsoft.Build.Tasks
             {
                 commandLine.AppendSwitch("-c");
                 commandLine.AppendTextUnquoted(" \"");
-                commandLine.AppendTextUnquoted("export LANG=en_US.UTF-8; export LC_ALL=en_US.UTF-8; . ");
+                bool setLocale = !ChangeWaves.AreFeaturesEnabled(ChangeWaves.Wave17_10);
+                if (setLocale)
+                {
+                    commandLine.AppendTextUnquoted("export LANG=en_US.UTF-8; export LC_ALL=en_US.UTF-8; ");
+                }
+                commandLine.AppendTextUnquoted(". ");
                 commandLine.AppendFileNameIfNotNull(batchFileForCommandLine);
                 commandLine.AppendTextUnquoted("\"");
             }
@@ -599,24 +585,55 @@ namespace Microsoft.Build.Tasks
                 if (NativeMethodsShared.IsWindows)
                 {
                     commandLine.AppendSwitch("/Q"); // echo off
-                    if(!Traits.Instance.EscapeHatches.UseAutoRunWhenLaunchingProcessUnderCmd)
+                    if (!Traits.Instance.EscapeHatches.UseAutoRunWhenLaunchingProcessUnderCmd)
                     {
                         commandLine.AppendSwitch("/D"); // do not load AutoRun configuration from the registry (perf)
                     }
                     commandLine.AppendSwitch("/C"); // run then terminate
 
-                    // If for some crazy reason the path has a & character and a space in it
-                    // then get the short path of the temp path, which should not have spaces in it
-                    // and then escape the &
-                    if (batchFileForCommandLine.Contains("&") && !batchFileForCommandLine.Contains("^&"))
+                    StringBuilder fileName = null;
+
+                    // Escape special characters that need to be escaped.
+                    for (int i = 0; i < batchFileForCommandLine.Length; i++)
                     {
-                        batchFileForCommandLine = NativeMethodsShared.GetShortFilePath(batchFileForCommandLine);
-                        batchFileForCommandLine = batchFileForCommandLine.Replace("&", "^&");
+                        char c = batchFileForCommandLine[i];
+
+                        if (ShouldEscapeCharacter(c) && (i == 0 || batchFileForCommandLine[i - 1] != '^'))
+                        {
+                            // Avoid allocating a new string until we know we have something to escape.
+                            if (fileName == null)
+                            {
+                                fileName = StringBuilderCache.Acquire(batchFileForCommandLine.Length);
+                                fileName.Append(batchFileForCommandLine, 0, i);
+                            }
+
+                            fileName.Append('^');
+                        }
+
+                        fileName?.Append(c);
+                    }
+
+                    if (fileName != null)
+                    {
+                        batchFileForCommandLine = StringBuilderCache.GetStringAndRelease(fileName);
                     }
                 }
 
                 commandLine.AppendFileNameIfNotNull(batchFileForCommandLine);
             }
+        }
+
+        private bool ShouldEscapeCharacter(char c)
+        {
+            for (int i = 0; i < _charactersToEscape.Length; i++)
+            {
+                if (c == _charactersToEscape[i])
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         #endregion

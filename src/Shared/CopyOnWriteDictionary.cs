@@ -1,5 +1,5 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections;
@@ -8,8 +8,6 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.Serialization;
-
-#nullable enable
 
 namespace Microsoft.Build.Collections
 {
@@ -36,14 +34,14 @@ namespace Microsoft.Build.Collections
         /// used as the basis of new dictionaries with that comparer to avoid
         /// allocating new comparers objects.
         /// </summary>
-        private readonly static ImmutableDictionary<string, V> NameComparerDictionaryPrototype = ImmutableDictionary.Create<string, V>((IEqualityComparer<string>)MSBuildNameIgnoreCaseComparer.Default);
+        private static readonly ImmutableDictionary<string, V> NameComparerDictionaryPrototype = ImmutableDictionary.Create<string, V>(MSBuildNameIgnoreCaseComparer.Default);
 
         /// <summary>
         /// Empty dictionary with <see cref="StringComparer.OrdinalIgnoreCase" />,
         /// used as the basis of new dictionaries with that comparer to avoid
         /// allocating new comparers objects.
         /// </summary>
-        private readonly static ImmutableDictionary<string, V> OrdinalIgnoreCaseComparerDictionaryPrototype = ImmutableDictionary.Create<string, V>((IEqualityComparer<string>)StringComparer.OrdinalIgnoreCase);
+        private static readonly ImmutableDictionary<string, V> OrdinalIgnoreCaseComparerDictionaryPrototype = ImmutableDictionary.Create<string, V>(StringComparer.OrdinalIgnoreCase);
 #endif
 
 
@@ -62,25 +60,9 @@ namespace Microsoft.Build.Collections
         }
 
         /// <summary>
-        /// Constructor taking an initial capacity
-        /// </summary>
-        internal CopyOnWriteDictionary(int capacity)
-            : this(capacity, null)
-        {
-        }
-
-        /// <summary>
         /// Constructor taking a specified comparer for the keys
         /// </summary>
-        internal CopyOnWriteDictionary(IEqualityComparer<string> keyComparer)
-            : this(0, keyComparer)
-        {
-        }
-
-        /// <summary>
-        /// Constructor taking a specified comparer for the keys and an initial capacity
-        /// </summary>
-        internal CopyOnWriteDictionary(int capacity, IEqualityComparer<string>? keyComparer)
+        internal CopyOnWriteDictionary(IEqualityComparer<string>? keyComparer)
         {
             _backing = GetInitialDictionary(keyComparer);
         }
@@ -91,11 +73,11 @@ namespace Microsoft.Build.Collections
         [SuppressMessage("Microsoft.Usage", "CA1801:ReviewUnusedParameters", MessageId = "context", Justification = "Not needed")]
         protected CopyOnWriteDictionary(SerializationInfo info, StreamingContext context)
         {
-            object v = info.GetValue(nameof(_backing), typeof(KeyValuePair<string, V>[]));
+            object v = info.GetValue(nameof(_backing), typeof(KeyValuePair<string, V>[]))!;
 
-            object comparer = info.GetValue(nameof(Comparer), typeof(IEqualityComparer<string>));
+            object comparer = info.GetValue(nameof(Comparer), typeof(IEqualityComparer<string>))!;
 
-            var b = GetInitialDictionary((IEqualityComparer<string>)comparer);
+            var b = GetInitialDictionary((IEqualityComparer<string>?)comparer);
 
             _backing = b.AddRange((KeyValuePair<string, V>[])v);
         }
@@ -203,21 +185,20 @@ namespace Microsoft.Build.Collections
             }
         }
 
-#nullable disable
         /// <summary>
         /// IDictionary implementation
         /// </summary>
-        object IDictionary.this[object key]
+        object? IDictionary.this[object key]
         {
             get
             {
-                TryGetValue((string) key, out V val);
+                TryGetValue((string)key, out V? val);
                 return val;
             }
-
+#nullable disable
             set => this[(string)key] = (V)value;
+#nullable enable
         }
-#nullable restore
 
         /// <summary>
         /// Adds a value to the dictionary.
@@ -227,6 +208,18 @@ namespace Microsoft.Build.Collections
             _backing = _backing.SetItem(key, value);
         }
 
+        /// <summary>
+        /// Adds several value to the dictionary.
+        /// </summary>
+        public void SetItems(IEnumerable<KeyValuePair<string, V>> items)
+        {
+            _backing = _backing.SetItems(items);
+        }
+
+        public IEnumerable<KeyValuePair<string, V>> Where(Func<KeyValuePair<string, V>, bool> predicate)
+        {
+            return _backing.Where(predicate);
+        }
         /// <summary>
         /// Returns true if the dictionary contains the specified key.
         /// </summary>
@@ -247,6 +240,7 @@ namespace Microsoft.Build.Collections
             return initial != _backing; // whether the removal occured
         }
 
+#nullable disable
         /// <summary>
         /// Attempts to find the value for the specified key in the dictionary.
         /// </summary>
@@ -254,6 +248,7 @@ namespace Microsoft.Build.Collections
         {
             return _backing.TryGetValue(key, out value);
         }
+#nullable restore
 
         /// <summary>
         /// Adds an item to the collection.
@@ -315,6 +310,7 @@ namespace Microsoft.Build.Collections
             return ((IEnumerable<KeyValuePair<string, V>>)this).GetEnumerator();
         }
 
+#nullable disable
         /// <summary>
         /// IDictionary implementation.
         /// </summary>
@@ -322,6 +318,7 @@ namespace Microsoft.Build.Collections
         {
             Add((string)key, (V)value);
         }
+#nullable enable
 
         /// <summary>
         /// IDictionary implementation.

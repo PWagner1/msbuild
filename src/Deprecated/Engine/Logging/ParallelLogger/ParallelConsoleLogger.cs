@@ -1,5 +1,9 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
 
 using System;
 using System.Text;
@@ -148,7 +152,7 @@ namespace Microsoft.Build.BuildEngine
 
         /// <summary>
         /// Reset the states of per-build member variables
-        /// VSW#516376 
+        /// VSW#516376
         /// </summary>
         internal override void ResetConsoleLoggerState()
         {
@@ -187,7 +191,10 @@ namespace Microsoft.Build.BuildEngine
             buildStarted = e.Timestamp;
             hasBuildStarted = true;
 
-            if (showOnlyErrors || showOnlyWarnings) return; 
+            if (showOnlyErrors || showOnlyWarnings)
+            {
+                return;
+            }
 
             if (IsVerbosityAtLeast(LoggerVerbosity.Normal))
             {
@@ -286,7 +293,7 @@ namespace Microsoft.Build.BuildEngine
                 // if verbosity is normal, detailed or diagnostic
                 if (IsVerbosityAtLeast(LoggerVerbosity.Normal))
                 {
-                    // The time elapsed is the difference between when the BuildStartedEventArg 
+                    // The time elapsed is the difference between when the BuildStartedEventArg
                     // was created and when the BuildFinishedEventArg was created
                     string timeElapsed = LogFormatter.FormatTimeSpan(e.Timestamp - buildStarted);
 
@@ -295,23 +302,29 @@ namespace Microsoft.Build.BuildEngine
                 }
             }
 
-           ResetConsoleLoggerState();
-           CheckIfOutputSupportsAlignment();
+            ResetConsoleLoggerState();
+            CheckIfOutputSupportsAlignment();
         }
 
         /// <summary>
-        /// At the end of the build, repeats the errors and warnings that occurred 
+        /// At the end of the build, repeats the errors and warnings that occurred
         /// during the build, and displays the error count and warning count.
         /// Does this in a "flat" style, without context.
         /// </summary>
         private void ShowFlatErrorWarningSummary()
         {
-            if (warningList.Count == 0 && errorList.Count == 0) return;
+            if (warningList.Count == 0 && errorList.Count == 0)
+            {
+                return;
+            }
 
             // If we're showing only warnings and/or errors, don't summarize.
-            // This is the buildc.err case. There's no point summarizing since we'd just 
+            // This is the buildc.err case. There's no point summarizing since we'd just
             // repeat the entire log content again.
-            if (showOnlyErrors || showOnlyWarnings) return;
+            if (showOnlyErrors || showOnlyWarnings)
+            {
+                return;
+            }
 
             // Make some effort to distinguish this summary from the output above, since otherwise
             // it's not clear in lower verbosities
@@ -339,18 +352,24 @@ namespace Microsoft.Build.BuildEngine
         }
 
         /// <summary>
-        /// At the end of the build, repeats the errors and warnings that occurred 
+        /// At the end of the build, repeats the errors and warnings that occurred
         /// during the build, and displays the error count and warning count.
         /// Does this in a "nested" style.
         /// </summary>
         private void ShowNestedErrorWarningSummary()
         {
-            if (warningList.Count == 0 && errorList.Count == 0) return;
+            if (warningList.Count == 0 && errorList.Count == 0)
+            {
+                return;
+            }
 
             // If we're showing only warnings and/or errors, don't summarize.
-            // This is the buildc.err case. There's no point summarizing since we'd just 
+            // This is the buildc.err case. There's no point summarizing since we'd just
             // repeat the entire log content again.
-            if (showOnlyErrors || showOnlyWarnings) return;
+            if (showOnlyErrors || showOnlyWarnings)
+            {
+                return;
+            }
 
             if (warningCount > 0)
             {
@@ -378,13 +397,13 @@ namespace Microsoft.Build.BuildEngine
                 T errorWarningEventArgs = (T)listToProcess[listCount];
 
                 // Target event may be null for a couple of reasons:
-                // 1) If the event was from a project load, or engine 
+                // 1) If the event was from a project load, or engine
                 // 2) If the flushing of the event queue for each request and result is turned off
                 // as this could cause errors and warnings to be seen by the logger after the target finished event
                 // which would cause the error or warning to have no matching target started event as they are removed
                 // when a target finished event is logged.
-                // 3) On NORMAL verbosity if the error or warning occurres in a project load then the error or warning and the target started event will be forwarded to 
-                // different forwarding loggers which cannot communicate to each other, meaning there will be no matching target started event logged 
+                // 3) On NORMAL verbosity if the error or warning occurres in a project load then the error or warning and the target started event will be forwarded to
+                // different forwarding loggers which cannot communicate to each other, meaning there will be no matching target started event logged
                 // as the forwarding logger did not know to forward the target started event
                 string targetName = null;
                 TargetStartedEventMinimumFields targetEvent = buildEventManager.GetTargetStartedEvent(errorWarningEventArgs.BuildEventContext);
@@ -432,7 +451,7 @@ namespace Microsoft.Build.BuildEngine
                 if (!String.Equals(previousTarget, valuePair.Key.TargetName, StringComparison.OrdinalIgnoreCase))
                 {
                     //If no targetName was specified then do not show the target where the error occurred
-                    if (! string.IsNullOrEmpty(valuePair.Key.TargetName))
+                    if (!string.IsNullOrEmpty(valuePair.Key.TargetName))
                     {
                         WriteMessageAligned(ResourceUtilities.FormatResourceString("ErrorWarningInTarget", valuePair.Key.TargetName), false);
                     }
@@ -464,7 +483,7 @@ namespace Microsoft.Build.BuildEngine
         {
             ErrorUtilities.VerifyThrowArgumentNull(e.BuildEventContext, "BuildEventContext");
             ErrorUtilities.VerifyThrowArgumentNull(e.ParentProjectBuildEventContext, "ParentProjectBuildEventContext");
-           
+
             // Add the project to the BuildManager so we can use the start information later in the build process
             buildEventManager.AddProjectStartedEvent(e);
 
@@ -500,7 +519,7 @@ namespace Microsoft.Build.BuildEngine
                 }
                 if (e.Properties != null)
                 {
-                    WriteProperties(e, e.Properties);          
+                    WriteProperties(e, e.Properties);
                 }
 
                 if (e.Items != null)
@@ -518,8 +537,8 @@ namespace Microsoft.Build.BuildEngine
         public override void ProjectFinishedHandler(object sender, ProjectFinishedEventArgs e)
         {
             ErrorUtilities.VerifyThrowArgumentNull(e.BuildEventContext, "BuildEventContext");
-            
-            
+
+
             //Get the project started event so we can use its information to properly display a project finished event
             ProjectStartedEventMinimumFields startedEvent = buildEventManager.GetProjectStartedEvent(e.BuildEventContext);
             ErrorUtilities.VerifyThrow(startedEvent != null, "Started event should not be null in the finished event handler");
@@ -547,7 +566,7 @@ namespace Microsoft.Build.BuildEngine
                         // should be shown
                         string targets = startedEvent.TargetNames;
                         string projectName = startedEvent.ProjectFile ?? string.Empty;
-                        
+
                         // Show which targets were built as part of this project
                         if (string.IsNullOrEmpty(targets))
                         {
@@ -572,7 +591,7 @@ namespace Microsoft.Build.BuildEngine
                             }
                         }
 
-                        // In single proc only make a space between the project done event and the next line, this 
+                        // In single proc only make a space between the project done event and the next line, this
                         // is to increase the readability on the single proc log when there are a number of done events
                         // or a mix of done events and project started events. Also only do this on the console and not any log file.
                         if (numberOfProcessors == 1 && runningWithCharacterFileType)
@@ -592,13 +611,17 @@ namespace Microsoft.Build.BuildEngine
         /// <summary>
         /// Writes out the list of property names and their values.
         /// This could be done at any time during the build to show the latest
-        /// property values, using the cached reference to the list from the 
+        /// property values, using the cached reference to the list from the
         /// appropriate ProjectStarted event.
         /// </summary>
         /// <param name="properties">List of properties</param>
         internal void WriteProperties(BuildEventArgs e, IEnumerable properties)
         {
-            if (showOnlyErrors || showOnlyWarnings) return;
+            if (showOnlyErrors || showOnlyWarnings)
+            {
+                return;
+            }
+
             ArrayList propertyList = ExtractPropertyList(properties);
 
             // if there are no properties to display return out of the method and dont print out anything related to displaying
@@ -607,7 +630,7 @@ namespace Microsoft.Build.BuildEngine
             {
                 return;
             }
-          
+
             WriteLinePrefix(e.BuildEventContext, e.Timestamp, false);
             WriteProperties(propertyList);
             ShownBuildEventContext(e.BuildEventContext);
@@ -630,15 +653,19 @@ namespace Microsoft.Build.BuildEngine
         /// <summary>
         /// Writes out the list of item specs and their metadata.
         /// This could be done at any time during the build to show the latest
-        /// items, using the cached reference to the list from the 
+        /// items, using the cached reference to the list from the
         /// appropriate ProjectStarted event.
         /// </summary>
         /// <param name="items">List of items</param>
         internal void WriteItems(BuildEventArgs e, IEnumerable items)
         {
-            if (showOnlyErrors || showOnlyWarnings) return;
+            if (showOnlyErrors || showOnlyWarnings)
+            {
+                return;
+            }
+
             SortedList itemList = ExtractItemList(items);
-  
+
             // if there are no Items to display return out of the method and dont print out anything related to displaying
             // the items, this includes the multiproc prefix information or the Initial items header
             if (itemList.Count == 0)
@@ -659,7 +686,7 @@ namespace Microsoft.Build.BuildEngine
                 string itemString = null;
                 if (!haveWrittenItemType)
                 {
-                    itemString=itemType;
+                    itemString = itemType;
                     setColor(ConsoleColor.DarkGray);
                     WriteMessageAligned(itemType, false);
                     haveWrittenItemType = true;
@@ -669,7 +696,7 @@ namespace Microsoft.Build.BuildEngine
                 // Indent the text by two tab lengths
                 StringBuilder result = new StringBuilder();
                 result.Append(' ', 2 * tabWidth).Append(item.ItemSpec);
-                WriteMessageAligned(result.ToString() , false);
+                WriteMessageAligned(result.ToString(), false);
             }
             resetColor();
         }
@@ -681,7 +708,7 @@ namespace Microsoft.Build.BuildEngine
         public override void TargetStartedHandler(object sender, TargetStartedEventArgs e)
         {
             ErrorUtilities.VerifyThrowArgumentNull(e.BuildEventContext, "BuildEventContext");
-            
+
             // Add the target started information to the buildEventManager so its information can be used
             // later in the build
             buildEventManager.AddTargetStartedEvent(e);
@@ -824,10 +851,10 @@ namespace Microsoft.Build.BuildEngine
         public override void ErrorHandler(object sender, BuildErrorEventArgs e)
         {
             ErrorUtilities.VerifyThrowArgumentNull(e.BuildEventContext, "BuildEventContext");
-            // Keep track of the number of error events raisd 
+            // Keep track of the number of error events raisd
             errorCount++;
 
-            // If there is an error we need to walk up the call stack and make sure that 
+            // If there is an error we need to walk up the call stack and make sure that
             // the project started events back to the root project know an error has occurred
             // and are not removed when they finish
             buildEventManager.SetErrorWarningFlagOnCallStack(e.BuildEventContext);
@@ -838,7 +865,7 @@ namespace Microsoft.Build.BuildEngine
             {
                 targetStartedEvent.ErrorInTarget = true;
             }
-          
+
             DisplayDeferredStartedEvents(e.BuildEventContext);
 
             // Display only if showOnlyWarnings is false;
@@ -873,7 +900,7 @@ namespace Microsoft.Build.BuildEngine
             // Keep track of the number of warning events raised during the build
             warningCount++;
 
-            // If there is a warning we need to walk up the call stack and make sure that 
+            // If there is a warning we need to walk up the call stack and make sure that
             // the project started events back to the root project know a warning has ocured
             // and are not removed when they finish
             buildEventManager.SetErrorWarningFlagOnCallStack(e.BuildEventContext);
@@ -917,7 +944,10 @@ namespace Microsoft.Build.BuildEngine
         /// </summary>
         public override void MessageHandler(object sender, BuildMessageEventArgs e)
         {
-            if (showOnlyErrors || showOnlyWarnings) return;
+            if (showOnlyErrors || showOnlyWarnings)
+            {
+                return;
+            }
 
             ErrorUtilities.VerifyThrowArgumentNull(e.BuildEventContext, "BuildEventContext");
             bool print = false;
@@ -954,11 +984,11 @@ namespace Microsoft.Build.BuildEngine
 
             if (print)
             {
-                // If the event has a valid Project contextId but the project started event has not been fired, the message needs to be 
+                // If the event has a valid Project contextId but the project started event has not been fired, the message needs to be
                 // buffered until the project started event is fired
                 if (
-                       hasBuildStarted 
-                       && e.BuildEventContext.ProjectContextId != BuildEventContext.InvalidProjectContextId 
+                       hasBuildStarted
+                       && e.BuildEventContext.ProjectContextId != BuildEventContext.InvalidProjectContextId
                        && buildEventManager.GetProjectStartedEvent(e.BuildEventContext) == null
                        && IsVerbosityAtLeast(LoggerVerbosity.Normal)
                     )
@@ -987,16 +1017,19 @@ namespace Microsoft.Build.BuildEngine
 
         private void DisplayDeferredStartedEvents(BuildEventContext e)
         {
-            if (showOnlyErrors || showOnlyWarnings) return;
+            if (showOnlyErrors || showOnlyWarnings)
+            {
+                return;
+            }
 
-            // Display any project started events which were deferred until a visible 
+            // Display any project started events which were deferred until a visible
             // message from their project is displayed
             if (IsVerbosityAtLeast(LoggerVerbosity.Normal))
             {
                 DisplayDeferredProjectStartedEvent(e);
             }
 
-            // Display any target started events which were deferred until a visible 
+            // Display any target started events which were deferred until a visible
             // message from their target is displayed
             if (IsVerbosityAtLeast(LoggerVerbosity.Detailed))
             {
@@ -1021,9 +1054,9 @@ namespace Microsoft.Build.BuildEngine
             {
                 setColor(ConsoleColor.DarkGray);
             }
-            
+
             PrintTargetNamePerMessage(e, lightenText);
-          
+
             // On diagnostic or if showEventId is set the task message should also display the taskId to assist debugging
             if ((IsVerbosityAtLeast(LoggerVerbosity.Diagnostic) || showEventId) && e.BuildEventContext.TaskId != BuildEventContext.InvalidTaskId)
             {
@@ -1052,57 +1085,57 @@ namespace Microsoft.Build.BuildEngine
 
         private void PrintTargetNamePerMessage(BuildMessageEventArgs e, bool lightenText)
         {
-                // Event Context of the current message
-                BuildEventContext currentBuildEventContext = e.BuildEventContext;
+            // Event Context of the current message
+            BuildEventContext currentBuildEventContext = e.BuildEventContext;
 
-                // Should the target name be written before the message
-                bool writeTargetName = false;
-                string targetName = string.Empty;
+            // Should the target name be written before the message
+            bool writeTargetName = false;
+            string targetName = string.Empty;
 
-                // Does the context (Project, Node, Context, Target, NOT task) of the previous event match the current message
-                bool contextAreEqual = compareContextNodeIdTargetId.Equals(currentBuildEventContext, lastDisplayedBuildEventContext ?? null);
+            // Does the context (Project, Node, Context, Target, NOT task) of the previous event match the current message
+            bool contextAreEqual = compareContextNodeIdTargetId.Equals(currentBuildEventContext, lastDisplayedBuildEventContext ?? null);
 
-                TargetStartedEventMinimumFields targetStartedEvent = null;
-                // If the previous event does not have the same target context information, the target name needs to be printed to the console
-                // to give the message some more contextual information
-                if (!contextAreEqual)
+            TargetStartedEventMinimumFields targetStartedEvent = null;
+            // If the previous event does not have the same target context information, the target name needs to be printed to the console
+            // to give the message some more contextual information
+            if (!contextAreEqual)
+            {
+                targetStartedEvent = buildEventManager.GetTargetStartedEvent(currentBuildEventContext);
+                // Some messages such as engine messages will not have a target started event, in their case, dont print the targetName
+                if (targetStartedEvent != null)
                 {
-                    targetStartedEvent = buildEventManager.GetTargetStartedEvent(currentBuildEventContext);
-                    // Some messages such as engine messages will not have a target started event, in their case, dont print the targetName
-                    if (targetStartedEvent != null)
-                    {
-                        targetName = targetStartedEvent.TargetName;
-                        writeTargetName = true;
-                    }
+                    targetName = targetStartedEvent.TargetName;
+                    writeTargetName = true;
+                }
+            }
+            else
+            {
+                writeTargetName = false;
+            }
+
+            if (writeTargetName)
+            {
+                bool prefixAlreadyWritten = WriteTargetMessagePrefix(e, targetStartedEvent.ProjectBuildEventContext, targetStartedEvent.TimeStamp);
+
+                setColor(ConsoleColor.Cyan);
+                if (IsVerbosityAtLeast(LoggerVerbosity.Diagnostic) || showEventId)
+                {
+                    WriteMessageAligned(ResourceUtilities.FormatResourceString("TargetMessageWithId", targetName, e.BuildEventContext.TargetId), prefixAlreadyWritten);
                 }
                 else
                 {
-                    writeTargetName = false;
+                    WriteMessageAligned(targetName + ":", prefixAlreadyWritten);
                 }
 
-                if (writeTargetName)
+                if (lightenText)
                 {
-                    bool prefixAlreadyWritten = WriteTargetMessagePrefix(e, targetStartedEvent.ProjectBuildEventContext, targetStartedEvent.TimeStamp);
-
-                    setColor(ConsoleColor.Cyan);
-                    if (IsVerbosityAtLeast(LoggerVerbosity.Diagnostic) || showEventId)
-                    {
-                        WriteMessageAligned(ResourceUtilities.FormatResourceString("TargetMessageWithId", targetName, e.BuildEventContext.TargetId), prefixAlreadyWritten);
-                    }
-                    else
-                    {
-                        WriteMessageAligned(targetName + ":", prefixAlreadyWritten);
-                    }
-
-                    if (lightenText)
-                    {
-                        setColor(ConsoleColor.DarkGray);
-                    }
-                    else
-                    {
-                        resetColor();
-                    }
+                    setColor(ConsoleColor.DarkGray);
                 }
+                else
+                {
+                    resetColor();
+                }
+            }
         }
 
         private bool WriteTargetMessagePrefix(BuildEventArgs e, BuildEventContext context, DateTime timeStamp)
@@ -1152,7 +1185,7 @@ namespace Microsoft.Build.BuildEngine
                     // Take into account the new line char which will be added to the end or each reformatted string
                     int bufferWidthMinusNewLine = bufferWidth - 1;
 
-                    // If the buffer is larger then the prefix information (timestamp and key) then reformat the messages. 
+                    // If the buffer is larger then the prefix information (timestamp and key) then reformat the messages.
                     // If there is not enough room just print the message out and let the console do the formatting
                     bool bufferIsLargerThanPrefix = bufferWidthMinusNewLine > adjustedPrefixWidth;
                     bool messageAndPrefixTooLargeForBuffer = (nonNullMessage.Length + adjustedPrefixWidth) > bufferWidthMinusNewLine;
@@ -1208,7 +1241,10 @@ namespace Microsoft.Build.BuildEngine
         /// </summary>
         private void DisplayDeferredTargetStartedEvent(BuildEventContext e)
         {
-            if (showOnlyErrors || showOnlyWarnings) return;
+            if (showOnlyErrors || showOnlyWarnings)
+            {
+                return;
+            }
 
             // Get the deferred target started event
             TargetStartedEventMinimumFields targetStartedEvent = buildEventManager.GetTargetStartedEvent(e);
@@ -1218,14 +1254,14 @@ namespace Microsoft.Build.BuildEngine
             {
                 //Since the target started event has been shows, the target finished event should also be shown
                 targetStartedEvent.ShowTargetFinishedEvent = true;
-               
+
                 // If there are any other started events waiting and we are the first message, show them
                 DisplayDeferredStartedEvents(targetStartedEvent.ProjectBuildEventContext);
 
                 WriteLinePrefix(targetStartedEvent.ProjectBuildEventContext, targetStartedEvent.TimeStamp, false);
-                
+
                 setColor(ConsoleColor.Cyan);
-               
+
                 ProjectStartedEventMinimumFields startedEvent = buildEventManager.GetProjectStartedEvent(e);
                 ErrorUtilities.VerifyThrow(startedEvent != null, "Project Started should not be null in deferred target started");
                 string currentProjectFile = startedEvent.ProjectFile ?? string.Empty;
@@ -1233,7 +1269,7 @@ namespace Microsoft.Build.BuildEngine
                 string targetName;
                 if (IsVerbosityAtLeast(LoggerVerbosity.Diagnostic) || showEventId)
                 {
-                   targetName = ResourceUtilities.FormatResourceString("TargetMessageWithId", targetStartedEvent.TargetName, targetStartedEvent.ProjectBuildEventContext.TargetId);
+                    targetName = ResourceUtilities.FormatResourceString("TargetMessageWithId", targetStartedEvent.TargetName, targetStartedEvent.ProjectBuildEventContext.TargetId);
                 }
                 else
                 {
@@ -1259,7 +1295,10 @@ namespace Microsoft.Build.BuildEngine
         /// </summary>
         private void DisplayDeferredProjectStartedEvent(BuildEventContext e)
         {
-            if (showOnlyErrors || showOnlyWarnings) return;
+            if (showOnlyErrors || showOnlyWarnings)
+            {
+                return;
+            }
 
             if (!SkipProjectStartedText)
             {
@@ -1327,7 +1366,10 @@ namespace Microsoft.Build.BuildEngine
         /// </summary>
         public override void CustomEventHandler(object sender, CustomBuildEventArgs e)
         {
-            if (showOnlyErrors || showOnlyWarnings) return;
+            if (showOnlyErrors || showOnlyWarnings)
+            {
+                return;
+            }
 
             ErrorUtilities.VerifyThrowArgumentNull(e.BuildEventContext, "BuildEventContext");
             if (IsVerbosityAtLeast(LoggerVerbosity.Detailed))
@@ -1410,14 +1452,14 @@ namespace Microsoft.Build.BuildEngine
                 return new ProjectFullKey(startedEvent.ProjectKey, startedEvent.EntryPointKey);
             }
         }
-        
+
         /// <summary>
         /// Returns a performance counter for a given scope (either task name or target name)
         /// from the given table.
         /// </summary>
         /// <param name="scopeName">Task name or target name.</param>
         /// <param name="table">Table that has tasks or targets.</param>
-        internal new static MPPerformanceCounter GetPerformanceCounter(string scopeName, ref Hashtable table)
+        internal static new MPPerformanceCounter GetPerformanceCounter(string scopeName, ref Hashtable table)
         {
             // Lazily construct the performance counter table.
             if (table == null)

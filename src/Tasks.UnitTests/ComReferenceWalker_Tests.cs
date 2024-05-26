@@ -1,18 +1,20 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections.Generic;
-using Microsoft.Build.Tasks;
 using System.Runtime.InteropServices.ComTypes;
-using COMException = System.Runtime.InteropServices.COMException;
+using Microsoft.Build.Tasks;
 using Xunit;
+using COMException = System.Runtime.InteropServices.COMException;
+
+#nullable disable
 
 namespace Microsoft.Build.UnitTests
 {
     public class ComReferenceWalker_Tests
     {
-        static private int MockReleaseComObject(object o)
+        private static int MockReleaseComObject(object o)
         {
             return 0;
         }
@@ -184,7 +186,7 @@ namespace Microsoft.Build.UnitTests
 
             // We don't check for this type in the ComDependencyWalker, so it doesn't get counted as a known OLE type.
             // It's too late in the Dev10 cycle to add it to shipping code without phenomenally good reason, but we should
-            // re-examine this in Dev11.  
+            // re-examine this in Dev11.
             // oleTypeLib.AddTypeInfo(new MockTypeInfo(TYPEKIND.TKIND_ENUM));
 
             foreach (MockTypeInfo typeInfo in oleTypeLib.ContainedTypeInfos)
@@ -294,7 +296,7 @@ namespace Microsoft.Build.UnitTests
             walker.AnalyzeTypeLibrary(mainTypeLib);
 
             // Did the current failure point get hit for this test? If not then no point in checking anything
-            // The previous test (FaultInjectionMainLib) ensures that all defined failure points actually 
+            // The previous test (FaultInjectionMainLib) ensures that all defined failure points actually
             // cause some sort of trouble
             if (walker.EncounteredProblems.Count > 0)
             {

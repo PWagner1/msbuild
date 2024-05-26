@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -65,7 +69,7 @@ namespace Microsoft.Build.UnitTests
         public void ReadRegistry_DeletedKey()
         {
             DeleteTestRegistryKey();
-            
+
             ToolsetReader reader = new ToolsetRegistryReader(new MockRegistryKey(testRegistryPath));
             ToolsetCollection values = new ToolsetCollection(new Engine(ToolsetDefinitionLocations.None));
 
@@ -170,7 +174,7 @@ namespace Microsoft.Build.UnitTests
         public void ReadRegistry_Basic()
         {
             RegistryKey key1 = toolsVersionsRegistryKey.CreateSubKey("tv1");
-            key1.SetValue("msbuildtoolspath", "c:\\xxx");            
+            key1.SetValue("msbuildtoolspath", "c:\\xxx");
             key1.SetValue("name1", "value1");
             RegistryKey key2 = toolsVersionsRegistryKey.CreateSubKey("tv2");
             key2.SetValue("name2", "value2");
@@ -244,7 +248,7 @@ namespace Microsoft.Build.UnitTests
             Assertion.Assert(0 == String.Compare("c:\\yyy", values["tv2"].ToolsPath, StringComparison.OrdinalIgnoreCase));
             Assertion.Assert(0 == String.Compare("value2", values["tv2"].BuildProperties["name2"].Value, StringComparison.OrdinalIgnoreCase));
         }
-        
+
         /// <summary>
         /// Regular case of getting default tools version
         /// </summary>

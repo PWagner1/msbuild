@@ -1,20 +1,20 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Runtime.Serialization;
 
+#nullable disable
+
 namespace Microsoft.Build.Tasks
 {
     /// <summary>
-    /// Internal exception thrown when there's an unrecoverable failure resolving a COM reference and we should 
+    /// Internal exception thrown when there's an unrecoverable failure resolving a COM reference and we should
     /// move on to the next one, if it makes sense.
     /// </summary>
-    /// <remarks>
-    /// WARNING: marking a type [Serializable] without implementing ISerializable imposes a serialization contract -- it is a
-    /// promise to never change the type's fields i.e. the type is immutable; adding new fields in the next version of the type
-    /// without following certain special FX guidelines, can break both forward and backward compatibility
-    /// </remarks>
+    // WARNING: marking a type [Serializable] without implementing ISerializable imposes a serialization contract -- it is a
+    // promise to never change the type's fields i.e. the type is immutable; adding new fields in the next version of the type
+    // without following certain special FX guidelines, can break both forward and backward compatibility
     [Serializable]
     internal class ComReferenceResolutionException : Exception
     {

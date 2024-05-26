@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.Xml;
 using System.Collections;
@@ -29,7 +33,7 @@ namespace Microsoft.Build.UnitTests
             string expression
             )
         {
-            
+
             Expander itemExpander = new Expander(new ReadOnlyLookup(bucket.Lookup), null, ExpanderOptions.ExpandItems);
             return itemExpander.ExpandAllIntoString(expression, (new XmlDocument()).CreateAttribute("foo"));
         }
@@ -212,7 +216,7 @@ namespace Microsoft.Build.UnitTests
         /// <summary>
         /// Missing unittest found by mutation testing.
         /// REASON TEST WASN'T ORIGINALLY PRESENT: Missed test.
-        /// 
+        ///
         /// This test ensures that two items with duplicate attributes end up in exactly one batching
         /// bucket.
         /// </summary>
@@ -223,7 +227,7 @@ namespace Microsoft.Build.UnitTests
             parameters.Add("%(File.Culture)");
 
             Hashtable itemsByType = new Hashtable(StringComparer.OrdinalIgnoreCase);
-            
+
             BuildItemGroup items = new BuildItemGroup();
             items.AddNewItem("File", "a.foo");
             items.AddNewItem("File", "b.foo"); // Need at least two items for this test case to ensure multiple buckets might be possible

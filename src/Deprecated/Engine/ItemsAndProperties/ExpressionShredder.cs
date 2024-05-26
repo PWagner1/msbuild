@@ -1,5 +1,9 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
 
 using System;
 using System.Collections;
@@ -34,7 +38,7 @@ namespace Microsoft.Build.BuildEngine
             string segment;
 
             // Walk along the string, keeping track of whether we are in an item list expression.
-            // If we hit a semi-colon or the end of the string and we aren't in an item list, 
+            // If we hit a semi-colon or the end of the string and we aren't in an item list,
             // add the segment to the list.
             for (int current = 0; current < expression.Length; current++)
             {
@@ -87,7 +91,7 @@ namespace Microsoft.Build.BuildEngine
 
             return splitList;
         }
-        
+
         /// <summary>
         /// Given a list of expressions that may contain item list expressions,
         /// returns a pair of tables of all item names found, as K=Name, V=String.Empty;
@@ -344,8 +348,8 @@ namespace Microsoft.Build.BuildEngine
         }
 
         /// <summary>
-        /// Returns true if the character at the specified index 
-        /// is the specified char. 
+        /// Returns true if the character at the specified index
+        /// is the specified char.
         /// Leaves index one past the character.
         /// </summary>
         private static bool Sink(string expression, ref int i, char c)
@@ -421,13 +425,13 @@ namespace Microsoft.Build.BuildEngine
 
         internal Hashtable Items
         {
-            get { return items; }
+            readonly get { return items; }
             set { items = value; }
         }
 
         internal Dictionary<string, MetadataReference> Metadata
         {
-            get { return metadata; }
+            readonly get { return metadata; }
             set { metadata = value; }
         }
     }

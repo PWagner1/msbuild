@@ -1,12 +1,12 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections;
-using System.IO;
-using System.Runtime.Serialization;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Runtime.Serialization;
 using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.Framework
@@ -14,14 +14,12 @@ namespace Microsoft.Build.Framework
     /// <summary>
     /// Arguments for project started events
     /// </summary>
-    /// <remarks>
-    /// WARNING: marking a type [Serializable] without implementing
-    /// ISerializable imposes a serialization contract -- it is a
-    /// promise to never change the type's fields i.e. the type is
-    /// immutable; adding new fields in the next version of the type
-    /// without following certain special FX guidelines, can break both
-    /// forward and backward compatibility
-    /// </remarks>
+    // WARNING: marking a type [Serializable] without implementing
+    // ISerializable imposes a serialization contract -- it is a
+    // promise to never change the type's fields i.e. the type is
+    // immutable; adding new fields in the next version of the type
+    // without following certain special FX guidelines, can break both
+    // forward and backward compatibility
     [Serializable]
     public class ProjectStartedEventArgs : BuildStatusEventArgs
     {
@@ -33,7 +31,7 @@ namespace Microsoft.Build.Framework
         #endregion
 
         /// <summary>
-        /// Default constructor 
+        /// Default constructor
         /// </summary>
         protected ProjectStartedEventArgs()
             : base()
@@ -51,15 +49,13 @@ namespace Microsoft.Build.Framework
         /// <param name="targetNames">targets we are going to build (empty indicates default targets)</param>
         /// <param name="properties">list of properties</param>
         /// <param name="items">list of items</param>
-        public ProjectStartedEventArgs
-        (
+        public ProjectStartedEventArgs(
             string message,
             string helpKeyword,
             string projectFile,
             string targetNames,
             IEnumerable properties,
-            IEnumerable items
-        )
+            IEnumerable items)
             : this(message, helpKeyword, projectFile, targetNames, properties, items, DateTime.UtcNow)
         {
         }
@@ -76,17 +72,15 @@ namespace Microsoft.Build.Framework
         /// <param name="properties">list of properties</param>
         /// <param name="items">list of items</param>
         /// <param name="parentBuildEventContext">event context info for the parent project</param>
-        public ProjectStartedEventArgs
-        (
+        public ProjectStartedEventArgs(
             int projectId,
             string message,
             string helpKeyword,
-            string projectFile,
-            string targetNames,
-            IEnumerable properties,
-            IEnumerable items,
-            BuildEventContext parentBuildEventContext
-        )
+            string? projectFile,
+            string? targetNames,
+            IEnumerable? properties,
+            IEnumerable? items,
+            BuildEventContext? parentBuildEventContext)
             : this(projectId, message, helpKeyword, projectFile, targetNames, properties, items, parentBuildEventContext, DateTime.UtcNow)
         {
         }
@@ -105,19 +99,17 @@ namespace Microsoft.Build.Framework
         /// <param name="parentBuildEventContext">event context info for the parent project</param>
         /// <param name="globalProperties">An <see cref="IDictionary{String, String}"/> containing global properties.</param>
         /// <param name="toolsVersion">The tools version.</param>
-        public ProjectStartedEventArgs
-        (
+        public ProjectStartedEventArgs(
             int projectId,
             string message,
             string helpKeyword,
-            string projectFile,
-            string targetNames,
-            IEnumerable properties,
-            IEnumerable items,
-            BuildEventContext parentBuildEventContext,
-            IDictionary<string, string> globalProperties,
-            string toolsVersion
-        )
+            string? projectFile,
+            string? targetNames,
+            IEnumerable? properties,
+            IEnumerable? items,
+            BuildEventContext? parentBuildEventContext,
+            IDictionary<string, string>? globalProperties,
+            string? toolsVersion)
             : this(projectId, message, helpKeyword, projectFile, targetNames, properties, items, parentBuildEventContext)
         {
             this.GlobalProperties = globalProperties;
@@ -135,16 +127,14 @@ namespace Microsoft.Build.Framework
         /// <param name="properties">list of properties</param>
         /// <param name="items">list of items</param>
         /// <param name="eventTimestamp">The <see cref="DateTime"/> of the event.</param>
-        public ProjectStartedEventArgs
-        (
+        public ProjectStartedEventArgs(
             string message,
             string helpKeyword,
-            string projectFile,
-            string targetNames,
-            IEnumerable properties,
-            IEnumerable items,
-            DateTime eventTimestamp
-        )
+            string? projectFile,
+            string? targetNames,
+            IEnumerable? properties,
+            IEnumerable? items,
+            DateTime eventTimestamp)
             : base(message, helpKeyword, "MSBuild", eventTimestamp)
         {
             this.projectFile = projectFile;
@@ -166,18 +156,16 @@ namespace Microsoft.Build.Framework
         /// <param name="items">list of items</param>
         /// <param name="parentBuildEventContext">event context info for the parent project</param>
         /// <param name="eventTimestamp">The <see cref="DateTime"/> of the event.</param>
-        public ProjectStartedEventArgs
-        (
+        public ProjectStartedEventArgs(
             int projectId,
             string message,
             string helpKeyword,
-            string projectFile,
-            string targetNames,
-            IEnumerable properties,
-            IEnumerable items,
-            BuildEventContext parentBuildEventContext,
-            DateTime eventTimestamp
-        )
+            string? projectFile,
+            string? targetNames,
+            IEnumerable? properties,
+            IEnumerable? items,
+            BuildEventContext? parentBuildEventContext,
+            DateTime eventTimestamp)
             : this(message, helpKeyword, projectFile, targetNames, properties, items, eventTimestamp)
         {
             parentProjectBuildEventContext = parentBuildEventContext;
@@ -203,12 +191,12 @@ namespace Microsoft.Build.Framework
         }
 
         [OptionalField(VersionAdded = 2)]
-        private BuildEventContext parentProjectBuildEventContext;
+        private BuildEventContext? parentProjectBuildEventContext;
 
         /// <summary>
         /// Event context information, where the event was fired from in terms of the build location
         /// </summary>
-        public BuildEventContext ParentProjectBuildEventContext
+        public BuildEventContext? ParentProjectBuildEventContext
         {
             get
             {
@@ -219,12 +207,12 @@ namespace Microsoft.Build.Framework
         /// <summary>
         /// The name of the project file
         /// </summary>
-        private string projectFile;
+        private string? projectFile;
 
         /// <summary>
         /// Project name
         /// </summary>
-        public string ProjectFile
+        public string? ProjectFile
         {
             get
             {
@@ -235,12 +223,12 @@ namespace Microsoft.Build.Framework
         /// <summary>
         /// Targets that we will build in the project
         /// </summary>
-        private string targetNames;
+        private string? targetNames;
 
         /// <summary>
         /// Targets that we will build in the project
         /// </summary>
-        public string TargetNames
+        public string? TargetNames
         {
             get
             {
@@ -252,12 +240,12 @@ namespace Microsoft.Build.Framework
         /// Gets the set of global properties used to evaluate this project.
         /// </summary>
         [OptionalField(VersionAdded = 2)]
-        private IDictionary<string, string> globalProperties;
+        private IDictionary<string, string>? globalProperties;
 
         /// <summary>
         /// Gets the set of global properties used to evaluate this project.
         /// </summary>
-        public IDictionary<string, string> GlobalProperties
+        public IDictionary<string, string>? GlobalProperties
         {
             get
             {
@@ -271,12 +259,12 @@ namespace Microsoft.Build.Framework
         }
 
         [OptionalField(VersionAdded = 2)]
-        private string toolsVersion;
+        private string? toolsVersion;
 
         /// <summary>
         /// Gets the tools version used to evaluate this project.
         /// </summary>
-        public string ToolsVersion
+        public string? ToolsVersion
         {
             get
             {
@@ -293,12 +281,12 @@ namespace Microsoft.Build.Framework
         // (a) this event will not be thrown by tasks, so it should not generally cross AppDomain boundaries
         // (b) this event still makes sense when this field is "null"
         [NonSerialized]
-        private IEnumerable properties;
+        private IEnumerable? properties;
 
         /// <summary>
         /// List of properties in this project. This is a live, read-only list.
         /// </summary>
-        public IEnumerable Properties
+        public IEnumerable? Properties
         {
             get
             {
@@ -318,12 +306,12 @@ namespace Microsoft.Build.Framework
         // (a) this event will not be thrown by tasks, so it should not generally cross AppDomain boundaries
         // (b) this event still makes sense when this field is "null"
         [NonSerialized]
-        private IEnumerable items;
+        private IEnumerable? items;
 
         /// <summary>
         /// List of items in this project. This is a live, read-only list.
         /// </summary>
-        public IEnumerable Items
+        public IEnumerable? Items
         {
             get
             {
@@ -331,8 +319,8 @@ namespace Microsoft.Build.Framework
                 // the central logger in the multi-proc case.  No one uses this though, so it's probably no big deal.  In
                 // the new OM, this list of items could come directly from the BuildRequestConfiguration, which has access
                 // to the loaded project.  For distributed loggers in the multi-proc case and all loggers in the single-proc
-                // case, this access is to the live list.  For the central logger in the multi-proc case, the main node 
-                // has likely not loaded this project, and therefore the live items would not be available to them, which is 
+                // case, this access is to the live list.  For the central logger in the multi-proc case, the main node
+                // has likely not loaded this project, and therefore the live items would not be available to them, which is
                 // the same as the current functionality.
                 return items;
             }
@@ -367,11 +355,11 @@ namespace Microsoft.Build.Framework
             writer.WriteOptionalString(projectFile);
 
             // TargetNames cannot be null as per the constructor
-            writer.Write(targetNames);
+            writer.Write(targetNames!);
 
-            // If no properties were added to the property list 
+            // If no properties were added to the property list
             // then we have nothing to create when it is deserialized
-            // This can happen if properties is null or if none of the 
+            // This can happen if properties is null or if none of the
             // five properties were found in the property object.
             if (properties == null)
             {
@@ -391,7 +379,7 @@ namespace Microsoft.Build.Framework
                 foreach (var propertyPair in validProperties)
                 {
                     writer.Write((string)propertyPair.Key);
-                    writer.Write((string)propertyPair.Value);
+                    writer.Write((string?)propertyPair.Value ?? "");
                 }
             }
         }
@@ -484,5 +472,30 @@ namespace Microsoft.Build.Framework
             }
         }
         #endregion
+
+        public override string Message
+        {
+            get
+            {
+                if (RawMessage == null)
+                {
+                    string? projectFilePath = Path.GetFileName(ProjectFile);
+
+                    // Check to see if the there are any specific target names to be built.
+                    // If targetNames is null or empty then we will be building with the
+                    // default targets.
+                    if (!string.IsNullOrEmpty(TargetNames))
+                    {
+                        RawMessage = FormatResourceStringIgnoreCodeAndKeyword("ProjectStartedPrefixForTopLevelProjectWithTargetNames", projectFilePath, TargetNames!);
+                    }
+                    else
+                    {
+                        RawMessage = FormatResourceStringIgnoreCodeAndKeyword("ProjectStartedPrefixForTopLevelProjectWithDefaultTargets", projectFilePath);
+                    }
+                }
+
+                return RawMessage;
+            }
+        }
     }
 }

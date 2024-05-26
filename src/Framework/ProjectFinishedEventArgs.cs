@@ -1,5 +1,5 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.IO;
@@ -10,19 +10,17 @@ namespace Microsoft.Build.Framework
     /// <summary>
     /// Arguments for project finished events
     /// </summary>
-    /// <remarks>
-    /// WARNING: marking a type [Serializable] without implementing
-    /// ISerializable imposes a serialization contract -- it is a
-    /// promise to never change the type's fields i.e. the type is
-    /// immutable; adding new fields in the next version of the type
-    /// without following certain special FX guidelines, can break both
-    /// forward and backward compatibility
-    /// </remarks>
+    // WARNING: marking a type [Serializable] without implementing
+    // ISerializable imposes a serialization contract -- it is a
+    // promise to never change the type's fields i.e. the type is
+    // immutable; adding new fields in the next version of the type
+    // without following certain special FX guidelines, can break both
+    // forward and backward compatibility
     [Serializable]
     public class ProjectFinishedEventArgs : BuildStatusEventArgs
     {
         /// <summary>
-        /// Default constructor 
+        /// Default constructor
         /// </summary>
         protected ProjectFinishedEventArgs()
             : base()
@@ -38,13 +36,11 @@ namespace Microsoft.Build.Framework
         /// <param name="helpKeyword">help keyword </param>
         /// <param name="projectFile">name of the project</param>
         /// <param name="succeeded">true indicates project built successfully</param>
-        public ProjectFinishedEventArgs
-        (
-            string message,
-            string helpKeyword,
-            string projectFile,
-            bool succeeded
-        )
+        public ProjectFinishedEventArgs(
+            string? message,
+            string? helpKeyword,
+            string? projectFile,
+            bool succeeded)
             : this(message, helpKeyword, projectFile, succeeded, DateTime.UtcNow)
         {
         }
@@ -58,21 +54,19 @@ namespace Microsoft.Build.Framework
         /// <param name="projectFile">name of the project</param>
         /// <param name="succeeded">true indicates project built successfully</param>
         /// <param name="eventTimestamp">Timestamp when the event was created</param>
-        public ProjectFinishedEventArgs
-        (
-            string message,
-            string helpKeyword,
-            string projectFile,
+        public ProjectFinishedEventArgs(
+            string? message,
+            string? helpKeyword,
+            string? projectFile,
             bool succeeded,
-            DateTime eventTimestamp
-        )
+            DateTime eventTimestamp)
             : base(message, helpKeyword, "MSBuild", eventTimestamp)
         {
             this.projectFile = projectFile;
             this.succeeded = succeeded;
         }
 
-        private string projectFile;
+        private string? projectFile;
         private bool succeeded;
 
         #region CustomSerializationToStream
@@ -105,11 +99,24 @@ namespace Microsoft.Build.Framework
         /// <summary>
         /// Project name
         /// </summary>
-        public string ProjectFile => projectFile;
+        public string? ProjectFile => projectFile;
 
         /// <summary>
         /// True if project built successfully, false otherwise
         /// </summary>
         public bool Succeeded => succeeded;
+
+        public override string Message
+        {
+            get
+            {
+                if (RawMessage == null)
+                {
+                    RawMessage = FormatResourceStringIgnoreCodeAndKeyword(Succeeded ? "ProjectFinishedSuccess" : "ProjectFinishedFailure", Path.GetFileName(ProjectFile));
+                }
+
+                return RawMessage;
+            }
+        }
     }
 }

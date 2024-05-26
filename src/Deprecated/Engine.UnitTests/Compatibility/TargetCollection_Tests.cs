@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.IO;
 using System.Xml;
@@ -104,7 +108,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         [Test]
         public void CountWithImportedTargets()
         {
-            string importProjectContents = @" 
+            string importProjectContents = @"
                     <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
                         <Target Name='t2'>
                             <Message Text='imported.t2.task' />
@@ -113,7 +117,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
                     </Project>
                 ";
 
-            string projectContents = @" 
+            string projectContents = @"
                     <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
                         <Target Name='t1'>
                             <Message Text='parent.t1.task' />
@@ -135,7 +139,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         [Test]
         public void CountWhenImportedAndParentBothContainSameTarget()
         {
-            string importProjectContents = @" 
+            string importProjectContents = @"
                     <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
                         <Target Name='t1'>
                             <Message Text='imported.t2.task' />
@@ -143,7 +147,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
                     </Project>
                 ";
 
-            string parentProjectContents = @" 
+            string parentProjectContents = @"
                     <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
                         <Target Name='t1'>
                             <Message Text='parent.t1.task' />
@@ -241,7 +245,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         [Test]
         public void ExistsWhenImportedTargetAndParentTargetHaveSameName()
         {
-            string importProjectContents = @" 
+            string importProjectContents = @"
                     <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
                         <Target Name='t1'>
                             <Message Text='imported.t2.task' />
@@ -249,7 +253,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
                     </Project>
                 ";
 
-            string parentProjectContents = @" 
+            string parentProjectContents = @"
                     <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
                         <Target Name='t1'>
                             <Message Text='parent.t1.task' />
@@ -397,7 +401,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
 
             object[] array = new object[targets.Count];
             targets.CopyTo(array, 0);
-            
+
             List<string> listOfTargets = new List<string>();
             foreach (Target t in array)
             {
@@ -523,7 +527,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         {
             if (String.IsNullOrEmpty(importProjectContents))
             {
-                importProjectContents = @" 
+                importProjectContents = @"
                     <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
                         <Target Name='t2' />
                         <Target Name='t3' DependsOnTargets='t2' Inputs='in' Outputs='out' Condition=""'true' == 'true'""/>
@@ -534,7 +538,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
 
             if (String.IsNullOrEmpty(parentProjectContents))
             {
-                parentProjectContents = @" 
+                parentProjectContents = @"
                     <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
                         <Target Name='t1'>
                             <Message Text='parent.t1.task' />

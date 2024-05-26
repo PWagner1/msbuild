@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.IO;
 using System.Resources;
@@ -17,13 +21,13 @@ namespace Microsoft.Build.UnitTests
     public class ProjectSchemaValidationHandlerTest
     {
         /***********************************************************************
-         * 
+         *
          * Test:        ProjectSchemaValidationHandlerTest.VerifyProjectSchema
          * Owner:       JomoF
-         *  
+         *
          * This calls VerifyProjectSchema to validate a project XML
          * specified in a string
-         * 
+         *
          **********************************************************************/
         [Test]
         [ExpectedException(typeof(InvalidProjectFileException))]
@@ -49,7 +53,7 @@ namespace Microsoft.Build.UnitTests
 
                 try
                 {
-                    validator.VerifyProjectSchema(ObjectModelHelpers.CleanupFileContents(projectContents), 
+                    validator.VerifyProjectSchema(ObjectModelHelpers.CleanupFileContents(projectContents),
                         msbuildTempXsdFilenames[0]);
                 }
                 catch (InvalidProjectFileException e)
@@ -78,7 +82,7 @@ namespace Microsoft.Build.UnitTests
                 invalidSchemaFile = Path.GetTempFileName();
 
                 File.WriteAllText(invalidSchemaFile, "<this_is_invalid_schema_content/>");
-                
+
                 string projectContents = @"
                     <Project xmlns=`msbuildnamespace`>
                         <Target Name=`Build` />
@@ -159,13 +163,13 @@ namespace Microsoft.Build.UnitTests
         }
 
         /***********************************************************************
-         * 
+         *
          * Test:        ProjectSchemaValidationHandlerTest.VerifyProjectSchema
          * Owner:       JomoF
-         *  
+         *
          * This calls VerifyProjectSchema to validate a project XML
          * specified in a string
-         * 
+         *
          **********************************************************************/
         [Test]
         public void VerifyValidProjectSchema
@@ -187,7 +191,7 @@ namespace Microsoft.Build.UnitTests
                 Engine e = new Engine(@"c:\");
                 ProjectSchemaValidationHandler validator = new ProjectSchemaValidationHandler(null, e.LoggingServices, @"c:\");
 
-                validator.VerifyProjectSchema(ObjectModelHelpers.CleanupFileContents(projectContents), 
+                validator.VerifyProjectSchema(ObjectModelHelpers.CleanupFileContents(projectContents),
                     msbuildTempXsdFilenames[0]);
             }
             finally

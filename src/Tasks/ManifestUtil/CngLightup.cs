@@ -1,8 +1,5 @@
-﻿// ==++==
-// 
-//   Copyright (c) Microsoft Corporation.  All rights reserved.
-// 
-// ==--==
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 // Supported preprocessor declarations:
 //
@@ -11,9 +8,9 @@
 //     * The assembly must be built with <GenerateAssemblyRefs>true</GenerateAssemblyRefs>
 //     * The ECDSA methods are not available
 
-// There are cases where we have multiple assemblies that are going to import this file and 
+// There are cases where we have multiple assemblies that are going to import this file and
 // if they are going to also have InternalsVisibleTo between them, there will be a compiler warning
-// that the type is found both in the source and in a referenced assembly. The compiler will prefer 
+// that the type is found both in the source and in a referenced assembly. The compiler will prefer
 // the version of the type defined in the source
 //
 // In order to disable the warning for this type we are disabling this warning for this entire file.
@@ -22,6 +19,8 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
+
+#nullable disable
 
 namespace System.Security.Cryptography
 {
@@ -524,7 +523,7 @@ namespace System.Security.Cryptography
         {
             Debug.Assert(typeof(T).Name == algorithmName);
 
-            // Load System.Core.dll and load the appropriate extension class 
+            // Load System.Core.dll and load the appropriate extension class
             // (one of
             //    System.Security.Cryptography.X509Certificates.RSACertificateExtensions
             //    System.Security.Cryptography.X509Certificates.DSACertificateExtensions
@@ -544,7 +543,7 @@ namespace System.Security.Cryptography
             }
 
             // Now, find the api we want to call:
-            //   
+            //
             // (one of
             //     GetRSAPublicKey(this X509Certificate2 c)
             //     GetRSAPrivateKey(this X509Certificate2 c)
@@ -584,7 +583,7 @@ namespace System.Security.Cryptography
             return cspParameters;
         }
 
-        private static Type GetSystemCoreType(string namespaceQualifiedTypeName, bool throwOnError=true)
+        private static Type GetSystemCoreType(string namespaceQualifiedTypeName, bool throwOnError = true)
         {
 #if CNG_LIGHTUP_NO_SYSTEM_CORE
             string assemblyQualifiedTypeName = namespaceQualifiedTypeName + ", " + AssemblyRef.SystemCore;

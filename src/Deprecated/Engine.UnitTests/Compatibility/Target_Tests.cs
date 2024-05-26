@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.IO;
 using System.Xml;
@@ -35,7 +39,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         /// </summary>
         private const string ProjectContentOneTargetWithInputsOutputs = @"
                                 <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
-                                    <Target Name='t1' 
+                                    <Target Name='t1'
                                             Outputs='out'
                                             Inputs='in' />
                                 </Project>
@@ -833,7 +837,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         /// <summary>
         /// Tests Target.RemoveTask by attempting to remove a task from an imported target
         /// </summary>
-        [Test]  
+        [Test]
         [ExpectedException(typeof(InvalidOperationException))]
         public void RemoveTaskAttemptRemovalOfAnImportedTask()
         {
@@ -1059,7 +1063,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         [Test]
         public void IsImportedTargetOfSameNameInBothWhereImportedComesLast()
         {
-            string importProjectContents = @" 
+            string importProjectContents = @"
                     <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
                         <Target Name='t1'>
                             <Message Text='imported.t1.task' />
@@ -1067,7 +1071,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
                     </Project>
                 ";
 
-            string projectContents = @" 
+            string projectContents = @"
                     <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
                         <Target Name='t1'>
                             <Message Text='main.t1.task' />
@@ -1093,7 +1097,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         [Test]
         public void IsImportedTargetOfSameNameInBothWhereImportedComesFirst()
         {
-            string importProjectContents = @" 
+            string importProjectContents = @"
                     <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
                         <Target Name='t1'>
                             <Message Text='imported.t1.task' />
@@ -1101,7 +1105,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
                     </Project>
                 ";
 
-            string projectContents = @" 
+            string projectContents = @"
                     <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
                         <Import Project='import.proj' />
                         <Target Name='t1'>
@@ -1166,7 +1170,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         /// <returns>Project</returns>
         private static Project GetProjectWithOneImportProject()
         {
-            string importProjectContents = @" 
+            string importProjectContents = @"
                     <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
                         <Target Name='t1' Condition=""'true' == 'true'"" Inputs='in' Outputs='out'>
                             <Message Text='imported.t1.task1' />
@@ -1175,7 +1179,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
                     </Project>
                 ";
 
-            string projectContents = @" 
+            string projectContents = @"
                     <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
                         <Import Project='import1.proj' />
                         <Target Name='Build'>
@@ -1245,7 +1249,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
 
         /// <summary>
         /// Un-registers the existing logger and registers a new copy.
-        /// We will use this when we do multiple builds so that we can safely 
+        /// We will use this when we do multiple builds so that we can safely
         /// assert on log messages for that particular build.
         /// </summary>
         private void ResetLogger()

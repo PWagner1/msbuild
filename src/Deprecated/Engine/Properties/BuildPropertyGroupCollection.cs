@@ -1,5 +1,9 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
 
 using System;
 using System.Collections;
@@ -10,7 +14,7 @@ namespace Microsoft.Build.BuildEngine
     /// This class represents a collection of persisted &lt;PropertyGroup&gt;'s.  Each
     /// MSBuild project has exactly one BuildPropertyGroupCollection, which includes
     /// all the imported PropertyGroups as well as the ones in the main project file.
-    /// 
+    ///
     /// The implementation of this class is that it's basically a Facade.  It just
     /// calls into the GroupingCollection within the Project to do it's work.  It
     /// doesn't maintain any BuildPropertyGroup state on its own.
@@ -109,8 +113,8 @@ namespace Microsoft.Build.BuildEngine
                 {
                     if (propertyGroup.IsImported)
                     {
-                        // As soon as we hit an imported BuildPropertyGroup, we want to 
-                        // completely bail out.  The goal of this function is 
+                        // As soon as we hit an imported BuildPropertyGroup, we want to
+                        // completely bail out.  The goal of this function is
                         // to return the last BuildPropertyGroup that is *before* any
                         // imported PropertyGroups.
                         break;
@@ -130,7 +134,7 @@ namespace Microsoft.Build.BuildEngine
         #region Methods
 
         /// <summary>
-        /// This ICollection method copies the contents of this collection to an 
+        /// This ICollection method copies the contents of this collection to an
         /// array.
         /// </summary>
         /// <owner>RGoel</owner>

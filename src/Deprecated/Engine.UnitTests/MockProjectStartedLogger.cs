@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -19,12 +23,12 @@ namespace Microsoft.Build.UnitTests
         /// </summary>
         public LoggerVerbosity Verbosity
         {
-            get 
-            { 
-                return LoggerVerbosity.Diagnostic; 
+            get
+            {
+                return LoggerVerbosity.Diagnostic;
             }
-            set 
-            { 
+            set
+            {
             }
         }
 
@@ -33,15 +37,15 @@ namespace Microsoft.Build.UnitTests
         /// </summary>
         public string Parameters
         {
-            get 
-            { 
-                return null; 
+            get
+            {
+                return null;
             }
             set
             {
             }
         }
-        
+
         /// <summary>
         /// Subscribing to the events
         /// </summary>
@@ -52,7 +56,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Handler for the ProjectStarted event. 
+        /// Handler for the ProjectStarted event.
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>

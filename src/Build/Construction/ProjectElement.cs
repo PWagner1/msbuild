@@ -1,19 +1,21 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections.Generic;
-using System.Xml;
 using System.Diagnostics;
+using System.Xml;
 using Microsoft.Build.Framework;
 using Microsoft.Build.ObjectModelRemoting;
 using Microsoft.Build.Shared;
 using ProjectXmlUtilities = Microsoft.Build.Internal.ProjectXmlUtilities;
 
+#nullable disable
+
 namespace Microsoft.Build.Construction
 {
     /// <summary>
-    /// Abstract base class for MSBuild construction object model elements. 
+    /// Abstract base class for MSBuild construction object model elements.
     /// </summary>
     public abstract class ProjectElement : IProjectElement, ILinkableObject
     {
@@ -71,7 +73,7 @@ namespace Microsoft.Build.Construction
         /// </summary>
         /// <remarks>
         /// If this is true, then the <see cref="XmlElement"/> will still be used to hold the data for this (pseudo) ProjectElement, but
-        /// it will not be added to the Xml tree.  
+        /// it will not be added to the Xml tree.
         /// </remarks>
         internal virtual bool ExpressedAsAttribute
         {
@@ -88,13 +90,13 @@ namespace Microsoft.Build.Construction
                     _expressedAsAttribute = value;
                     Parent?.AddToXml(this);
                     MarkDirty("Set express as attribute: {0}", value.ToString());
-                }                
+                }
             }
         }
 
         /// <summary>
-        /// Gets or sets the Condition value. 
-        /// It will return empty string IFF a condition attribute is legal but it’s not present or has no value. 
+        /// Gets or sets the Condition value.
+        /// It will return empty string IFF a condition attribute is legal but it’s not present or has no value.
         /// It will return null IFF a Condition attribute is illegal on that element.
         /// Removes the attribute if the value to set is empty.
         /// It is possible for derived classes to throw an <see cref="InvalidOperationException"/> if setting the condition is
@@ -118,7 +120,7 @@ namespace Microsoft.Build.Construction
         }
 
         /// <summary>
-        /// Gets or sets the Label value. 
+        /// Gets or sets the Label value.
         /// Returns empty string if it is not present.
         /// Removes the attribute if the value to set is empty.
         /// </summary>
@@ -208,7 +210,7 @@ namespace Microsoft.Build.Construction
         public ProjectElement PreviousSibling
         {
             [DebuggerStepThrough]
-            get => Link != null? Link.PreviousSibling : _previousSibling;
+            get => Link != null ? Link.PreviousSibling : _previousSibling;
             [DebuggerStepThrough]
             internal set => _previousSibling = value;
         }
@@ -284,15 +286,15 @@ namespace Microsoft.Build.Construction
 
         /// <summary>
         /// Location of the corresponding Xml element.
-        /// May not be correct if file is not saved, or 
+        /// May not be correct if file is not saved, or
         /// file has been edited since it was last saved.
         /// In the case of an unsaved edit, the location only
         /// contains the path to the file that the element originates from.
         /// </summary>
-        public ElementLocation Location => Link != null ? Link.Location :  XmlElement.Location;
+        public ElementLocation Location => Link != null ? Link.Location : XmlElement.Location;
 
         /// <inheritdoc/>
-        public string ElementName => Link != null? Link.ElementName : XmlElement.Name;
+        public string ElementName => Link != null ? Link.ElementName : XmlElement.Name;
 
         // Using ILinkedXml to share single field for either Linked (external) and local (XML backed) nodes.
         private ILinkedXml _xmlSource;
@@ -329,7 +331,7 @@ namespace Microsoft.Build.Construction
             [DebuggerStepThrough]
             get
             {
-                return (XmlDocumentWithLocation) XmlElement?.OwnerDocument;
+                return (XmlDocumentWithLocation)XmlElement?.OwnerDocument;
             }
         }
 
@@ -349,7 +351,7 @@ namespace Microsoft.Build.Construction
         public virtual void CopyFrom(ProjectElement element)
         {
             ErrorUtilities.VerifyThrowArgumentNull(element, nameof(element));
-            ErrorUtilities.VerifyThrowArgument(GetType().IsEquivalentTo(element.GetType()), nameof(element));
+            ErrorUtilities.VerifyThrowArgument(GetType().IsEquivalentTo(element.GetType()), "CannotCopyFromElementOfThatType");
 
             if (this == element)
             {
@@ -415,7 +417,7 @@ namespace Microsoft.Build.Construction
         }
 
         /// <summary>
-        /// Hook for subclasses to specify whether the given <param name="attribute"></param> should be cloned or not
+        /// Hook for subclasses to specify whether the given <paramref name="attribute"></paramref> should be cloned or not
         /// </summary>
         protected virtual bool ShouldCloneXmlAttribute(XmlAttribute attribute) => true;
 
@@ -542,7 +544,11 @@ namespace Microsoft.Build.Construction
 
         internal string GetAttributeValue(string attributeName, ref string cache)
         {
-            if (cache != null) return cache;
+            if (cache != null)
+            {
+                return cache;
+            }
+
             var value = GetAttributeValue(attributeName, false);
             if (Link == null)
             {

@@ -1,12 +1,11 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Xml;
-
 using Microsoft.Build.BackEnd;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Construction;
@@ -16,9 +15,11 @@ using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Shouldly;
+using Xunit;
 using InvalidProjectFileException = Microsoft.Build.Exceptions.InvalidProjectFileException;
 using NodeLoggingContext = Microsoft.Build.BackEnd.Logging.NodeLoggingContext;
-using Xunit;
+
+#nullable disable
 
 namespace Microsoft.Build.UnitTests.BackEnd
 {
@@ -30,7 +31,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             string content = ObjectModelHelpers.CleanupFileContents(@"
             <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <PropertyGroup> 
+                <PropertyGroup>
                     <p1>v1</p1>
                     <p2>v2</p2>
                 </PropertyGroup>
@@ -95,8 +96,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             </Project>");
                 IntrinsicTask task = CreateIntrinsicTask(content);
                 ExecuteTask(task);
-            }
-           );
+            });
         }
 
         [Fact]
@@ -112,12 +112,10 @@ namespace Microsoft.Build.UnitTests.BackEnd
                   <PropertyGroup/>
                 </PropertyGroup>
             </Target>
-            </Project>"
-                );
+            </Project>");
                 IntrinsicTask task = CreateIntrinsicTask(content);
                 ExecuteTask(task);
-            }
-           );
+            });
         }
         [Fact]
         public void BlankProperty()
@@ -130,8 +128,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                   <p1></p1>
                 </PropertyGroup>
             </Target>
-            </Project>"
-            );
+            </Project>");
             IntrinsicTask task = CreateIntrinsicTask(content);
             PropertyDictionary<ProjectPropertyInstance> properties = new PropertyDictionary<ProjectPropertyInstance>();
             ExecuteTask(task, LookupHelpers.CreateLookup(properties));
@@ -151,12 +148,10 @@ namespace Microsoft.Build.UnitTests.BackEnd
             <Target Name='t'>
                 <PropertyGroup>x</PropertyGroup>
             </Target>
-            </Project>"
-                );
+            </Project>");
                 IntrinsicTask task = CreateIntrinsicTask(content);
                 ExecuteTask(task, null);
-            }
-           );
+            });
         }
 
         [Fact]
@@ -172,12 +167,10 @@ namespace Microsoft.Build.UnitTests.BackEnd
                     <p Include='v0'/>
                 </PropertyGroup>
             </Target>
-            </Project>"
-                );
+            </Project>");
                 IntrinsicTask task = CreateIntrinsicTask(content);
                 ExecuteTask(task, null);
-            }
-           );
+            });
         }
         [Fact]
         public void PropertyGroupWithConditionOnGroup()
@@ -186,7 +179,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             Project p = new Project(XmlReader.Create(new StringReader(ObjectModelHelpers.CleanupFileContents(
             @"<Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <PropertyGroup Condition='false'> 
+                <PropertyGroup Condition='false'>
                     <p1>v1</p1>
                     <p2>v2</p2>
                 </PropertyGroup>
@@ -201,7 +194,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             p = new Project(XmlReader.Create(new StringReader(ObjectModelHelpers.CleanupFileContents(
             @"<Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <PropertyGroup Condition='true'> 
+                <PropertyGroup Condition='true'>
                     <p1>v1</p1>
                     <p2>v2</p2>
                 </PropertyGroup>
@@ -237,7 +230,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             string content = ObjectModelHelpers.CleanupFileContents(@"
             <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup> 
+                <ItemGroup>
                     <i1 Include='a1'/>
                     <i2 Include='b1'/>
                 </ItemGroup>
@@ -281,7 +274,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             string content = ObjectModelHelpers.CleanupFileContents(@"
             <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup> 
+                <ItemGroup>
                     <i1 Include='a1'/>
                     <i1 Include='a1' KeepDuplicates='' />
                 </ItemGroup>
@@ -301,7 +294,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             string content = ObjectModelHelpers.CleanupFileContents(@"
             <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup> 
+                <ItemGroup>
                     <i1 Include='a1'/>
                     <i1 Include='a1' KeepDuplicates='false' />
                 </ItemGroup>
@@ -321,7 +314,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             string content = ObjectModelHelpers.CleanupFileContents(@"
             <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup> 
+                <ItemGroup>
                     <i1 Include='a1'/>
                     <i1 Include='a1' KeepDuplicates="" '$(Keep)' == 'true' "" />
                 </ItemGroup>
@@ -341,9 +334,9 @@ namespace Microsoft.Build.UnitTests.BackEnd
             string content = ObjectModelHelpers.CleanupFileContents(@"
             <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup> 
+                <ItemGroup>
                     <i1 Include='a1'/>
-                    <i1 Include='a1'/>              
+                    <i1 Include='a1'/>
                     <i1 Include='a1' KeepDuplicates='false' />
                 </ItemGroup>
             </Target>
@@ -362,9 +355,9 @@ namespace Microsoft.Build.UnitTests.BackEnd
             string content = ObjectModelHelpers.CleanupFileContents(@"
             <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup> 
+                <ItemGroup>
                     <i1 Include='a1'/>
-                    <i1 Include='a1'/>              
+                    <i1 Include='a1'/>
                     <i2 Include='@(i1)' KeepDuplicates='false' />
                 </ItemGroup>
             </Target>
@@ -386,8 +379,8 @@ namespace Microsoft.Build.UnitTests.BackEnd
             string content = ObjectModelHelpers.CleanupFileContents(@"
             <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup> 
-                    <i1 Include='a1'>              
+                <ItemGroup>
+                    <i1 Include='a1'>
                       <m1>m1</m1>
                     </i1>
                     <i1 Include='a2' KeepDuplicates='false' />
@@ -411,8 +404,8 @@ namespace Microsoft.Build.UnitTests.BackEnd
             string content = ObjectModelHelpers.CleanupFileContents(@"
             <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup> 
-                    <i1 Include='a1'>              
+                <ItemGroup>
+                    <i1 Include='a1'>
                       <m1>m1</m1>
                     </i1>
                     <i2 Include='@(i1)' KeepMetadata='' />
@@ -433,8 +426,8 @@ namespace Microsoft.Build.UnitTests.BackEnd
             string content = ObjectModelHelpers.CleanupFileContents(@"
             <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup> 
-                    <i1 Include='a1'>              
+                <ItemGroup>
+                    <i1 Include='a1'>
                       <m1>m1</m1>
                       <m2>m2</m2>
                       <m3>m3</m3>
@@ -455,18 +448,18 @@ namespace Microsoft.Build.UnitTests.BackEnd
 
 
         [Fact]
-        public void ItemKeepMetadataNotExistant()
+        public void ItemKeepMetadataNotExistent()
         {
             string content = ObjectModelHelpers.CleanupFileContents(@"
             <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup> 
-                    <i1 Include='a1'>              
+                <ItemGroup>
+                    <i1 Include='a1'>
                       <m1>m1</m1>
                       <m2>m2</m2>
                       <m3>m3</m3>
                     </i1>
-                    <i2 Include='@(i1)' KeepMetadata='NONEXISTANT' />
+                    <i2 Include='@(i1)' KeepMetadata='NONEXISTENT' />
                 </ItemGroup>
             </Target>
             </Project>");
@@ -486,8 +479,8 @@ namespace Microsoft.Build.UnitTests.BackEnd
             string content = ObjectModelHelpers.CleanupFileContents(@"
             <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup> 
-                    <i1 Include='a1'>              
+                <ItemGroup>
+                    <i1 Include='a1'>
                       <m1>m1</m1>
                       <m2>m2</m2>
                       <m3>m3</m3>
@@ -512,8 +505,8 @@ namespace Microsoft.Build.UnitTests.BackEnd
             string content = ObjectModelHelpers.CleanupFileContents(@"
             <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup> 
-                    <i1 Include='a1'>              
+                <ItemGroup>
+                    <i1 Include='a1'>
                       <m1>m1</m1>
                       <m2>m2</m2>
                       <m3>m3</m3>
@@ -541,8 +534,8 @@ namespace Microsoft.Build.UnitTests.BackEnd
             string content = ObjectModelHelpers.CleanupFileContents(@"
             <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup> 
-                    <i1 Include='a1'>              
+                <ItemGroup>
+                    <i1 Include='a1'>
                       <m1>m1</m1>
                     </i1>
                     <i2 Include='@(i1)' RemoveMetadata='' />
@@ -563,8 +556,8 @@ namespace Microsoft.Build.UnitTests.BackEnd
             string content = ObjectModelHelpers.CleanupFileContents(@"
             <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup> 
-                    <i1 Include='a1'>              
+                <ItemGroup>
+                    <i1 Include='a1'>
                       <m1>m1</m1>
                       <m2>m2</m2>
                       <m3>m3</m3>
@@ -589,8 +582,8 @@ namespace Microsoft.Build.UnitTests.BackEnd
             string content = ObjectModelHelpers.CleanupFileContents(@"
             <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup> 
-                    <i1 Include='a1'>              
+                <ItemGroup>
+                    <i1 Include='a1'>
                       <m1>m1</m1>
                       <m2>m2</m2>
                       <m3>m3</m3>
@@ -615,8 +608,8 @@ namespace Microsoft.Build.UnitTests.BackEnd
             string content = ObjectModelHelpers.CleanupFileContents(@"
             <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup> 
-                    <i1 Include='a1'>              
+                <ItemGroup>
+                    <i1 Include='a1'>
                       <m1>m1</m1>
                       <m2>m2</m2>
                       <m3>m3</m3>
@@ -646,8 +639,8 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 string content = ObjectModelHelpers.CleanupFileContents(@"
             <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup> 
-                    <i1 Include='a1'>              
+                <ItemGroup>
+                    <i1 Include='a1'>
                       <m1>m1</m1>
                       <m2>m2</m2>
                       <m3>m3</m3>
@@ -659,8 +652,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 IntrinsicTask task = CreateIntrinsicTask(content);
                 Lookup lookup = LookupHelpers.CreateEmptyLookup();
                 ExecuteTask(task, lookup);
-            }
-           );
+            });
         }
         /// <summary>
         /// Should not make items with an empty include.
@@ -671,7 +663,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             string content = ObjectModelHelpers.CleanupFileContents(@"
             <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup> 
+                <ItemGroup>
                     <i1 Include='$(xxx)'/>
                 </ItemGroup>
             </Target>
@@ -717,7 +709,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             string content = ObjectModelHelpers.CleanupFileContents(@"
             <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup> 
+                <ItemGroup>
                     <i1 Include='  $(p0)  '/>
                     <i2 Include='b1'/>
                 </ItemGroup>
@@ -746,8 +738,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             </Project>");
                 IntrinsicTask task = CreateIntrinsicTask(content);
                 ExecuteTask(task, null);
-            }
-           );
+            });
         }
 
         [Fact]
@@ -765,8 +756,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             </Project>");
                 IntrinsicTask task = CreateIntrinsicTask(content);
                 ExecuteTask(task, null);
-            }
-           );
+            });
         }
 
         [Fact]
@@ -784,8 +774,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             </Project>");
                 IntrinsicTask task = CreateIntrinsicTask(content);
                 ExecuteTask(task, null);
-            }
-           );
+            });
         }
         [Fact]
         public void ItemGroupWithTransform()
@@ -793,7 +782,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             string content = ObjectModelHelpers.CleanupFileContents(@"
             <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup> 
+                <ItemGroup>
                     <i1 Include='a.cpp'/>
                     <i2 Include=""@(i1->'%(filename).obj')""/>
                 </ItemGroup>
@@ -815,7 +804,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             string content = ObjectModelHelpers.CleanupFileContents(@"
             <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup> 
+                <ItemGroup>
                     <i1 Include='a.cpp'/>
                     <i2 Include='@(i1)'>
                        <m>@(i1->'%(filename).obj')</m>
@@ -838,7 +827,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             string content = ObjectModelHelpers.CleanupFileContents(@"
             <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup> 
+                <ItemGroup>
                     <i1 Include='a1'/>
                     <i2 Include='a1;@(i1);b1;b2' Exclude='@(i1);b1'/>
                 </ItemGroup>
@@ -860,7 +849,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             string content = ObjectModelHelpers.CleanupFileContents(@"
             <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup> 
+                <ItemGroup>
                     <i1 Include='a1'>
                         <m>a1</m>
                     </i1>
@@ -887,7 +876,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             Project p = new Project(XmlReader.Create(new StringReader(ObjectModelHelpers.CleanupFileContents(
             @"<Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup Condition='false'> 
+                <ItemGroup Condition='false'>
                     <i1 Include='a1'/>
                     <i2 Include='b1'/>
                 </ItemGroup>
@@ -902,7 +891,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             p = new Project(XmlReader.Create(new StringReader(ObjectModelHelpers.CleanupFileContents(
             @"<Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup Condition='true'> 
+                <ItemGroup Condition='true'>
                     <i1 Include='a1'/>
                     <i2 Include='b1'/>
                 </ItemGroup>
@@ -943,7 +932,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             string content = ObjectModelHelpers.CleanupFileContents(@"
             <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <PropertyGroup> 
+                <PropertyGroup>
                     <p1>$(p0)</p1>
                 </PropertyGroup>
             </Target>
@@ -966,7 +955,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             string content = ObjectModelHelpers.CleanupFileContents(@"
             <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup> 
+                <ItemGroup>
                     <i1 Include='$(p0)'/>
                     <i2 Include='a2'/>
                 </ItemGroup>
@@ -989,7 +978,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             string content = ObjectModelHelpers.CleanupFileContents(@"
             <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup> 
+                <ItemGroup>
                     <i1 Include='a1'>
                         <m>m1</m>
                     </i1>
@@ -1022,7 +1011,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             string content = ObjectModelHelpers.CleanupFileContents(
             @"<Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup> 
+                <ItemGroup>
                     <i1 Include='a1'>
                         <m>m1</m>
                     </i1>
@@ -1081,7 +1070,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             string content = ObjectModelHelpers.CleanupFileContents(
             @"<Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup> 
+                <ItemGroup>
                     <i1 Include='b1'>
                         <m>%(i0.m)</m>
                     </i1>
@@ -1114,7 +1103,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             string content = ObjectModelHelpers.CleanupFileContents(
             @"<Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <PropertyGroup> 
+                <PropertyGroup>
                     <p1>v1</p1>
                     <p2>#$(p1)#</p2>
                     <p1>v2</p1>
@@ -1166,7 +1155,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             string content = ObjectModelHelpers.CleanupFileContents(
             @"<Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <PropertyGroup> 
+                <PropertyGroup>
                     <p1 Condition=""'%(i0.n)' != n3"">%(i0.n)</p1>
                 </PropertyGroup>
             </Target></Project>");
@@ -1210,7 +1199,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                     <PropertyGroup>
                         <p0>v0</p0>
                     </PropertyGroup>
-                    <ItemGroup> 
+                    <ItemGroup>
                         <i1 Include='$(p0)'/>
                     </ItemGroup>
                     <Message Text='[@(i1)]'/>
@@ -1317,7 +1306,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             Project p = new Project(XmlReader.Create(new StringReader(ObjectModelHelpers.CleanupFileContents(@"
                 <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
                   <Target Name='t2' DependsOnTargets='t'>
-                    <Message Text='[$(p)]'/>                    
+                    <Message Text='[$(p)]'/>
                   </Target>
                   <Target Name='t'>
                     <PropertyGroup>
@@ -1357,7 +1346,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             Project p = new Project(XmlReader.Create(new StringReader(ObjectModelHelpers.CleanupFileContents(@"
                 <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
                   <Target Name='t2' DependsOnTargets='t'>
-                    <Message Text='[@(i)]'/>                    
+                    <Message Text='[@(i)]'/>
                   </Target>
                   <Target Name='t'>
                     <ItemGroup>
@@ -1380,13 +1369,13 @@ namespace Microsoft.Build.UnitTests.BackEnd
                   <ItemGroup>
                     <i Include='1.in'><output>1.out</output></i>
                     <i Include='2.in'><output>2.out</output></i>
-                  </ItemGroup> 
+                  </ItemGroup>
                   <Target Name='t' Inputs='%(i.Identity)' Outputs='%(i.output)'>
                     <Message Text='start:[@(i)]'/>
                     <ItemGroup>
                       <j Include='%(i.identity)'/>
                     </ItemGroup>
-                    <Message Text='end:[@(j)]'/>                    
+                    <Message Text='end:[@(j)]'/>
                 </Target>
                 </Project>
             "))));
@@ -1567,14 +1556,13 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 string content = ObjectModelHelpers.CleanupFileContents(
                 @"<Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup> 
+                <ItemGroup>
                     <i1 Include=''/>
                 </ItemGroup>
             </Target></Project>");
                 IntrinsicTask task = CreateIntrinsicTask(content);
                 ExecuteTask(task, null);
-            }
-           );
+            });
         }
         [Fact]
         public void RemoveNoOp()
@@ -1582,7 +1570,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             string content = ObjectModelHelpers.CleanupFileContents(
             @"<Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup> 
+                <ItemGroup>
                     <i1 Remove='a1'/>
                 </ItemGroup>
             </Target></Project>");
@@ -1600,7 +1588,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             @"<Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
                 <ItemGroup>
-                    <i1 Include='a1'/> 
+                    <i1 Include='a1'/>
                     <i1 Remove='a1'/>
                 </ItemGroup>
             </Target></Project>");
@@ -1625,7 +1613,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                     <!-- just to cause two target batches -->
                     <i Include='1.in'><output>1.out</output></i>
                     <i Include='2.in'><output>2.out</output></i>
-                  </ItemGroup> 
+                  </ItemGroup>
                   <Target Name='t' Inputs='%(i.Identity)' Outputs='%(i.output)'>
                     <ItemGroup>
                       <j Include='a' Condition=""'%(i.Identity)'=='1.in'""/>
@@ -1662,7 +1650,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             <Target Name='t'>
                 <ItemGroup>
                     <i0 Include='a.cpp;b.cpp'/>
-                    <i1 Include='a.obj;b.obj'/> 
+                    <i1 Include='a.obj;b.obj'/>
                     <i1 Remove=""@(i0->'%(filename).obj')""/>
                 </ItemGroup>
             </Target></Project>");
@@ -1680,8 +1668,8 @@ namespace Microsoft.Build.UnitTests.BackEnd
             @"<Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
                 <ItemGroup>
-                    <i1 Include='a1'/> 
-                    <i1 Include='a2'/> 
+                    <i1 Include='a1'/>
+                    <i1 Include='a2'/>
                     <i1 Remove='a1;a2'/>
                 </ItemGroup>
             </Target></Project>");
@@ -1699,8 +1687,8 @@ namespace Microsoft.Build.UnitTests.BackEnd
             @"<Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
                 <ItemGroup>
-                    <i1 Include='a1'/> 
-                    <i1 Include='a2'/> 
+                    <i1 Include='a1'/>
+                    <i1 Include='a2'/>
                     <i1 Remove='@(i1)'/>
                 </ItemGroup>
             </Target></Project>");
@@ -1737,7 +1725,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
 
             var items = lookup.GetItems("I2");
 
-            items.Select(i => i.EvaluatedInclude).ShouldBe(new []{"a2", "d2"});
+            items.Select(i => i.EvaluatedInclude).ShouldBe(new[] { "a2", "d2" });
 
             items.ElementAt(0).GetMetadataValue("M1").ShouldBe("x");
             items.ElementAt(0).GetMetadataValue("M2").ShouldBe("c");
@@ -1794,7 +1782,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                             <I1 Include='c1' M1='foo/bar.vb' M2='y'/>
                             <I1 Include='d1' M1='foo\foo\foo' M2='b'/>
                             <I1 Include='e1' M1='a/b/../c/./d' M2='1'/>
-                            <I1 Include='f1' M1='{ Environment.CurrentDirectory }\b\c' M2='6'/>
+                            <I1 Include='f1' M1='{Environment.CurrentDirectory}\b\c' M2='6'/>
 
                             <I2 Include='a2' M1='FOO.TXT' m2='c'/>
                             <I2 Include='b2' M1='foo/bar.txt' m2='x'/>
@@ -1989,7 +1977,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         }
 
         [Fact]
-        public void FailWithMatchingMultipleMetadata()
+        public void RemoveWithMatchingMultipleMetadata()
         {
             string content = ObjectModelHelpers.CleanupFileContents(
                 @"<Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
@@ -2010,12 +1998,16 @@ namespace Microsoft.Build.UnitTests.BackEnd
                     </Target></Project>");
             IntrinsicTask task = CreateIntrinsicTask(content);
             Lookup lookup = LookupHelpers.CreateEmptyLookup();
-            Assert.ThrowsAny<InvalidProjectFileException>(() => ExecuteTask(task, lookup))
-                .HelpKeyword.ShouldBe("MSBuild.OM_MatchOnMetadataIsRestrictedToOnlyOneReferencedItem");
+            ExecuteTask(task, lookup);
+            ICollection<ProjectItemInstance> items = lookup.GetItems("I2");
+            items.Count.ShouldBe(3);
+            items.ElementAt(0).EvaluatedInclude.ShouldBe("a2");
+            items.ElementAt(1).EvaluatedInclude.ShouldBe("c2");
+            items.ElementAt(2).EvaluatedInclude.ShouldBe("d2");
         }
 
         [Fact]
-        public void FailWithMultipleItemReferenceOnMatchingMetadata()
+        public void RemoveWithMultipleItemReferenceOnMatchingMetadata()
         {
             string content = ObjectModelHelpers.CleanupFileContents(
                 @"<Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
@@ -2041,8 +2033,9 @@ namespace Microsoft.Build.UnitTests.BackEnd
                     </Target></Project>");
             IntrinsicTask task = CreateIntrinsicTask(content);
             Lookup lookup = LookupHelpers.CreateEmptyLookup();
-            Assert.ThrowsAny<InvalidProjectFileException>(() => ExecuteTask(task, lookup))
-                .HelpKeyword.ShouldBe("MSBuild.OM_MatchOnMetadataIsRestrictedToOnlyOneReferencedItem");
+            ExecuteTask(task, lookup);
+            ICollection<ProjectItemInstance> items = lookup.GetItems("I3");
+            items.ShouldBeEmpty();
         }
 
         [Fact]
@@ -2068,7 +2061,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             IntrinsicTask task = CreateIntrinsicTask(content);
             Lookup lookup = LookupHelpers.CreateEmptyLookup();
             Assert.ThrowsAny<InvalidProjectFileException>(() => ExecuteTask(task, lookup))
-                .HelpKeyword.ShouldBe("MSBuild.OM_MatchOnMetadataIsRestrictedToOnlyOneReferencedItem");
+                .HelpKeyword.ShouldBe("MSBuild.OM_MatchOnMetadataIsRestrictedToReferencedItems");
         }
 
         [Fact]
@@ -2211,7 +2204,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             string content = ObjectModelHelpers.CleanupFileContents(@"
             <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup> 
+                <ItemGroup>
                   <!-- squint and pretend i0 is 'CppCompile' and 'm' is 'ObjectFile' -->
                   <Link Include=""A_PCH""/>
                   <Link Include=""@(i0->'%(m).obj')"" Condition=""'%(i0.m)' == 'm1'""/>
@@ -2343,13 +2336,13 @@ namespace Microsoft.Build.UnitTests.BackEnd
                   <ItemGroup>
                     <i0 Include='a1'>
                       <m>m1</m>
-                    </i0> 
+                    </i0>
                   </ItemGroup>
                   <Target Name='t'>
                     <ItemGroup>
                       <i0 Include='a1'>
                         <m>m2</m>
-                      </i0> 
+                      </i0>
                       <i0 Remove='a1'/>
                     </ItemGroup>
                     <Message Text='[%(i0.m)]'/>
@@ -2416,13 +2409,13 @@ namespace Microsoft.Build.UnitTests.BackEnd
                   <ItemGroup>
                     <i0 Include='a1'>
                       <m>m1</m>
-                    </i0> 
+                    </i0>
                   </ItemGroup>
                   <Target Name='t'>
                     <ItemGroup>
                       <i0 Include='a1'>
                         <m>m2</m>
-                      </i0> 
+                      </i0>
                       <i0 Remove='a1' Condition=""'%(i0.m)' == 'm1'""/>
                     </ItemGroup>
                     <Message Text='[%(i0.m)]'/>
@@ -2504,13 +2497,13 @@ namespace Microsoft.Build.UnitTests.BackEnd
                   <ItemGroup>
                     <i Include='1.in'><output>1.out</output></i>
                     <i Include='2.in'><output>2.out</output></i>
-                  </ItemGroup> 
+                  </ItemGroup>
                   <Target Name='t' Inputs='%(i.Identity)' Outputs='%(i.output)'>
                     <Message Text='start:[@(i)]'/>
                     <ItemGroup>
                       <i Remove='1.in;2.in'/>
                     </ItemGroup>
-                    <Message Text='end:[@(i)]'/>                    
+                    <Message Text='end:[@(i)]'/>
                 </Target>
                 </Project>
             "))));
@@ -2529,13 +2522,13 @@ namespace Microsoft.Build.UnitTests.BackEnd
                     <i Include='1.in'><output>1.out</output></i>
                     <i Include='2.in'><output>2.out</output></i>
                     <j Include='j1'/>
-                  </ItemGroup> 
+                  </ItemGroup>
                   <Target Name='t' Inputs='%(i.Identity)' Outputs='%(i.output)'>
                     <Message Text='start:[@(j)]'/>
                     <ItemGroup>
                       <j Remove='@(j)'/>
                     </ItemGroup>
-                    <Message Text='end:[@(j)]'/>                    
+                    <Message Text='end:[@(j)]'/>
                 </Target>
                 </Project>
             "))));
@@ -2765,7 +2758,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             string content = ObjectModelHelpers.CleanupFileContents(
             @"<Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
-                <ItemGroup> 
+                <ItemGroup>
                     <i1/>
                 </ItemGroup>
             </Target></Project>");
@@ -2783,7 +2776,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             @"<Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
                 <ItemGroup>
-                    <i1 Include='a1'> 
+                    <i1 Include='a1'>
                       <m>m1</m>
                     </i1>
                     <i1>
@@ -2838,7 +2831,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             @"<Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
                 <ItemGroup>
-                    <i1 Include='a1'> 
+                    <i1 Include='a1'>
                       <m>m1</m>
                     </i1>
                     <i1>
@@ -2887,10 +2880,10 @@ namespace Microsoft.Build.UnitTests.BackEnd
             @"<Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
                 <ItemGroup>
-                    <i1 Include='a1'> 
+                    <i1 Include='a1'>
                       <m>m1</m>
                     </i1>
-                    <i1 Include='a2'> 
+                    <i1 Include='a2'>
                       <m>m2</m>
                     </i1>
                     <i1 Condition=""'%(i1.m)'=='m2'"">
@@ -2917,10 +2910,10 @@ namespace Microsoft.Build.UnitTests.BackEnd
             @"<Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
                 <ItemGroup>
-                    <i1 Include='a1'> 
+                    <i1 Include='a1'>
                       <m>m1</m>
                     </i1>
-                    <i1 Include='a2'> 
+                    <i1 Include='a2'>
                       <m>m2</m>
                     </i1>
                     <i1>
@@ -2957,8 +2950,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             </Target></Project>");
                 IntrinsicTask task = CreateIntrinsicTask(content);
                 ExecuteTask(task, null);
-            }
-           );
+            });
         }
         [Fact]
         public void ModifyItemInTargetWithConditionWithoutItemTypeOnMetadataInCondition()
@@ -2967,10 +2959,10 @@ namespace Microsoft.Build.UnitTests.BackEnd
             @"<Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
                 <ItemGroup>
-                    <i1 Include='a1'> 
+                    <i1 Include='a1'>
                       <m>m1</m>
                     </i1>
-                    <i1 Include='a2'> 
+                    <i1 Include='a2'>
                       <m>m2</m>
                     </i1>
                     <i1 Condition=""'%(m)'=='m2'"">
@@ -2998,10 +2990,10 @@ namespace Microsoft.Build.UnitTests.BackEnd
             @"<Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
             <Target Name='t'>
                 <ItemGroup>
-                    <i1 Include='a1'> 
+                    <i1 Include='a1'>
                       <m>m1</m>
                     </i1>
-                    <i1 Include='a2'> 
+                    <i1 Include='a2'>
                       <m>m2</m>
                     </i1>
                     <i1>
@@ -3127,7 +3119,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                     <ItemGroup>
                       <i0>
                         <m>m1</m>
-                      </i0> 
+                      </i0>
                     </ItemGroup>
                   </Target>
                   <Target Name='t2'>
@@ -3171,7 +3163,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                       </i1>
                       <i1>
                         <n>n1</n>
-                      </i1> 
+                      </i1>
                     </ItemGroup>
                   </Target>
                   <Target Name='t2'>
@@ -3262,7 +3254,6 @@ namespace Microsoft.Build.UnitTests.BackEnd
         [Fact]
         [Trait("Category", "netcore-osx-failing")]
         [Trait("Category", "netcore-linux-failing")]
-        [Trait("Category", "mono-osx-failing")]
         public void IncludeCheckOnMetadata_3()
         {
             MockLogger logger = new MockLogger();
@@ -3318,7 +3309,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
 
             try
             {
-                importedFile = FileUtilities.GetTemporaryFile();
+                importedFile = FileUtilities.GetTemporaryFileName();
                 File.WriteAllText(importedFile, ObjectModelHelpers.CleanupFileContents(@"
                 <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
                   <ItemGroup>
@@ -3356,7 +3347,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
 
             try
             {
-                importedFile = FileUtilities.GetTemporaryFile();
+                importedFile = FileUtilities.GetTemporaryFileName();
                 File.WriteAllText(importedFile, ObjectModelHelpers.CleanupFileContents(@"
                 <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
                   <ItemGroup>
@@ -3400,7 +3391,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                     <!-- just to cause two target batches -->
                     <i Include='1.in'><output>1.out</output></i>
                     <i Include='2.in'><output>2.out</output></i>
-                  </ItemGroup> 
+                  </ItemGroup>
                   <Target Name='t' Inputs='%(i.Identity)' Outputs='%(i.output)'>
                     <Message Text='start:[$(p)]'/>
                     <CreateProperty Value='$(p)--%(i.Identity)'>
@@ -3457,7 +3448,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                         <ObjectFile>def.obj</ObjectFile>
                     </CppCompile>
                 </ItemGroup>
-                
+
                 <Target Name='t'>
                     <ItemGroup>
                         <CppCompile>
@@ -3473,7 +3464,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             ProjectInstance instance = new ProjectInstance(xml);
             instance.Build();
 
-            Assert.Equal(2, instance.Items.Count());
+            Assert.Equal(2, instance.Items.Count);
             Assert.Equal("gen.obj", instance.GetItems("CppCompile").First().GetMetadataValue("ObjectFile"));
             Assert.Equal("def.obj", instance.GetItems("CppCompile").Last().GetMetadataValue("ObjectFile"));
         }
@@ -3533,7 +3524,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                       </x>
                       <x>
                         <m1>2</m1>
-                      </x>  
+                      </x>
                     </ItemGroup>
                     <Message Text='[%(x.m1)]'/>
                   </Target>
@@ -3563,7 +3554,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                     <ItemGroup>
                       <x>
                         <m1>2</m1>
-                      </x>  
+                      </x>
                     </ItemGroup>
                     <Message Text='[%(x.m1)]'/>
                   </Target>
@@ -3874,7 +3865,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             ProjectTargetInstanceChild targetChild = projectInstance.Targets["t"].Children.First();
 
             NodeLoggingContext nodeContext = new NodeLoggingContext(new MockLoggingService(), 1, false);
-            BuildRequestEntry entry = new BuildRequestEntry(new BuildRequest(1 /* submissionId */, 0, 1, new string[] { "t" }, null, BuildEventContext.Invalid, null), new BuildRequestConfiguration(1, new BuildRequestData("projectFile", new Dictionary<string, string>(), "3.5", new string[0], null), "2.0"));
+            BuildRequestEntry entry = new BuildRequestEntry(new BuildRequest(1 /* submissionId */, 0, 1, new string[] { "t" }, null, BuildEventContext.Invalid, null), new BuildRequestConfiguration(1, new BuildRequestData("projectFile", new Dictionary<string, string>(), "3.5", Array.Empty<string>(), null), "2.0"));
             entry.RequestConfiguration.Project = projectInstance;
             IntrinsicTask task = IntrinsicTask.InstantiateTask(
                 targetChild,
@@ -3909,7 +3900,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                     var targetChild = projectInstance.Targets["t"].Children.First();
 
                     var nodeContext = new NodeLoggingContext(new MockLoggingService(), 1, false);
-                    var entry = new BuildRequestEntry(new BuildRequest(1 /* submissionId */, 0, 1, new string[] { targetName }, null, BuildEventContext.Invalid, null), new BuildRequestConfiguration(1, new BuildRequestData("projectFile", new Dictionary<string, string>(), "3.5", new string[0], null), "2.0"));
+                    var entry = new BuildRequestEntry(new BuildRequest(1 /* submissionId */, 0, 1, new string[] { targetName }, null, BuildEventContext.Invalid, null), new BuildRequestConfiguration(1, new BuildRequestData("projectFile", new Dictionary<string, string>(), "3.5", Array.Empty<string>(), null), "2.0"));
                     entry.RequestConfiguration.Project = projectInstance;
                     var task = IntrinsicTask.InstantiateTask(
                         targetChild,
@@ -3920,7 +3911,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                     var lookup = new Lookup(new ItemDictionary<ProjectItemInstance>(), new PropertyDictionary<ProjectPropertyInstance>());
                     task.ExecuteTask(lookup);
 
-                    return lookup.GetItems(itemType).Select(i => (ObjectModelHelpers.TestItem)new ObjectModelHelpers.ProjectItemInstanceTestItemAdapter(i)).ToList();
+                    return lookup.GetItems(itemType).Select(i => (ObjectModelHelpers.ITestItem)new ObjectModelHelpers.ProjectItemInstanceTestItemAdapter(i)).ToList();
                 },
                 projectContents,
                 inputFiles,

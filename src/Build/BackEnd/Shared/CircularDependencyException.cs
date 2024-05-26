@@ -1,10 +1,13 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Runtime.Serialization;
+using Microsoft.Build.Framework.BuildException;
 
-namespace Microsoft.Build.BackEnd
+#nullable disable
+
+namespace Microsoft.Build.Exceptions
 {
     /// <summary>
     /// An exception representing the case where a BuildRequest has caused a circular project dependency.  This is used to
@@ -14,7 +17,7 @@ namespace Microsoft.Build.BackEnd
     /// If you add fields to this class, add a custom serialization constructor and override GetObjectData().
     /// </remarks>
     [Serializable]
-    internal class CircularDependencyException : Exception
+    public class CircularDependencyException : BuildExceptionBase
     {
         /// <summary>
         /// Constructs a standard BuildAbortedException.
@@ -28,9 +31,17 @@ namespace Microsoft.Build.BackEnd
         {
         }
 
+        // Do not remove - used by BuildExceptionSerializationHelper
+        internal CircularDependencyException(string message, Exception inner)
+            : base(message, inner)
+        { }
+
         /// <summary>
         /// Constructor for deserialization.
         /// </summary>
+#if NET8_0_OR_GREATER
+        [Obsolete(DiagnosticId = "SYSLIB0051")]
+#endif
         protected CircularDependencyException(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {

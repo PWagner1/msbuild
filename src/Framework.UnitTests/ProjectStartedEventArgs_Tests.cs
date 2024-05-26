@@ -1,5 +1,5 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections;
@@ -7,6 +7,8 @@ using System.Collections;
 using Microsoft.Build.Framework;
 using Shouldly;
 using Xunit;
+
+#nullable disable
 
 namespace Microsoft.Build.UnitTests
 {
@@ -49,7 +51,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Verify different Items and properties are not taken into account in the equals comparison. They should 
+        /// Verify different Items and properties are not taken into account in the equals comparison. They should
         /// not be considered as part of the equals evaluation
         /// </summary>
         [Fact]
@@ -57,8 +59,7 @@ namespace Microsoft.Build.UnitTests
         {
             ArrayList itemsList = new ArrayList();
             ArrayList propertiesList = new ArrayList();
-            ProjectStartedEventArgs differentItemsAndProperties = new ProjectStartedEventArgs
-                (
+            ProjectStartedEventArgs differentItemsAndProperties = new ProjectStartedEventArgs(
                   s_baseProjectStartedEvent.ProjectId,
                   s_baseProjectStartedEvent.Message,
                   s_baseProjectStartedEvent.HelpKeyword,
@@ -67,18 +68,17 @@ namespace Microsoft.Build.UnitTests
                   propertiesList,
                   itemsList,
                   s_baseProjectStartedEvent.ParentProjectBuildEventContext,
-                  s_baseProjectStartedEvent.Timestamp
-                );
+                  s_baseProjectStartedEvent.Timestamp);
 
             s_baseProjectStartedEvent.Properties.ShouldNotBe(propertiesList);
             s_baseProjectStartedEvent.Items.ShouldNotBe(itemsList);
         }
 
         /// <summary>
-        /// Create a derived class so that we can test the default constructor in order to increase code coverage and 
+        /// Create a derived class so that we can test the default constructor in order to increase code coverage and
         /// verify this code path does not cause any exceptions.
         /// </summary>
-        private class ProjectStartedEventArgs2 : ProjectStartedEventArgs
+        private sealed class ProjectStartedEventArgs2 : ProjectStartedEventArgs
         {
             /// <summary>
             /// Default constructor

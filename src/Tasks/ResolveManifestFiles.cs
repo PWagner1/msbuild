@@ -1,5 +1,5 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections;
@@ -13,6 +13,8 @@ using Microsoft.Build.Shared;
 using Microsoft.Build.Tasks.Deployment.ManifestUtilities;
 using Microsoft.Build.Utilities;
 
+#nullable disable
+
 namespace Microsoft.Build.Tasks
 {
     /// <summary>
@@ -22,7 +24,7 @@ namespace Microsoft.Build.Tasks
     /// <comment>
     /// This task executes following steps:
     ///   (1) Filter out Framework assemblies
-    ///   (2) Filter out non-existant files
+    ///   (2) Filter out non-existent files
     ///   (3) Build list of Dependencies from built items with CopyLocal=True
     ///   (4) Build list of Prerequisites from built items with CopyLocal=False
     ///   (5) Build list of Satellites from built items based on TargetCulture
@@ -52,6 +54,8 @@ namespace Microsoft.Build.Tasks
         // if signing manifests is on and not all app files are included, then the project can't be published.
         private bool _canPublish;
         private Dictionary<string, ITaskItem> _runtimePackAssets;
+        // map of satellite assemblies that are included in References
+        private SatelliteRefAssemblyMap _satelliteAssembliesPassedAsReferences = new SatelliteRefAssemblyMap();
         #endregion
 
         #region Properties
@@ -123,7 +127,7 @@ namespace Microsoft.Build.Tasks
 
         public string AssemblyName { get; set; }
 
-        public bool LauncherBasedDeployment {get; set; } = false;
+        public bool LauncherBasedDeployment { get; set; } = false;
 
         public string TargetFrameworkVersion
         {
@@ -180,7 +184,7 @@ namespace Microsoft.Build.Tasks
                 return false;
             }
 
-            OutputFiles = GetOutputFiles(filePublishInfoList);
+            OutputFiles = GetOutputFiles(filePublishInfoList, OutputAssemblies);
 
             if (!_canPublish && is35Project)
             {
@@ -281,14 +285,17 @@ namespace Microsoft.Build.Tasks
             {
                 targetPath = Path.GetFileName(item.ItemSpec);
                 //
-                // .NETCore Launcher.exe based deployment: If the file is apphost.exe, we need to set 'TargetPath' metadata
-                // to {assemblyname}.exe so that the file gets published as {assemblyname}.exe and not apphost.exe.
+                // .NET >= 5 ClickOnce: If TargetPath metadata is not present in apphost.exe's metadata, we'll fallback to using AssemblyName
                 //
-                if (LauncherBasedDeployment && 
+                if (LauncherBasedDeployment &&
                     targetPath.Equals(Constants.AppHostExe, StringComparison.InvariantCultureIgnoreCase) &&
                     !String.IsNullOrEmpty(AssemblyName))
                 {
-                    targetPath = AssemblyName;
+                    targetPath = item.GetMetadata(ItemMetadataNames.targetPath);
+                    if (String.IsNullOrEmpty(targetPath))
+                    {
+                        targetPath = AssemblyName;
+                    }
                 }
                 else
                 {
@@ -350,6 +357,10 @@ namespace Microsoft.Build.Tasks
             string targetPath = item.GetMetadata(ItemMetadataNames.targetPath);
             if (String.IsNullOrEmpty(targetPath))
             {
+                targetPath = item.GetMetadata(ItemMetadataNames.destinationSubPath);
+            }
+            if (String.IsNullOrEmpty(targetPath))
+            {
                 targetPath = Path.GetFileName(item.ItemSpec);
                 // If item is a satellite then make sure the culture is part of the path...
                 string assemblyType = item.GetMetadata("AssemblyType");
@@ -376,6 +387,29 @@ namespace Microsoft.Build.Tasks
                 {
                     if (!IsFiltered(item))
                     {
+                        // ClickOnce for .NET 4.X should not publish duplicate satellite assemblies.
+                        // This will cause ClickOnce install to fail. This can happen if some package
+                        // decides to publish the en-us resource assemblies for other locales also.
+                        if (!LauncherBasedDeployment && _satelliteAssembliesPassedAsReferences.ContainsItem(item))
+                        {
+                            continue;
+                        }
+
+                        // Apply the culture publishing rules to include or exclude satellite assemblies
+                        AssemblyIdentity identity = AssemblyIdentity.FromManagedAssembly(item.ItemSpec);
+                        if (identity != null && !String.Equals(identity.Culture, "neutral", StringComparison.Ordinal))
+                        {
+                            CultureInfo satelliteCulture = new CultureInfo(identity.Culture);
+                            item.SetMetadata("Culture", identity.Culture);
+                            if (PublishFlags.IsSatelliteIncludedByDefault(satelliteCulture, _targetCulture, _includeAllSatellites))
+                            {
+                                _satelliteAssembliesPassedAsReferences.Add(item);
+                            }
+                            else
+                            {
+                                continue;
+                            }
+                        }
                         item.SetMetadata("AssemblyType", "Managed");
                         assemblyMap.Add(item);
                     }
@@ -462,16 +496,49 @@ namespace Microsoft.Build.Tasks
             return assemblyList.ToArray();
         }
 
-        private ITaskItem[] GetOutputFiles(List<PublishInfo> publishInfos)
+        private ITaskItem[] GetOutputFiles(List<PublishInfo> publishInfos, IEnumerable<ITaskItem> outputAssemblies)
         {
             var fileList = new List<ITaskItem>();
             var fileMap = new FileMap();
+
+            // Dictionary used to look up any content output files that are also in References
+            var outputAssembliesMap = outputAssemblies.ToDictionary(p => Path.GetFullPath(p.ItemSpec), StringComparer.OrdinalIgnoreCase);
 
             // Add all input Files to the FileMap, flagging them to be published by default...
             if (Files != null)
             {
                 foreach (ITaskItem item in Files)
                 {
+                    //
+                    // Files already included in References as copylocal should be skipped.
+                    // Lookup full path of the File in outputAssembliesMap and skip the
+                    // file if the target/destination path is the same.
+                    //
+                    string key = Path.GetFullPath(item.ItemSpec);
+                    outputAssembliesMap.TryGetValue(key, out var assembly);
+                    if (assembly != null)
+                    {
+                        if (GetItemCopyLocal(assembly))
+                        {
+                            // Get target path for the item
+                            string itemDestPath = item.GetMetadata(ItemMetadataNames.targetPath);
+                            if (String.IsNullOrEmpty(itemDestPath))
+                            {
+                                itemDestPath = item.GetMetadata(ItemMetadataNames.destinationSubPath);
+                            }
+                            // Get target path for the assembly
+                            string assemblyDestPath = assembly.GetMetadata(ItemMetadataNames.targetPath);
+                            if (String.IsNullOrEmpty(assemblyDestPath))
+                            {
+                                assemblyDestPath = assembly.GetMetadata(ItemMetadataNames.destinationSubPath);
+                            }
+                            // Skip item if target paths are the same for both
+                            if (String.Equals(itemDestPath, assemblyDestPath, StringComparison.OrdinalIgnoreCase))
+                            {
+                                continue;
+                            }
+                        }
+                    }
                     fileMap.Add(item, true);
                 }
             }
@@ -537,6 +604,10 @@ namespace Microsoft.Build.Tasks
                 foreach (ITaskItem item in _satelliteAssemblies)
                 {
                     item.SetMetadata("AssemblyType", "Satellite");
+                    if (_satelliteAssembliesPassedAsReferences.ContainsItem(item))
+                    {
+                        continue;
+                    }
                     satelliteMap.Add(item, true);
                 }
             }
@@ -665,6 +736,8 @@ namespace Microsoft.Build.Tasks
 
         private bool IsFiltered(ITaskItem item)
         {
+            bool isDotNetCore = String.Equals(TargetFrameworkIdentifier, Constants.DotNetCoreAppIdentifier, StringComparison.InvariantCultureIgnoreCase);
+
             // In the case of .NET Core apps published as self-contained with loose files (i.e. PublishSingleFile != true),
             // .NETCore binaries that come from the .NETCore Runtime pack should not be filtered out.
             if (IsSelfContainedPublish && !IsSingleFilePublish &&
@@ -680,19 +753,20 @@ namespace Microsoft.Build.Tasks
             // OpenScope and returns null if not an assembly, which is much faster.
 
             AssemblyIdentity identity = AssemblyIdentity.FromManagedAssembly(item.ItemSpec);
-            if (item.ItemSpec.EndsWith(".dll") && identity == null)
+            if (item.ItemSpec.EndsWith(".dll") && identity == null && !isDotNetCore)
             {
                 // It is possible that a native dll gets passed in here that was declared as a content file
-                // in a referenced nuget package, which will yield null here. We just need to ignore those, 
-                // since those aren't actually references we care about.
+                // in a referenced nuget package, which will yield null here. We just need to ignore those
+                // for .NET FX case since those aren't actually references we care about. For .NET Core, native
+                // dll can be passed as a reference so we won't ignore it if isDotNetCore is true.
                 return true;
             }
 
-            if (String.Equals(TargetFrameworkIdentifier, Constants.DotNetCoreAppIdentifier, StringComparison.InvariantCultureIgnoreCase))
+            if (isDotNetCore)
             {
                 if (identity?.IsInFramework(Constants.DotNetCoreIdentifier, null) == true)
                 {
-                    return true;
+                    return !GetItemCopyLocal(item);
                 }
             }
             else if (identity?.IsInFramework(Constants.DotNetFrameworkIdentifier, TargetFrameworkVersion) == true)
@@ -775,7 +849,15 @@ namespace Microsoft.Build.Tasks
                 string fusionName = item.GetMetadata(ItemMetadataNames.fusionName);
                 if (String.IsNullOrEmpty(fusionName))
                 {
-                    fusionName = Path.GetFileNameWithoutExtension(item.ItemSpec);
+                    string destSubDir = item.GetMetadata(ItemMetadataNames.destinationSubDirectory);
+                    if (!String.IsNullOrEmpty(destSubDir))
+                    {
+                        fusionName = Path.Combine(destSubDir, Path.GetFileNameWithoutExtension(item.ItemSpec));
+                    }
+                    else
+                    {
+                        fusionName = Path.GetFileNameWithoutExtension(item.ItemSpec);
+                    }
                 }
 
                 // Add to map with full name, for SpecificVersion=true case
@@ -790,7 +872,7 @@ namespace Microsoft.Build.Tasks
                 int i = fusionName.IndexOf(',');
                 if (i > 0)
                 {
-                    string simpleName = fusionName.Substring(0, i); //example: "ClassLibrary1, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" -> "ClassLibrary1"
+                    string simpleName = fusionName.Substring(0, i); // example: "ClassLibrary1, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" -> "ClassLibrary1"
                     key = simpleName.ToLowerInvariant();
                     // If there are multiple with same simple name then we'll take the first one and ignore the rest, which is not an unreasonable thing to do
                     if (!_simpleNameDictionary.ContainsKey(key))
@@ -799,13 +881,61 @@ namespace Microsoft.Build.Tasks
                     }
                 }
             }
-            
+
             IEnumerator IEnumerable.GetEnumerator()
             {
                 return _dictionary.Values.GetEnumerator();
             }
         }
         #endregion
+
+        #region SatelliteRefAssemblyMap
+        private class SatelliteRefAssemblyMap : IEnumerable
+        {
+            private readonly Dictionary<string, MapEntry> _dictionary = new Dictionary<string, MapEntry>(StringComparer.InvariantCultureIgnoreCase);
+
+            public MapEntry this[string fusionName]
+            {
+                get
+                {
+                    _dictionary.TryGetValue(fusionName, out MapEntry entry);
+                    return entry;
+                }
+            }
+
+            public bool ContainsItem(ITaskItem item)
+            {
+                AssemblyIdentity identity = AssemblyIdentity.FromManagedAssembly(item.ItemSpec);
+                if (identity != null)
+                {
+                    return _dictionary.ContainsKey(identity.ToString());
+                }
+                return false;
+            }
+
+            public void Add(ITaskItem item)
+            {
+                var entry = new MapEntry(item, true);
+                AssemblyIdentity identity = AssemblyIdentity.FromManagedAssembly(item.ItemSpec);
+                if (identity != null && !String.Equals(identity.Culture, "neutral", StringComparison.Ordinal))
+                {
+                    // Use satellite assembly strong name signature as key
+                    string key = identity.ToString();
+                    Debug.Assert(!_dictionary.ContainsKey(key), String.Format(CultureInfo.CurrentCulture, "Two or more items with same key '{0}' detected", key));
+                    if (!_dictionary.ContainsKey(key))
+                    {
+                        _dictionary.Add(key, entry);
+                    }
+                }
+            }
+
+            IEnumerator IEnumerable.GetEnumerator()
+            {
+                return _dictionary.Values.GetEnumerator();
+            }
+        }
+        #endregion
+
 
         #region FileMap
         private class FileMap : IEnumerable
@@ -826,7 +956,11 @@ namespace Microsoft.Build.Tasks
             {
                 string targetPath = GetItemTargetPath(item);
                 Debug.Assert(!String.IsNullOrEmpty(targetPath));
-                if (String.IsNullOrEmpty(targetPath)) return;
+                if (String.IsNullOrEmpty(targetPath))
+                {
+                    return;
+                }
+
                 string key = targetPath.ToLowerInvariant();
                 Debug.Assert(!_dictionary.ContainsKey(key), String.Format(CultureInfo.CurrentCulture, "Two or more items with same '{0}' attribute detected", ItemMetadataNames.targetPath));
                 var entry = new MapEntry(item, includedByDefault);
@@ -988,7 +1122,7 @@ namespace Microsoft.Build.Tasks
 
             public bool IsPublished { get; }
 
-            private static bool IsSatelliteIncludedByDefault(CultureInfo satelliteCulture, CultureInfo targetCulture, bool includeAllSatellites)
+            public static bool IsSatelliteIncludedByDefault(CultureInfo satelliteCulture, CultureInfo targetCulture, bool includeAllSatellites)
             {
                 // If target culture not specified then satellite is not included by default...
                 if (targetCulture == null)

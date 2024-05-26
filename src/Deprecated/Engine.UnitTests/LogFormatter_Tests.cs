@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.Reflection;
 using System.Collections;
@@ -18,7 +22,7 @@ namespace Microsoft.Build.UnitTests
         /*
         * Method:  TimeSpanMediumDuration
         * Owner:   jomof
-        * 
+        *
         * Tests the mainline: a medium length duration
         */
         [Test]
@@ -26,14 +30,14 @@ namespace Microsoft.Build.UnitTests
         {
             TimeSpan t = new TimeSpan(1254544900);
             string result = LogFormatter.FormatTimeSpan(t);
-            Assertion.AssertEquals("00:02:05.45", result);            
+            Assertion.AssertEquals("00:02:05.45", result);
         }
 
 
         /*
         * Method:  TimeSpanZeroDuration
         * Owner:   jomof
-        * 
+        *
         * Format a TimeSpan where the duration is zero.
         */
         [Test]
@@ -41,7 +45,7 @@ namespace Microsoft.Build.UnitTests
         {
             TimeSpan t = new TimeSpan(0);
             string result = LogFormatter.FormatTimeSpan(t);
-            Assertion.AssertEquals("00:00:00", result);            
+            Assertion.AssertEquals("00:00:00", result);
         }
 
         [Test]

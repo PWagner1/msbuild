@@ -1,12 +1,16 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+#if !BUILDINGAPPXTASKS
 using System.Resources;
 using System.Diagnostics;
+#endif
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.ComponentModel;
+
+#nullable disable
 
 #if BUILDINGAPPXTASKS
 namespace Microsoft.Build.AppxPackage.Shared
@@ -20,7 +24,7 @@ namespace Microsoft.Build.Shared
     internal static class ResourceUtilities
     {
         /// <summary>
-        /// Extracts the message code (if any) prefixed to the given string. 
+        /// Extracts the message code (if any) prefixed to the given string.
         /// <![CDATA[
         /// MSBuild codes match "^\s*(?<CODE>MSB\d\d\d\d):\s*(?<MESSAGE>.*)$"
         /// Arbitrary codes match "^\s*(?<CODE>[A-Za-z]+\d+):\s*(?<MESSAGE>.*)$"
@@ -58,8 +62,7 @@ namespace Microsoft.Build.Shared
                     message[i + 4] < '0' || message[i + 4] > '9' ||
                     message[i + 5] < '0' || message[i + 5] > '9' ||
                     message[i + 6] < '0' || message[i + 6] > '9' ||
-                    message[i + 7] != ':'
-                    )
+                    message[i + 7] != ':')
                 {
                     return message;
                 }
@@ -151,7 +154,7 @@ namespace Microsoft.Build.Shared
         /// <summary>
         /// Loads the specified string resource and formats it with the arguments passed in. If the string resource has an MSBuild
         /// message code and help keyword associated with it, they too are returned.
-        /// 
+        ///
         /// PERF WARNING: calling a method that takes a variable number of arguments is expensive, because memory is allocated for
         /// the array of arguments -- do not call this method repeatedly in performance-critical scenarios
         /// </summary>
@@ -179,7 +182,7 @@ namespace Microsoft.Build.Shared
         /// <summary>
         /// Looks up a string in the resources, and formats it with the arguments passed in. If the string resource has an MSBuild
         /// message code and help keyword associated with it, they are discarded.
-        /// 
+        ///
         /// PERF WARNING: calling a method that takes a variable number of arguments is expensive, because memory is allocated for
         /// the array of arguments -- do not call this method repeatedly in performance-critical scenarios
         /// </summary>
@@ -210,10 +213,10 @@ namespace Microsoft.Build.Shared
 
         /// <summary>
         /// Formats the given string using the variable arguments passed in.
-        /// 
+        ///
         /// PERF WARNING: calling a method that takes a variable number of arguments is expensive, because memory is allocated for
         /// the array of arguments -- do not call this method repeatedly in performance-critical scenarios
-        /// 
+        ///
         /// Thread safe.
         /// </summary>
         /// <param name="unformatted">The string to format.</param>
@@ -227,55 +230,18 @@ namespace Microsoft.Build.Shared
             if ((args?.Length > 0))
             {
 #if DEBUG
-
-#if VALIDATERESOURCESTRINGS
-                // The code below reveals many places in our codebase where
-                // we're not using all of the data given to us to format
-                // strings -- but there are too many to presently fix.
-                // Rather than toss away the code, we should later build it
-                // and fix each offending resource (or the code processing
-                // the resource).
-
-                // String.Format() will throw a FormatException if args does
-                // not have enough elements to match each format parameter.
-                // However, it provides no feedback in the case when args contains
-                // more elements than necessary to replace each format 
-                // parameter.  We'd like to know if we're providing too much
-                // data in cases like these, so we'll fail if this code runs.
-                                                
-                // We create an array with one fewer element
-                object[] trimmedArgs = new object[args.Length - 1];
-                Array.Copy(args, 0, trimmedArgs, 0, args.Length - 1);
-
-                bool caughtFormatException = false;
-                try
-                {
-                    // This will throw if there aren't enough elements in trimmedArgs...
-                    String.Format(CultureInfo.CurrentCulture, unformatted, trimmedArgs);
-                }
-                catch (FormatException)
-                {
-                    caughtFormatException = true;
-                }
-
-                // If we didn't catch an exception above, then some of the elements
-                // of args were unnecessary when formatting unformatted...
-                Debug.Assert
-                (
-                    caughtFormatException,
-                    String.Format("The provided format string '{0}' had fewer format parameters than the number of format args, '{1}'.", unformatted, args.Length)
-                );
-#endif
-                // If you accidentally pass some random type in that can't be converted to a string, 
+                // If you accidentally pass some random type in that can't be converted to a string,
                 // FormatResourceString calls ToString() which returns the full name of the type!
                 foreach (object param in args)
                 {
-                    // Check it has a real implementation of ToString()
+                    // Check it has a real implementation of ToString() and the type is not actually System.String
                     if (param != null)
                     {
-                        if (String.Equals(param.GetType().ToString(), param.ToString(), StringComparison.Ordinal))
+                        if (string.Equals(param.GetType().ToString(), param.ToString(), StringComparison.Ordinal) &&
+                            param.GetType() != typeof(string))
                         {
-                            ErrorUtilities.ThrowInternalError("Invalid resource parameter type, was {0}", param.GetType().FullName);
+                            ErrorUtilities.ThrowInternalError("Invalid resource parameter type, was {0}",
+                                param.GetType().FullName);
                         }
                     }
                 }
@@ -295,9 +261,9 @@ namespace Microsoft.Build.Shared
         /// </summary>
         /// <remarks>This method is thread-safe.</remarks>
         /// <param name="resourceName">Resource string to check.</param>
+        [Conditional("DEBUG")]
         internal static void VerifyResourceStringExists(string resourceName)
         {
-#if DEBUG
             try
             {
                 // Look up the resource string in the engine's string table.
@@ -332,6 +298,5 @@ namespace Microsoft.Build.Shared
             }
 #endif
         }
-#endif
     }
 }

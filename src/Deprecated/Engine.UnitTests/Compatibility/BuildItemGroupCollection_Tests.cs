@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.IO;
 using System.Xml;
@@ -142,7 +146,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         [Test]
         public void CountImportedOnly()
         {
-            string parentProjectContents = @" 
+            string parentProjectContents = @"
                     <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
                         <Import Project='import.proj' />
                     </Project>
@@ -258,7 +262,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         {
             if (String.IsNullOrEmpty(importProjectContents))
             {
-                importProjectContents = @" 
+                importProjectContents = @"
                     <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
                         <ItemGroup>
                             <n1ImportedItem1 Include='n1iImportedItem1' />
@@ -276,7 +280,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
 
             if (String.IsNullOrEmpty(parentProjectContents))
             {
-                parentProjectContents = @" 
+                parentProjectContents = @"
                     <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
                         <ItemGroup>
                             <nMainItem1 Include='nMainItem1' />

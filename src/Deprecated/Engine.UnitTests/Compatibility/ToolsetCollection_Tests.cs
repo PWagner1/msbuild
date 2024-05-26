@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -177,7 +181,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
             Toolset toolset2 = new Toolset("v2", @"c:\path");
             e.Toolsets.Add(toolset1);
             e.Toolsets.Add(toolset2);
-            
+
             Assertion.AssertEquals(true, e.Toolsets.Contains(toolset1));
         }
 
@@ -195,7 +199,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         }
 
         /// <summary>
-        /// Contains Test, by object. 
+        /// Contains Test, by object.
         /// </summary>
         [Test]
         public void ContainsToolsVersion_found()
@@ -209,7 +213,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         }
 
         /// <summary>
-        /// Contains Test, by object. 
+        /// Contains Test, by object.
         /// </summary>
         [Test]
         public void ContainsToolsVersion_notFound()
@@ -223,7 +227,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         }
 
         /// <summary>
-        /// Contains Test, by object. 
+        /// Contains Test, by object.
         /// </summary>
         [Test]
         public void ContainsToolsVersion_escapedVersions()
@@ -250,7 +254,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
             Toolset toolset2 = new Toolset("v2", @"c:\path");
             e.Toolsets.Add(toolset1);
             e.Toolsets.Add(toolset2);
-            Toolset[] toolsetArray = new Toolset[e.Toolsets.Count]; 
+            Toolset[] toolsetArray = new Toolset[e.Toolsets.Count];
             e.Toolsets.CopyTo(toolsetArray, 0);
             Assertion.AssertEquals(e.Toolsets.Count, toolsetArray.Length);
             Assertion.AssertEquals(true, 0 < Array.IndexOf(toolsetArray, toolset1));
@@ -277,7 +281,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         }
 
         /// <summary>
-        /// CopyTo Test, copy into array that is initialized too small to contain all toolsets, 
+        /// CopyTo Test, copy into array that is initialized too small to contain all toolsets,
         /// at index zero
         /// </summary>
         [Test]
@@ -287,7 +291,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
             Engine e = new Engine();
             Toolset toolset1 = new Toolset("v1", @"c:\path");
             e.Toolsets.Add(toolset1);
-            e.Toolsets.CopyTo(new Toolset[e.Toolsets.Count - 1], 0);  
+            e.Toolsets.CopyTo(new Toolset[e.Toolsets.Count - 1], 0);
         }
 
         /// <summary>

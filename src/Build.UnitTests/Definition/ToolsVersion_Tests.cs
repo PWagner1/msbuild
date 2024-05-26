@@ -1,23 +1,27 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Xml;
-using Microsoft.Build.Evaluation;
-using Microsoft.Build.Shared;
-using Microsoft.Build.Framework;
-using Microsoft.Build.Execution;
-using Microsoft.Build.Construction;
+using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Collections;
-
-using LoggingService = Microsoft.Build.BackEnd.Logging.LoggingService;
-using LoggerMode = Microsoft.Build.BackEnd.Logging.LoggerMode;
-using InvalidProjectFileException = Microsoft.Build.Exceptions.InvalidProjectFileException;
-using InternalUtilities = Microsoft.Build.Internal.Utilities;
+using Microsoft.Build.Construction;
+using Microsoft.Build.Engine.UnitTests;
+using Microsoft.Build.Evaluation;
+using Microsoft.Build.Execution;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Shared;
 using Xunit;
+using Xunit.NetCore.Extensions;
+using InternalUtilities = Microsoft.Build.Internal.Utilities;
+using InvalidProjectFileException = Microsoft.Build.Exceptions.InvalidProjectFileException;
+using LoggerMode = Microsoft.Build.BackEnd.Logging.LoggerMode;
+using LoggingService = Microsoft.Build.BackEnd.Logging.LoggingService;
+
+#nullable disable
 
 namespace Microsoft.Build.UnitTests.Definition
 {
@@ -26,15 +30,15 @@ namespace Microsoft.Build.UnitTests.Definition
         [Fact]
         public void OverrideTasksAreFoundInOverridePath()
         {
-            //Note Engine's BinPath is distinct from the ToolsVersion's ToolsPath
+            // Note Engine's BinPath is distinct from the ToolsVersion's ToolsPath
             ProjectCollection e = new ProjectCollection();
             string dir = NativeMethodsShared.IsWindows ? "c:\\directory1\\directory2" : "/directory1/directory2";
             string overrideDir = NativeMethodsShared.IsWindows ? "c:\\msbuildoverridetasks" : "/msbuildoverridetasks";
             Toolset t = new Toolset("toolsversionname", dir, new PropertyDictionary<ProjectPropertyInstance>(), new ProjectCollection(), new DirectoryGetFiles(this.getFiles), new LoadXmlFromPath(this.loadXmlFromPath), overrideDir, new DirectoryExists(this.directoryExists));
 
-            LoggingService service = (LoggingService)LoggingService.CreateLoggingService(LoggerMode.Synchronous, 1);
-            TaskRegistry taskRegistry = (TaskRegistry)t.GetTaskRegistry(service, new BuildEventContext(1, 2, BuildEventContext.InvalidProjectContextId, 4), e.ProjectRootElementCache);
-            TaskRegistry taskoverrideRegistry = (TaskRegistry)t.GetOverrideTaskRegistry(service, new BuildEventContext(1, 2, BuildEventContext.InvalidProjectContextId, 4), e.ProjectRootElementCache);
+            LoggingContext loggingContext = TestLoggingContext.CreateTestContext(new BuildEventContext(1, 2, BuildEventContext.InvalidProjectContextId, 4));
+            TaskRegistry taskRegistry = (TaskRegistry)t.GetTaskRegistry(loggingContext, e.ProjectRootElementCache);
+            TaskRegistry taskoverrideRegistry = (TaskRegistry)t.GetOverrideTaskRegistry(loggingContext, e.ProjectRootElementCache);
 
             string[] expectedRegisteredTasks = { "a1", "a2", "a3", "a4", "b1", "e1", "g1", "g2", "g3" };
             string[] expectedOverrideTasks = { "a1" /* special because it is in the override tasks file as well as in the tasks file*/, "oa1", "oa2", "og1", "ooo" };
@@ -70,23 +74,24 @@ namespace Microsoft.Build.UnitTests.Definition
         [Fact]
         public void OverrideTaskPathIsRelative()
         {
-            //Note Engine's BinPath is distinct from the ToolsVersion's ToolsPath
+            // Note Engine's BinPath is distinct from the ToolsVersion's ToolsPath
             ProjectCollection e = new ProjectCollection();
             Toolset t = new Toolset("toolsversionname", "c:\\directory1\\directory2", new PropertyDictionary<ProjectPropertyInstance>(), new ProjectCollection(), new DirectoryGetFiles(this.getFiles), new LoadXmlFromPath(this.loadXmlFromPath), "msbuildoverridetasks", new DirectoryExists(this.directoryExists));
 
             MockLogger mockLogger = new MockLogger();
             LoggingService service = (LoggingService)LoggingService.CreateLoggingService(LoggerMode.Synchronous, 1);
             service.RegisterLogger(mockLogger);
+            LoggingContext loggingContext = new TestLoggingContext(service, new BuildEventContext(1, 2, BuildEventContext.InvalidProjectContextId, 4));
 
-            TaskRegistry taskoverrideRegistry = (TaskRegistry)t.GetOverrideTaskRegistry(service, new BuildEventContext(1, 2, BuildEventContext.InvalidProjectContextId, 4), e.ProjectRootElementCache);
+
+            TaskRegistry taskoverrideRegistry = (TaskRegistry)t.GetOverrideTaskRegistry(loggingContext, e.ProjectRootElementCache);
             Assert.NotNull(taskoverrideRegistry);
             Assert.Empty(taskoverrideRegistry.TaskRegistrations);
             string rootedPathMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("OverrideTaskNotRootedPath", "msbuildoverridetasks");
             mockLogger.AssertLogContains(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("OverrideTasksFileFailure", rootedPathMessage));
         }
 
-        [Fact]
-        [SkipOnTargetFramework(TargetFrameworkMonikers.Netcoreapp)]
+        [WindowsFullFrameworkOnlyFact]
         public void OverrideTaskPathHasInvalidChars()
         {
             ProjectCollection e = new ProjectCollection();
@@ -95,8 +100,9 @@ namespace Microsoft.Build.UnitTests.Definition
             MockLogger mockLogger = new MockLogger();
             LoggingService service = (LoggingService)LoggingService.CreateLoggingService(LoggerMode.Synchronous, 1);
             service.RegisterLogger(mockLogger);
+            LoggingContext loggingContext = new TestLoggingContext(service, new BuildEventContext(1, 2, BuildEventContext.InvalidProjectContextId, 4));
 
-            TaskRegistry taskoverrideRegistry = (TaskRegistry)t.GetOverrideTaskRegistry(service, new BuildEventContext(1, 2, BuildEventContext.InvalidProjectContextId, 4), e.ProjectRootElementCache);
+            TaskRegistry taskoverrideRegistry = (TaskRegistry)t.GetOverrideTaskRegistry(loggingContext, e.ProjectRootElementCache);
             Assert.NotNull(taskoverrideRegistry);
             Assert.Empty(taskoverrideRegistry.TaskRegistrations);
             mockLogger.AssertLogContains("MSB4194");
@@ -112,8 +118,9 @@ namespace Microsoft.Build.UnitTests.Definition
             MockLogger mockLogger = new MockLogger();
             LoggingService service = (LoggingService)LoggingService.CreateLoggingService(LoggerMode.Synchronous, 1);
             service.RegisterLogger(mockLogger);
+            LoggingContext loggingContext = new TestLoggingContext(service, new BuildEventContext(1, 2, BuildEventContext.InvalidProjectContextId, 4));
 
-            TaskRegistry taskoverrideRegistry = (TaskRegistry)t.GetOverrideTaskRegistry(service, new BuildEventContext(1, 2, BuildEventContext.InvalidProjectContextId, 4), e.ProjectRootElementCache);
+            TaskRegistry taskoverrideRegistry = (TaskRegistry)t.GetOverrideTaskRegistry(loggingContext, e.ProjectRootElementCache);
             Assert.NotNull(taskoverrideRegistry);
             Assert.Empty(taskoverrideRegistry.TaskRegistrations);
             string rootedPathMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("OverrideTaskNotRootedPath", tooLong);
@@ -123,15 +130,16 @@ namespace Microsoft.Build.UnitTests.Definition
         [Fact]
         public void OverrideTaskPathIsNotFound()
         {
-            //Note Engine's BinPath is distinct from the ToolsVersion's ToolsPath
+            // Note Engine's BinPath is distinct from the ToolsVersion's ToolsPath
             ProjectCollection e = new ProjectCollection();
             Toolset t = new Toolset("toolsversionname", "c:\\directory1\\directory2", new PropertyDictionary<ProjectPropertyInstance>(), new ProjectCollection(), new DirectoryGetFiles(this.getFiles), new LoadXmlFromPath(this.loadXmlFromPath), "k:\\Thecatinthehat", new DirectoryExists(this.directoryExists));
 
             MockLogger mockLogger = new MockLogger();
             LoggingService service = (LoggingService)LoggingService.CreateLoggingService(LoggerMode.Synchronous, 1);
             service.RegisterLogger(mockLogger);
+            LoggingContext loggingContext = new TestLoggingContext(service, new BuildEventContext(1, 2, BuildEventContext.InvalidProjectContextId, 4));
 
-            TaskRegistry taskoverrideRegistry = (TaskRegistry)t.GetOverrideTaskRegistry(service, new BuildEventContext(1, 2, BuildEventContext.InvalidProjectContextId, 4), e.ProjectRootElementCache);
+            TaskRegistry taskoverrideRegistry = (TaskRegistry)t.GetOverrideTaskRegistry(loggingContext, e.ProjectRootElementCache);
             Assert.NotNull(taskoverrideRegistry);
             Assert.Empty(taskoverrideRegistry.TaskRegistrations);
             string rootedPathMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("OverrideTaskNotRootedPath", "k:\\Thecatinthehat");
@@ -141,7 +149,7 @@ namespace Microsoft.Build.UnitTests.Definition
         [Fact]
         public void DefaultTasksAreFoundInToolsPath()
         {
-            //Note Engine's BinPath is distinct from the ToolsVersion's ToolsPath
+            // Note Engine's BinPath is distinct from the ToolsVersion's ToolsPath
             Toolset t = new Toolset(
                 "toolsversionname",
                 NativeMethodsShared.IsWindows ? "c:\\directory1\\directory2" : "/directory1/directory2",
@@ -152,7 +160,8 @@ namespace Microsoft.Build.UnitTests.Definition
                 null,
                 new DirectoryExists(this.directoryExists));
 
-            TaskRegistry taskRegistry = (TaskRegistry)t.GetTaskRegistry(null, new BuildEventContext(1, 2, BuildEventContext.InvalidProjectContextId, 4), ProjectCollection.GlobalProjectCollection.ProjectRootElementCache);
+            LoggingContext loggingContext = TestLoggingContext.CreateTestContext(new BuildEventContext(1, 2, BuildEventContext.InvalidProjectContextId, 4));
+            TaskRegistry taskRegistry = (TaskRegistry)t.GetTaskRegistry(loggingContext, ProjectCollection.GlobalProjectCollection.ProjectRootElementCache);
 
             string[] expectedRegisteredTasks = { "a1", "a2", "a3", "a4", "b1", "e1", "g1", "g2", "g3" };
             string[] unexpectedRegisteredTasks = { "c1", "d1", "f1", "11", "12", "13", "21" };
@@ -172,15 +181,16 @@ namespace Microsoft.Build.UnitTests.Definition
         [Fact]
         public void WarningLoggedIfNoDefaultTasksFound()
         {
-            //Note Engine's BinPath is distinct from the ToolsVersion's ToolsPath
+            // Note Engine's BinPath is distinct from the ToolsVersion's ToolsPath
             ProjectCollection p = new ProjectCollection();
             MockLogger mockLogger = new MockLogger();
             LoggingService service = (LoggingService)LoggingService.CreateLoggingService(LoggerMode.Synchronous, 1);
             service.RegisterLogger(mockLogger);
+            LoggingContext loggingContext = new TestLoggingContext(service, BuildEventContext.Invalid);
 
             Toolset t = new Toolset("toolsversionname", "c:\\directory1\\directory2\\doesntexist", new PropertyDictionary<ProjectPropertyInstance>(), new ProjectCollection(), new DirectoryGetFiles(this.getFiles), new LoadXmlFromPath(this.loadXmlFromPath), null, new DirectoryExists(this.directoryExists));
 
-            TaskRegistry taskRegistry = (TaskRegistry)t.GetTaskRegistry(service, BuildEventContext.Invalid, ProjectCollection.GlobalProjectCollection.ProjectRootElementCache);
+            TaskRegistry taskRegistry = (TaskRegistry)t.GetTaskRegistry(loggingContext, ProjectCollection.GlobalProjectCollection.ProjectRootElementCache);
 
             string[] unexpectedRegisteredTasks = { "a1", "a2", "a3", "a4", "b1", "c1", "d1", "e1", "f1", "g1", "g2", "g3", "11", "12", "13", "21" };
 
@@ -195,14 +205,15 @@ namespace Microsoft.Build.UnitTests.Definition
         [Fact]
         public void InvalidToolPath()
         {
-            //Note Engine's BinPath is distinct from the ToolsVersion's ToolsPath
+            // Note Engine's BinPath is distinct from the ToolsVersion's ToolsPath
             ProjectCollection p = new ProjectCollection();
             MockLogger mockLogger = new MockLogger();
             LoggingService service = (LoggingService)LoggingService.CreateLoggingService(LoggerMode.Synchronous, 1);
             service.RegisterLogger(mockLogger);
+            LoggingContext loggingContext = new TestLoggingContext(service, BuildEventContext.Invalid);
             Toolset t = new Toolset("toolsversionname", "invalid||path", new PropertyDictionary<ProjectPropertyInstance>(), p, new DirectoryGetFiles(this.getFiles), new LoadXmlFromPath(this.loadXmlFromPath), null, new DirectoryExists(this.directoryExists));
 
-            TaskRegistry taskRegistry = (TaskRegistry)t.GetTaskRegistry(service, BuildEventContext.Invalid, ProjectCollection.GlobalProjectCollection.ProjectRootElementCache);
+            TaskRegistry taskRegistry = (TaskRegistry)t.GetTaskRegistry(loggingContext, ProjectCollection.GlobalProjectCollection.ProjectRootElementCache);
 
             Console.WriteLine(mockLogger.FullLog);
             Assert.Equal(1, mockLogger.WarningCount); // "Expected a warning for invalid character in toolpath"
@@ -215,24 +226,23 @@ namespace Microsoft.Build.UnitTests.Definition
         [Fact]
         public void VerifyTasksFilesAreInSortedOrder()
         {
-            //Note Engine's BinPath is distinct from the ToolsVersion's ToolsPath
+            // Note Engine's BinPath is distinct from the ToolsVersion's ToolsPath
             ProjectCollection p = new ProjectCollection();
             MockLogger mockLogger = new MockLogger();
             LoggingService service = (LoggingService)LoggingService.CreateLoggingService(LoggerMode.Synchronous, 1);
             service.RegisterLogger(mockLogger);
+            LoggingContext loggingContext = new TestLoggingContext(service, BuildEventContext.Invalid);
             string dir = NativeMethodsShared.IsWindows ? "c:\\directory1\\directory2" : "/directory1/directory2";
             string overrideDir = NativeMethodsShared.IsWindows ? "c:\\msbuildoverridetasks" : "/msbuildoverridetasks";
             string[] foundFiles = Toolset.GetTaskFiles(
                 new DirectoryGetFiles(this.getFiles),
-                service,
-                BuildEventContext.Invalid,
+                loggingContext,
                 "*.tasks",
                 dir,
                 String.Empty);
             string[] foundoverrideFiles = Toolset.GetTaskFiles(
                 new DirectoryGetFiles(this.getFiles),
-                service,
-                BuildEventContext.Invalid,
+                loggingContext,
                 "*.overridetasks",
                 overrideDir,
                 String.Empty);
@@ -289,7 +299,7 @@ namespace Microsoft.Build.UnitTests.Definition
                 service.RegisterLogger(mockLogger);
 
                 bool success = false;
-                Project project = new Project(XmlReader.Create(new StringReader(@"<Project ToolsVersion='98.6' xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                Project project = new Project(XmlReader.Create(new StringReader(@"<Project ToolsVersion='98.6'>
                         <Target Name='Foo'>
                         </Target>
                        </Project>")), null /* no global properties */, null /* don't explicitly set the toolsversion */, p);
@@ -324,7 +334,7 @@ namespace Microsoft.Build.UnitTests.Definition
                 service.RegisterLogger(mockLogger);
 
                 bool success = false;
-                Project project = new Project(XmlReader.Create(new StringReader(@"<Project ToolsVersion='0.1' xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                Project project = new Project(XmlReader.Create(new StringReader(@"<Project ToolsVersion='0.1'>
                     <Target Name='Foo'>
                     </Target>
                    </Project>")), null /* no global properties */, null /* don't explicitly set the toolsversion */, p);
@@ -357,7 +367,7 @@ namespace Microsoft.Build.UnitTests.Definition
                 service.RegisterLogger(mockLogger);
 
                 bool success = false;
-                Project project = new Project(XmlReader.Create(new StringReader(@"<Project ToolsVersion='invalidToolsVersion' xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                Project project = new Project(XmlReader.Create(new StringReader(@"<Project ToolsVersion='invalidToolsVersion'>
                     <Target Name='Foo'>
                     </Target>
                    </Project>")), null /* no global properties */, null /* don't explicitly set the toolsversion */, p);
@@ -385,14 +395,13 @@ namespace Microsoft.Build.UnitTests.Definition
                 service.RegisterLogger(mockLogger);
 
                 bool success = false;
-                Project project = new Project(XmlReader.Create(new StringReader(@"<Project ToolsVersion='invalidToolsVersion' xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                Project project = new Project(XmlReader.Create(new StringReader(@"<Project ToolsVersion='invalidToolsVersion'>
                     <Target Name='Foo'>
                     </Target>
                    </Project>")), null /* no global properties */, "goober", p);
                 success = project.Build(mockLogger);
                 // BANG!
-            }
-           );
+            });
         }
         /// <summary>
         /// Even a valid toolsversion should be forced to the current ToolsVersion if MSBUILDTREATALLTOOLSVERSIONSASCURRENT
@@ -416,7 +425,7 @@ namespace Microsoft.Build.UnitTests.Definition
                 service.RegisterLogger(mockLogger);
 
                 bool success = false;
-                Project project = new Project(XmlReader.Create(new StringReader(@"<Project ToolsVersion='4.0' xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                Project project = new Project(XmlReader.Create(new StringReader(@"<Project ToolsVersion='4.0'>
                     <Target Name='Foo'>
                     </Target>
                    </Project>")), null /* no global properties */, null /* don't explicitly set the toolsversion */, p);
@@ -444,7 +453,7 @@ namespace Microsoft.Build.UnitTests.Definition
             Environment.SetEnvironmentVariable("MSBUILDTREATALLTOOLSVERSIONSASCURRENT", String.Empty);
             try
             {
-                string content = @"<Project ToolsVersion=""14.0"" xmlns=""http://schemas.microsoft.com/developer/msbuild/2003"">
+                string content = @"<Project ToolsVersion=""14.0"">
     <Target Name=""a"">
         <Message Text=""[$(MSBUILDTOOLSVERSION)]"" />
     </Target>
@@ -485,7 +494,7 @@ namespace Microsoft.Build.UnitTests.Definition
             MockLogger mockLogger = new MockLogger();
             LoggingService service = (LoggingService)LoggingService.CreateLoggingService(LoggerMode.Synchronous, 1);
             service.RegisterLogger(mockLogger);
-            Project project = new Project(XmlReader.Create(new StringReader(@"<Project ToolsVersion='4.0' xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+            Project project = new Project(XmlReader.Create(new StringReader(@"<Project ToolsVersion='4.0'>
                     <Target Name='Foo'>
                     </Target>
                    </Project>")), null /* no global properties */, null /* don't explicitly set the toolsversion */, p);
@@ -520,7 +529,7 @@ namespace Microsoft.Build.UnitTests.Definition
                 service.RegisterLogger(mockLogger);
 
                 bool success = false;
-                Project project = new Project(XmlReader.Create(new StringReader(@"<Project ToolsVersion='4.0' xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                Project project = new Project(XmlReader.Create(new StringReader(@"<Project ToolsVersion='4.0'>
                     <Target Name='Foo'>
                     </Target>
                    </Project>")), null /* no global properties */, null /* don't explicitly set the toolsversion */, p);
@@ -557,7 +566,7 @@ namespace Microsoft.Build.UnitTests.Definition
                 service.RegisterLogger(mockLogger);
 
                 bool success = false;
-                Project project = new Project(XmlReader.Create(new StringReader(@"<Project ToolsVersion='4.0' xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                Project project = new Project(XmlReader.Create(new StringReader(@"<Project ToolsVersion='4.0'>
                     <Target Name='Foo'>
                     </Target>
                    </Project>")), null /* no global properties */, null /* don't explicitly set the toolsversion */, p);
@@ -597,7 +606,7 @@ namespace Microsoft.Build.UnitTests.Definition
                 service.RegisterLogger(mockLogger);
 
                 bool success = false;
-                Project project = new Project(XmlReader.Create(new StringReader(@"<Project ToolsVersion='4.0' xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                Project project = new Project(XmlReader.Create(new StringReader(@"<Project ToolsVersion='4.0'>
                     <Target Name='Foo'>
                     </Target>
                    </Project>")), null /* no global properties */, null /* don't explicitly set the toolsversion */, p);
@@ -630,7 +639,7 @@ namespace Microsoft.Build.UnitTests.Definition
             MockLogger mockLogger = new MockLogger();
             LoggingService service = (LoggingService)LoggingService.CreateLoggingService(LoggerMode.Synchronous, 1);
             service.RegisterLogger(mockLogger);
-            Project project = new Project(XmlReader.Create(new StringReader(@"<Project ToolsVersion='4.0' xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+            Project project = new Project(XmlReader.Create(new StringReader(@"<Project ToolsVersion='4.0'>
                     <Target Name='Foo'>
                     </Target>
                    </Project>")), null /* no global properties */, null /* don't explicitly set the toolsversion */, p);
@@ -666,7 +675,7 @@ namespace Microsoft.Build.UnitTests.Definition
                 service.RegisterLogger(mockLogger);
 
                 bool success = false;
-                Project project = new Project(XmlReader.Create(new StringReader(@"<Project ToolsVersion='4.0' xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                Project project = new Project(XmlReader.Create(new StringReader(@"<Project ToolsVersion='4.0'>
                     <Target Name='Foo'>
                     </Target>
                    </Project>")), null /* no global properties */, null /* don't explicitly set the toolsversion */, p);
@@ -706,7 +715,7 @@ namespace Microsoft.Build.UnitTests.Definition
                 service.RegisterLogger(mockLogger);
 
                 bool success = false;
-                Project project = new Project(XmlReader.Create(new StringReader(@"<Project ToolsVersion='4.0' xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                Project project = new Project(XmlReader.Create(new StringReader(@"<Project ToolsVersion='4.0'>
                     <Target Name='Foo'>
                     </Target>
                    </Project>")), null /* no global properties */, null /* don't explicitly set the toolsversion */, p);
@@ -749,7 +758,7 @@ namespace Microsoft.Build.UnitTests.Definition
                 service.RegisterLogger(mockLogger);
 
                 bool success = false;
-                Project project = new Project(XmlReader.Create(new StringReader(@"<Project ToolsVersion='4.0' xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                Project project = new Project(XmlReader.Create(new StringReader(@"<Project ToolsVersion='4.0'>
                     <Target Name='Foo'>
                     </Target>
                    </Project>")), null /* no global properties */, null /* don't explicitly set the toolsversion */, p);
@@ -782,7 +791,7 @@ namespace Microsoft.Build.UnitTests.Definition
             MockLogger mockLogger = new MockLogger();
             LoggingService service = (LoggingService)LoggingService.CreateLoggingService(LoggerMode.Synchronous, 1);
             service.RegisterLogger(mockLogger);
-            Project project = new Project(XmlReader.Create(new StringReader(@"<Project ToolsVersion='4.0' xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+            Project project = new Project(XmlReader.Create(new StringReader(@"<Project ToolsVersion='4.0'>
                     <Target Name='Foo'>
                     </Target>
                    </Project>")), null /* no global properties */, null /* don't explicitly set the toolsversion */, p);
@@ -817,7 +826,7 @@ namespace Microsoft.Build.UnitTests.Definition
                 service.RegisterLogger(mockLogger);
 
                 bool success = false;
-                Project project = new Project(XmlReader.Create(new StringReader(@"<Project ToolsVersion='4.0' xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                Project project = new Project(XmlReader.Create(new StringReader(@"<Project ToolsVersion='4.0'>
                     <Target Name='Foo'>
                     </Target>
                    </Project>")), null /* no global properties */, null /* don't explicitly set the toolsversion */, p);
@@ -857,7 +866,7 @@ namespace Microsoft.Build.UnitTests.Definition
                 service.RegisterLogger(mockLogger);
 
                 bool success = false;
-                Project project = new Project(XmlReader.Create(new StringReader(@"<Project ToolsVersion='4.0' xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                Project project = new Project(XmlReader.Create(new StringReader(@"<Project ToolsVersion='4.0'>
                     <Target Name='Foo'>
                     </Target>
                    </Project>")), null /* no global properties */, null /* don't explicitly set the toolsversion */, p);
@@ -894,7 +903,9 @@ namespace Microsoft.Build.UnitTests.Definition
                 null,
                 new DirectoryExists(directoryExists));
 
-            TaskRegistry taskRegistry = (TaskRegistry)t.GetTaskRegistry(null, new BuildEventContext(1, 2, BuildEventContext.InvalidProjectContextId, 4), ProjectCollection.GlobalProjectCollection.ProjectRootElementCache);
+            LoggingContext loggingContext = TestLoggingContext.CreateTestContext(new BuildEventContext(1, 2, BuildEventContext.InvalidProjectContextId, 4));
+
+            TaskRegistry taskRegistry = (TaskRegistry)t.GetTaskRegistry(loggingContext, ProjectCollection.GlobalProjectCollection.ProjectRootElementCache);
 
             // Did not crash due to trying to expand items without having items
         }
@@ -923,8 +934,8 @@ namespace Microsoft.Build.UnitTests.Definition
             string pathWithoutTrailingSlash = path.EndsWith(Path.DirectorySeparatorChar.ToString())
                                                   ? path.Substring(0, path.Length - 1)
                                                   : path;
-            //NOTE: the Replace calls below are a very minimal attempt to convert a basic, cmd.exe-style wildcard
-            //into something Regex.IsMatch will know how to use.
+            // NOTE: the Replace calls below are a very minimal attempt to convert a basic, cmd.exe-style wildcard
+            // into something Regex.IsMatch will know how to use.
             string finalPattern = "^" + pattern.Replace(".", "\\.").Replace("*", "[\\w\\W]*") + "$";
 
             List<string> matches = new List<string>(_defaultTasksFileMap.Keys);
@@ -954,7 +965,7 @@ namespace Microsoft.Build.UnitTests.Definition
                 new DefaultTasksFile(NativeMethodsShared.IsWindows
                                          ? "c:\\directory1\\directory2\\a.tasks"
                                          : "/directory1/directory2/a.tasks",
-                      @"<Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                      @"<Project>
                             <UsingTask TaskName='a1' AssemblyName='a' />
                             <UsingTask TaskName='a2' AssemblyName='a' />
                             <UsingTask TaskName='a3' AssemblyName='a' />
@@ -963,37 +974,37 @@ namespace Microsoft.Build.UnitTests.Definition
                 new DefaultTasksFile(NativeMethodsShared.IsWindows
                                          ? "c:\\directory1\\directory2\\b.tasks"
                                          : "/directory1/directory2/b.tasks",
-                      @"<Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                      @"<Project>
                             <UsingTask TaskName='b1' AssemblyName='b' />
                        </Project>"),
                 new DefaultTasksFile(NativeMethodsShared.IsWindows
                                          ? "c:\\directory1\\directory2\\c.tasksfile"
                                          : "/directory1/directory2/c.taskfile",
-                      @"<Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                      @"<Project>
                             <UsingTask TaskName='c1' AssemblyName='c' />
                        </Project>"),
                 new DefaultTasksFile(NativeMethodsShared.IsWindows
                                          ? "c:\\directory1\\directory2\\directory3\\d.tasks"
                                          : "/directory1/directory2/directory3/d.tasks",
-                      @"<Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                      @"<Project>
                             <UsingTask TaskName='d1' AssemblyName='d' />
                        </Project>"),
                 new DefaultTasksFile(NativeMethodsShared.IsWindows
                                          ? "c:\\directory1\\directory2\\e.tasks"
                                          : "/directory1/directory2/e.tasks",
-                      @"<Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                      @"<Project>
                             <UsingTask TaskName='e1' AssemblyName='e' />
                        </Project>"),
                 new DefaultTasksFile(NativeMethodsShared.IsWindows
                                          ? "d:\\directory1\\directory2\\f.tasks"
                                          : "/d/directory1/directory2/f.tasks",
-                      @"<Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                      @"<Project>
                             <UsingTask TaskName='f1' AssemblyName='f' />
                        </Project>"),
                 new DefaultTasksFile(NativeMethodsShared.IsWindows
                                          ? "c:\\directory1\\directory2\\g.custom.tasks"
                                          : "/directory1/directory2/g.custom.tasks",
-                      @"<Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                      @"<Project>
                             <UsingTask TaskName='g1' AssemblyName='g' />
                             <UsingTask TaskName='g2' AssemblyName='g' />
                             <UsingTask TaskName='g3' AssemblyName='g' />
@@ -1001,7 +1012,7 @@ namespace Microsoft.Build.UnitTests.Definition
                 new DefaultTasksFile(NativeMethodsShared.IsWindows
                                          ? "c:\\somepath\\1.tasks"
                                          : "/somepath/1.tasks",
-                      @"<Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                      @"<Project>
                             <UsingTask TaskName='11' AssemblyName='1' />
                             <UsingTask TaskName='12' AssemblyName='1' />
                             <UsingTask TaskName='13' AssemblyName='1' />
@@ -1009,13 +1020,13 @@ namespace Microsoft.Build.UnitTests.Definition
                 new DefaultTasksFile(NativeMethodsShared.IsWindows
                                          ? "c:\\somepath\\2.tasks"
                                          : "/somepath/2.tasks",
-                      @"<Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                      @"<Project>
                             <UsingTask TaskName='21' AssemblyName='2' />
                        </Project>"),
                 new DefaultTasksFile(NativeMethodsShared.IsWindows
                                          ? "c:\\inline\\inlinetasks.tasks"
                                          : "/inline/inlinetasks.tasks",
-                      @"<Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                      @"<Project>
                             <UsingTask TaskName='t2' AssemblyName='an' Condition='true' TaskFactory='AssemblyFactory' Runtime='CLR2' Architecture='x86' RequiredRuntime='2.0' RequiredPlatform='x86'>
                                 <ParameterGroup>
                                    <MyParameter ParameterType='System.String' Output='true' Required='false'/>
@@ -1028,7 +1039,7 @@ namespace Microsoft.Build.UnitTests.Definition
                 new DefaultTasksFile(NativeMethodsShared.IsWindows
                                          ? "c:\\msbuildoverridetasks\\1.overridetasks"
                                          : "/msbuildoverridetasks/1.overridetasks",
-                      @"<Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                      @"<Project>
                             <UsingTask TaskName='a1' AssemblyName='o' />
                             <UsingTask TaskName='oa1' AssemblyName='o' />
                             <UsingTask TaskName='oa2' AssemblyName='o' />
@@ -1037,7 +1048,7 @@ namespace Microsoft.Build.UnitTests.Definition
                 new DefaultTasksFile(NativeMethodsShared.IsWindows
                                          ? "c:\\msbuildoverridetasks\\2.overridetasks"
                                          : "/msbuildoverridetasks/2.overridetasks",
-                      @"<Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                      @"<Project>
                             <UsingTask TaskName='ooo' AssemblyName='o' />
                         </Project>")
 };

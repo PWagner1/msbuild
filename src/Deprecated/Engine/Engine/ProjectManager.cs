@@ -1,5 +1,9 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
 
 #region Using directives
 
@@ -54,7 +58,7 @@ namespace Microsoft.Build.BuildEngine
         }
 
         /// <summary>
-        /// Searches our tables for a project with same full path, tools version, and global property settings 
+        /// Searches our tables for a project with same full path, tools version, and global property settings
         /// Removes particular project from the project manager.
         /// </summary>
         /// <param name="project"></param>
@@ -80,7 +84,7 @@ namespace Microsoft.Build.BuildEngine
                     project_index = i;
                 }
             }
-            
+
             // The project should be in the table
             ErrorUtilities.VerifyThrow(project_index != -1, "Project missing from the list");
 
@@ -92,8 +96,8 @@ namespace Microsoft.Build.BuildEngine
         }
 
         /// <summary>
-        /// Searches our tables for a project with same full path and global property settings 
-        /// as those passed in to the method.  
+        /// Searches our tables for a project with same full path and global property settings
+        /// as those passed in to the method.
         /// </summary>
         /// <param name="projectFileFullPath"></param>
         /// <param name="globalProperties"></param>
@@ -113,8 +117,8 @@ namespace Microsoft.Build.BuildEngine
 
         /// <summary>
         /// Searches our tables for a project with same project id
-        /// as the one passed in to the method. Note this method is currently O(n) 
-        /// with the number of projects, so if it used on a hot code path it needs to 
+        /// as the one passed in to the method. Note this method is currently O(n)
+        /// with the number of projects, so if it used on a hot code path it needs to
         /// use an extra hashtable to achieve O(1).
         /// </summary>
         /// <param name="projectId"></param>
@@ -153,11 +157,11 @@ namespace Microsoft.Build.BuildEngine
             )
         {
             // Get the list of projects that have this full path.
-            ArrayList projectsWithThisFullPath = (ArrayList) this.projects[projectFileFullPath];
+            ArrayList projectsWithThisFullPath = (ArrayList)this.projects[projectFileFullPath];
 
             if ((projectsWithThisFullPath?.Count > 0))
             {
-                return (Project) projectsWithThisFullPath[0];
+                return (Project)projectsWithThisFullPath[0];
             }
 
             // No project was found that matched the full path specified.
@@ -261,7 +265,7 @@ namespace Microsoft.Build.BuildEngine
         #region Methods managing the record of unloaded projects
 
         /// <summary>
-        /// This function adds the project to the table of previously loaded projects, if it's 
+        /// This function adds the project to the table of previously loaded projects, if it's
         /// not already present.
         /// </summary>
         private void AddUnloadedProjectRecord
@@ -383,7 +387,7 @@ namespace Microsoft.Build.BuildEngine
         }
 
         /// <summary>
-        /// Retrieve the project entry from the entry table based on project file name, globalProperties, and toolsVersion. 
+        /// Retrieve the project entry from the entry table based on project file name, globalProperties, and toolsVersion.
         /// </summary>
         internal static ProjectEntry GetProjectEntry(Hashtable entryTable, string projectFileFullPath, BuildPropertyGroup globalProperties, string toolsVersion)
         {
@@ -410,12 +414,12 @@ namespace Microsoft.Build.BuildEngine
         #region Data
         // This hash table tracks all the projects that are currently building,
         // or are being kept around from the last build for perf reasons (so
-        // we don't have to reload the same projects over and over in IDE 
+        // we don't have to reload the same projects over and over in IDE
         // scenarios.
         // The key for this hash table is the case-insensitive full path to the
         // project file.  The value in this hash table is an ArrayList of Project
         // objects that came from that full path.  The reason there could be
-        // multiple Project objects with the same full path is because they 
+        // multiple Project objects with the same full path is because they
         // may each be using a different set of global properties, and we can't
         // have them tromp on each other.
         private Hashtable projects;
@@ -427,14 +431,14 @@ namespace Microsoft.Build.BuildEngine
         private Hashtable unloadedProjects;
         #endregion
 
-        #region Helper class 
+        #region Helper class
         internal class ProjectEntry
         {
             internal BuildPropertyGroup globalProperties;
             internal string toolsVersion;
             internal int nodeIndex;
         }
-        
+
         #endregion
     }
 }

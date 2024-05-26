@@ -1,11 +1,13 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
-using System.Globalization;
+
+#nullable disable
 
 namespace Microsoft.Build.BackEnd.Logging
 {
@@ -38,7 +40,7 @@ namespace Microsoft.Build.BackEnd.Logging
         ///  Adds a new project to the list of project started events which have been fired
         /// </summary>
         internal void AddProjectStartedEvent(ProjectStartedEventArgs e, bool requireTimestamp)
-        {   //Parent event can be null if this is the root project
+        {   // Parent event can be null if this is the root project
             ProjectStartedEventMinimumFields parentEvent = GetProjectStartedEvent(e.ParentProjectBuildEventContext);
             lock (_projectStartedEvents)
             {
@@ -47,23 +49,18 @@ namespace Microsoft.Build.BackEnd.Logging
                     int projectTargetKeyLocal = 1;
                     int projectIncrementKeyLocal;
                     // If we haven't seen this project before (by full path) then
-                    // allocate a new key for it and save it away
-                    if (!_projectKey.ContainsKey(e.ProjectFile))
+                    // allocate a new key for it and save it away. Otherwise, retrieve it.
+                    if (!_projectKey.TryGetValue(e.ProjectFile, out projectIncrementKeyLocal))
                     {
                         _projectIncrementKey++;
 
                         _projectKey[e.ProjectFile] = _projectIncrementKey;
                         projectIncrementKeyLocal = _projectIncrementKey;
                     }
-                    else
-                    {
-                        // We've seen this project before, so retrieve it
-                        projectIncrementKeyLocal = _projectKey[e.ProjectFile];
-                    }
 
                     // If we haven't seen any entrypoint for the current project (by full path) then
                     // allocate a new entry point key
-                    if (!_projectTargetKey.ContainsKey(e.ProjectFile))
+                    if (!_projectTargetKey.TryGetValue(e.ProjectFile, out int tempProjectTargetKeyLocal))
                     {
                         _projectTargetKey[e.ProjectFile] = projectTargetKeyLocal;
                     }
@@ -71,7 +68,7 @@ namespace Microsoft.Build.BackEnd.Logging
                     {
                         // We've seen this project before, but not this entrypoint, so increment
                         // the entrypoint key that we have.
-                        projectTargetKeyLocal = _projectTargetKey[e.ProjectFile] + 1;
+                        projectTargetKeyLocal = tempProjectTargetKeyLocal + 1;
                         _projectTargetKey[e.ProjectFile] = projectTargetKeyLocal;
                     }
 
@@ -105,7 +102,7 @@ namespace Microsoft.Build.BackEnd.Logging
             // from the engine itself
             if (currentKey != null)
             {
-                //Add the event where the stack should start
+                // Add the event where the stack should start
                 stackTrace.Add(currentKey);
 
                 // Loop through the call tree until the root project started event has been found
@@ -173,15 +170,7 @@ namespace Microsoft.Build.BackEnd.Logging
         /// </summary>
         internal ProjectStartedEventMinimumFields GetProjectStartedEvent(BuildEventContext e)
         {
-            ProjectStartedEventMinimumFields buildEvent;
-            if (_projectStartedEvents.ContainsKey(e))
-            {
-                buildEvent = _projectStartedEvents[e];
-            }
-            else
-            {
-                buildEvent = null;
-            }
+            _projectStartedEvents.TryGetValue(e, out ProjectStartedEventMinimumFields buildEvent);
             return buildEvent;
         }
 
@@ -190,15 +179,7 @@ namespace Microsoft.Build.BackEnd.Logging
         /// </summary>
         internal TargetStartedEventMinimumFields GetTargetStartedEvent(BuildEventContext e)
         {
-            TargetStartedEventMinimumFields buildEvent;
-            if (_targetStartedEvents.ContainsKey(e))
-            {
-                buildEvent = _targetStartedEvents[e];
-            }
-            else
-            {
-                buildEvent = null;
-            }
+            _targetStartedEvents.TryGetValue(e, out TargetStartedEventMinimumFields buildEvent);
             return buildEvent;
         }
 
@@ -291,7 +272,7 @@ namespace Microsoft.Build.BackEnd.Logging
     }
 
     /// <summary>
-    /// This class stands in for a full project started event because it contains only the 
+    /// This class stands in for a full project started event because it contains only the
     /// minimum amount of inforomation needed for the logger
     /// </summary>
     internal class ProjectStartedEventMinimumFields
@@ -429,7 +410,7 @@ namespace Microsoft.Build.BackEnd.Logging
     }
 
     /// <summary>
-    /// This class stands in for a full target started event because it contains only the 
+    /// This class stands in for a full target started event because it contains only the
     /// minimum amount of inforomation needed for the logger
     /// </summary>
     internal class TargetStartedEventMinimumFields
@@ -549,7 +530,7 @@ namespace Microsoft.Build.BackEnd.Logging
     }
 
     /// <summary>
-    /// This class is used as a key to group warnings and errors by the project entry point and the target they 
+    /// This class is used as a key to group warnings and errors by the project entry point and the target they
     /// error or warning was in
     /// </summary>
     internal class ErrorWarningSummaryDictionaryKey

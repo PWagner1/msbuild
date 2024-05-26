@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.Reflection;
 using System.Collections;
@@ -26,11 +30,11 @@ namespace Microsoft.Build.UnitTests
         public void SerializeDeserialize()
         {
             InvalidProjectFileException e = new InvalidProjectFileException(
-                "projectFile", 
+                "projectFile",
                 1, 2, 3, 4,
                 "message",
                 "errorSubcategory",
-                "errorCode", 
+                "errorCode",
                 "helpKeyword");
 
             using (MemoryStream memstr = new MemoryStream())

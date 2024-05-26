@@ -1,4 +1,4 @@
-﻿<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+﻿<Project DefaultTargets="Build">
 
   <PropertyGroup>
     <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
@@ -8,30 +8,30 @@
     <StrongNameKeyId>Microsoft</StrongNameKeyId>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(IsUnitTestProject)' == 'true'">
+  <PropertyGroup Condition="'$(IsTestLibrary)' == 'true' or '$(IsUnitTestProject)' == 'true'">
     <StrongNameKeyId>MSBuildTest</StrongNameKeyId>
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)Test.snk</AssemblyOriginatorKeyFile>
     <PublicKey>002400000480000094000000060200000024000052534131000400000100010015c01ae1f50e8cc09ba9eac9147cf8fd9fce2cfe9f8dce4f7301c4132ca9fb50ce8cbf1df4dc18dd4d210e4345c744ecb3365ed327efdbc52603faa5e21daa11234c8c4a73e51f03bf192544581ebe107adee3a34928e39d04e524a9ce729d5090bfd7dad9d10c722c0def9ccc08ff0a03790e48bcd1f9b6c476063e1966a1c4</PublicKey>
     <PublicKeyToken>9d77cc7ad39b68eb</PublicKeyToken>
+    <NoWarn>$(NoWarn);CA2000</NoWarn>
+  </PropertyGroup>
 
+  <PropertyGroup Condition="'$(IsUnitTestProject)' == 'true'">
     <!-- Set output type of test projects to EXE.  This will allow us to run tests on .NET Core via F5 or "dotnet run" -->
     <OutputType>Exe</OutputType>
     <GenerateProgramFile>false</GenerateProgramFile>
-    
+
     <!-- Makes xunit print all test names in stdout -->
     <XunitOptions>$(XunitOptions) -diagnostics</XunitOptions>
-    
-    <!-- Respect the traits set up by PlatformSpecific attribute. -->
-    <XunitOptions Condition="'$(OsEnvironment)'=='windows'">$(XunitOptions) -notrait category=nonwindowstests</XunitOptions>
-    <XunitOptions Condition="'$(OsEnvironment)'=='linux'">$(XunitOptions) -notrait category=nonlinuxtests</XunitOptions>
-    <XunitOptions Condition="'$(OsEnvironment)'=='linux' and '$(NetCoreBuild)'=='true'">-notrait category=nonlinuxtests -notrait category=netcore-linux-failing</XunitOptions>
-    <XunitOptions Condition="'$(OsEnvironment)'=='osx'">$(XunitOptions) -notrait category=nonosxtests</XunitOptions>
-    <XunitOptions Condition="'$(OsEnvironment)'=='osx' and '$(NetCoreBuild)'=='true'">-notrait category=nonosxtests -notrait category=netcore-osx-failing</XunitOptions>
-    <XunitOptions Condition="'$(OsEnvironment)'=='bsd'">$(XunitOptions) -notrait category=nonfreebsdtests</XunitOptions>
 
-    <XunitOptions Condition="'$(MonoBuild)' == 'true'">$(XunitOptions) -notrait category=non-mono-tests -notrait category=nonmonotests</XunitOptions>
-    <XunitOptions Condition="'$(OsEnvironment)'=='osx' and '$(MonoBuild)' == 'true'">$(XunitOptions) -notrait category=mono-osx-failing</XunitOptions>
-    <XunitOptions Condition="'$(OsEnvironment)'=='windows' and '$(MonoBuild)' == 'true'">$(XunitOptions) -notrait category=mono-windows-failing</XunitOptions>
+    <!-- Respect the traits set up by PlatformSpecific attribute. -->
+    <XunitOptions Condition="$([MSBuild]::IsOSPlatform('windows'))">$(XunitOptions) -notrait category=nonwindowstests</XunitOptions>
+    <XunitOptions Condition="$([MSBuild]::IsOSPlatform('linux'))">$(XunitOptions) -notrait category=nonlinuxtests</XunitOptions>
+    <XunitOptions Condition="$([MSBuild]::IsOSPlatform('linux')) and '$(NetCoreBuild)'=='true'">-notrait category=nonlinuxtests -notrait category=netcore-linux-failing</XunitOptions>
+    <XunitOptions Condition="$([MSBuild]::IsOSPlatform('osx'))">$(XunitOptions) -notrait category=nonosxtests</XunitOptions>
+    <XunitOptions Condition="$([MSBuild]::IsOSPlatform('osx')) and '$(NetCoreBuild)'=='true'">-notrait category=nonosxtests -notrait category=netcore-osx-failing</XunitOptions>
+    <!-- Replace with MSBuild::IsBsdLike once the initial msbuild knows about it -->
+    <XunitOptions Condition="$([MSBuild]::IsOSPlatform('FREEBSD')) Or $([MSBuild]::IsOSPlatform('NETBSD')) Or $([MSBuild]::IsOSPlatform('OPENBSD'))">$(XunitOptions) -notrait category=nonfreebsdtests</XunitOptions>
 
     <XunitOptions Condition="'$(TargetFrameworkIdentifier)' == '.NETCoreApp'">$(XunitOptions) -notrait category=nonnetcoreapptests</XunitOptions>
     <XunitOptions Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'">$(XunitOptions) -notrait category=nonnetfxtests</XunitOptions>
@@ -39,7 +39,7 @@
     <XunitOptions>$(XunitOptions) -notrait category=failing</XunitOptions>
 
     <TestRunnerAdditionalArguments>$(XunitOptions)</TestRunnerAdditionalArguments>
-    
+
     <PackageOutputPath Condition="'$(IsVisualStudioInsertionPackage)' == 'true'">$(DevDivPackagesDir)</PackageOutputPath>
 
     <!-- Arcade sdk also carries an xunit.runner.json which sometimes overrides the one in this repo. Assign a value to the arcade properties XUnitDesktopSettingsFile and XUnitCoreSettingsFile to prevent the arcade version of the file being added. -->
@@ -48,16 +48,20 @@
   </PropertyGroup>
 
   <ItemGroup Condition="'$(IsUnitTestProject)' == 'true'">
-    <!-- MSBuild isn't xunit analyzer clean, so remove the reference to the xunit package added by the repo toolset and
-         replace it with references to xunit.core and xunit.assert. -->
-    <PackageReference Remove="xunit" />
-    <PackageReference Include="xunit.core" />
-    <PackageReference Include="xunit.assert" />
+    <!-- Force updated reference to this package because xunit and shouldly
+         are netstandard1.6 and transitively bring in an old reference -->
+    <PackageReference Include="System.Security.Cryptography.X509Certificates" />
+
+    <!-- As of 17.3, one TF of Microsoft.NET.Test.Sdk depends on Newtonsoft.Json
+         9.0.1, causing it to be downloaded and flagged by component governance -->
+    <PackageReference Include="Newtonsoft.Json" />
+
+    <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
 
     <!-- Don't localize unit test projects -->
     <PackageReference Remove="XliffTasks" />
 
-    <Compile Include="$(RepoRoot)src\Shared\UnitTests\TestAssemblyInfo.cs" />
+    <Compile Include="$(RepoRoot)src\Shared\UnitTests\TestAssemblyInfo.cs" Condition="'$(IsLibraryTestProject)' != 'true'" />
     <Compile Include="$(RepoRoot)src\Shared\UnitTests\TestProgram.cs" />
   </ItemGroup>
 
@@ -66,26 +70,17 @@
          PrivateAssets to keep this reference (auto-added when targeting netcoreapp*)
          from making it into our NuGet packages. -->
     <PackageReference Update="Microsoft.NETCore.App" PrivateAssets="All" />
+
+    <!-- Configure analyzer to forbid certain API calls -->
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" Condition=" '$(IsUnitTestProject)' != 'true' " />
   </ItemGroup>
 
-  <!-- GenAPI settings -->
-  <PropertyGroup Condition="'$(MonoBuild)' == 'true'">
-    <!-- Disable reference assembly source when building for Mono, as some APIs are excluded when compiling for Mono -->
-    <GenerateReferenceAssemblySources>false</GenerateReferenceAssemblySources>
+  <PropertyGroup Condition="'$(GenerateReferenceAssemblySource)' == 'true'">
+    <PublicApiTfm Condition="$([MSBuild]::GetTargetFrameworkIdentifier('$(TargetFramework)')) == '.NETFramework'">net</PublicApiTfm>
+    <PublicApiTfm Condition="$([MSBuild]::GetTargetFrameworkIdentifier('$(TargetFramework)')) == '.NETFramework' and $([MSBuild]::GetTargetFrameworkVersion('$(TargetFramework)')) == '3.5'">net35</PublicApiTfm>
+    <PublicApiTfm Condition="$([MSBuild]::GetTargetFrameworkIdentifier('$(TargetFramework)')) == '.NETStandard'">netstandard</PublicApiTfm>
+    <PublicApiTfm Condition="$([MSBuild]::GetTargetFrameworkIdentifier('$(TargetFramework)')) == '.NETCoreApp'">netstandard</PublicApiTfm>
   </PropertyGroup>
-  
-  <PropertyGroup Condition="'$(GenerateReferenceAssemblySources)' == 'true' and '$(OsEnvironment)'=='windows'">
-    <GenAPIAssemblyName>$(AssemblyName)</GenAPIAssemblyName>
-    <GenAPIAssemblyName Condition="'$(GenAPIAssemblyName)' == ''">$(MSBuildProjectName)</GenAPIAssemblyName>
-    <GenAPIShortFrameworkIdentifier Condition="$(TargetFramework.StartsWith('net4'))">net</GenAPIShortFrameworkIdentifier>
-    <GenAPIShortFrameworkIdentifier Condition="$(TargetFramework.StartsWith('netstandard'))">netstandard</GenAPIShortFrameworkIdentifier>
-    <GenAPIShortFrameworkIdentifier Condition="$(TargetFramework.StartsWith('netcoreapp'))">netstandard</GenAPIShortFrameworkIdentifier>
-    <GenAPITargetPath>$(RepoRoot)ref\$(GenAPIAssemblyName)\$(GenAPIShortFrameworkIdentifier)\$(GenAPIAssemblyName).cs</GenAPITargetPath>
-  </PropertyGroup>
-  
-  <ItemGroup Condition="'$(GenerateReferenceAssemblySources)' == 'true' and '$(OsEnvironment)'=='windows'">
-    <PackageReference Include="Microsoft.DotNet.BuildTools.GenAPI" PrivateAssets="All" />
-  </ItemGroup>
 
   <ItemGroup Condition="'$(IsUnitTestProject)' == 'true' And '$(TargetFrameworkIdentifier)' != '.NETFramework' ">
     <PackageReference Include="xunit.console" />
@@ -98,10 +93,15 @@
              Visible="false" Pack="false"/>
   </ItemGroup>
 
-  <!-- Override in-box GenerateSatelliteAssemblies, as we are using CoreGenerateSatelliteAssemblies instead.
-       With https://github.com/Microsoft/msbuild/pull/2726 this is no longer necessary, but that change is not
-       in VS 15.5 (which is what we use for Jenkins right now). -->
-  <Target Name="GenerateSatelliteAssemblies" />
+  <Target Name="SetResourceProperties" BeforeTargets="_GetEmbeddedResourcesWithSourceGeneration">
+    <ItemGroup>
+      <EmbeddedResource Update="@(EmbeddedResource)" Condition="'%(EmbeddedResource.NuGetPackageId)' == 'Microsoft.CodeAnalysis.Collections' AND '%(FileName)' == 'Strings'">
+        <GenerateSource>true</GenerateSource>
+        <Generator>MSBuild:_GenerateResxSource</Generator>
+        <ClassName>Microsoft.CodeAnalysis.Collections.SR</ClassName>
+      </EmbeddedResource>
+    </ItemGroup>
+  </Target>
 
   <Target Name="RemoveSatelliteDllsFromBuildOutputInPackage"
           BeforeTargets="GenerateNuspec"
@@ -115,7 +115,10 @@
     </ItemGroup>
   </Target>
 
-  <Target Name="CreateTypeLib" BeforeTargets="AfterBuild" Condition="'$(BuildingInsideVisualStudio)' != 'true' and '$(CreateTlb)' == 'true' and '$(OsEnvironment)' == 'windows' and '$(TargetFrameworkIdentifier)' == '.NETFramework' and '$(MSBuildRuntimeType)' != 'Core'">
+  <!-- This target creates a type library for the assemblies in a package. It requires desktop msbuild to locate the tooling
+       Type libraries are still needed by Visual Studio in some cases, like the legacy C# project system.
+       It calls into msbuild via COM, and needs the type library to do so. -->
+  <Target Name="CreateTypeLib" BeforeTargets="AfterBuild" Inputs="$(TargetPath)" Outputs="$(TargetDir)$(TargetName).tlb;$(TargetDir)x64\$(TargetName).tlb" Condition="'$(BuildingInsideVisualStudio)' != 'true' and '$(CreateTlb)' == 'true' and $([MSBuild]::IsOSPlatform('windows')) and '$(TargetFrameworkIdentifier)' == '.NETFramework' and '$(MSBuildRuntimeType)' != 'Core'">
     <PropertyGroup>
       <TlbExpPath>$([Microsoft.Build.Utilities.ToolLocationHelper]::GetPathToDotNetFrameworkSdkFile('tlbexp.exe'))</TlbExpPath>
       <!-- Provide a mechanism for turning on verbose TlbExp output for diagnosing issues -->

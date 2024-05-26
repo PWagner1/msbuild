@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -219,7 +223,7 @@ namespace Microsoft.Build.UnitTests
                     <i>
                       <m>m1</m>
                     </i>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                 </Project>
             ", logger);
 
@@ -245,9 +249,9 @@ namespace Microsoft.Build.UnitTests
                     <i Include=`i1`>
                       <m>m1</m>
                       <m>%(m);m2</m>
-                      <m Condition='false'>%(m);m3</m> 
+                      <m Condition='false'>%(m);m3</m>
                     </i>
-                  </ItemGroup> 
+                  </ItemGroup>
                   <Target Name=`t`>
                     <Message Text=`[%(i.m)]`/>
                   </Target>
@@ -272,9 +276,9 @@ namespace Microsoft.Build.UnitTests
                     <i Include=`i1`>
                       <m>m1</m>
                       <m>%(i.m);m2</m>
-                      <m Condition='false'>%(m);m3</m> 
+                      <m Condition='false'>%(m);m3</m>
                     </i>
-                  </ItemGroup> 
+                  </ItemGroup>
                   <Target Name=`t`>
                     <Message Text=`[%(i.m)]`/>
                   </Target>
@@ -299,14 +303,14 @@ namespace Microsoft.Build.UnitTests
                     <i>
                       <l>l1</l>
                     </i>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                   <ItemGroup>
                       <i Include=`i1`>
                       <n>overridden</n>
                       <m>m1</m>
                       <n>%(l);%(i.l);n1;%(m);%(i.m);%(o);%(i.o);n2</n>
                     </i>
-                  </ItemGroup> 
+                  </ItemGroup>
                   <Target Name=`t`>
                     <Message Text=`[%(i.n)]`/>
                   </Target>
@@ -331,12 +335,12 @@ namespace Microsoft.Build.UnitTests
                     <i>
                       <m>m1</m>
                     </i>
-                  </ItemDefinitionGroup> 
+                  </ItemDefinitionGroup>
                   <ItemGroup>
                     <i Include=`i1`>
                       <m>%(m);m2</m>
                     </i>
-                  </ItemGroup> 
+                  </ItemGroup>
                   <Target Name=`t`>
                     <Message Text=`[%(i.m)]`/>
                   </Target>
@@ -361,7 +365,7 @@ namespace Microsoft.Build.UnitTests
                     <i Include=`i1`>
                       <m>%25(m)</m>
                     </i>
-                  </ItemGroup> 
+                  </ItemGroup>
                   <Target Name=`t`>
                     <Message Text=`[%(i.m)]`/>
                   </Target>
@@ -525,11 +529,11 @@ namespace Microsoft.Build.UnitTests
 
             item = CreatePersistedBuildItem(ig, "i", "i2");
             group.AddItem(item);
-            VerifyPersistedItemPosition(group, item, 1); // should be 2nd      
+            VerifyPersistedItemPosition(group, item, 1); // should be 2nd
 
             item = CreatePersistedBuildItem(ig, "i", "i0");
             group.AddItem(item);
-            VerifyPersistedItemPosition(group, item, 0); // should be first              
+            VerifyPersistedItemPosition(group, item, 0); // should be first
         }
 
         [Test]
@@ -555,7 +559,7 @@ namespace Microsoft.Build.UnitTests
             group.AddItem(item);
             Assertion.AssertEquals(item, group[1]); // should be last again
         }
-        
+
         private static void VerifyPersistedItemPosition(BuildItemGroup group, BuildItem item, int position)
         {
             Assertion.AssertEquals(group[position].Include, group.ItemGroupElement.ChildNodes[position].Attributes["Include"].Value);

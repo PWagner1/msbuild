@@ -1,16 +1,17 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Collections.Generic;
 using System.Collections;
-
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
-
-using ColorSetter = Microsoft.Build.Logging.ColorSetter;
 using ColorResetter = Microsoft.Build.Logging.ColorResetter;
+using ColorSetter = Microsoft.Build.Logging.ColorSetter;
 using WriteHandler = Microsoft.Build.Logging.WriteHandler;
+
+#nullable disable
 
 namespace Microsoft.Build.BackEnd.Logging
 {
@@ -39,8 +40,7 @@ namespace Microsoft.Build.BackEnd.Logging
                 verbosity,
                 new WriteHandler(Console.Out.Write),
                 new ColorSetter(SetColor),
-                new ColorResetter(ResetColor)
-            )
+                new ColorResetter(ResetColor))
         {
             // do nothing
         }
@@ -52,13 +52,11 @@ namespace Microsoft.Build.BackEnd.Logging
         /// <param name="write"></param>
         /// <param name="colorSet"></param>
         /// <param name="colorReset"></param>
-        public SerialConsoleLogger
-        (
+        public SerialConsoleLogger(
             LoggerVerbosity verbosity,
             WriteHandler write,
             ColorSetter colorSet,
-            ColorResetter colorReset
-        )
+            ColorResetter colorReset)
         {
             InitializeConsoleMethods(verbosity, write, colorSet, colorReset);
         }
@@ -69,7 +67,7 @@ namespace Microsoft.Build.BackEnd.Logging
 
         /// <summary>
         /// Reset the states of per-build member variables
-        /// VSW#516376 
+        /// VSW#516376
         /// </summary>
         internal override void ResetConsoleLoggerState()
         {
@@ -106,7 +104,14 @@ namespace Microsoft.Build.BackEnd.Logging
                 WriteLinePrettyFromResource("BuildStartedWithTime", e.Timestamp);
             }
 
-            WriteEnvironment(e.BuildEnvironment);
+            if (Traits.LogAllEnvironmentVariables)
+            {
+                WriteEnvironment(e.BuildEnvironment);
+            }
+            else
+            {
+                WriteEnvironment(e.BuildEnvironment?.Where(kvp => EnvironmentUtilities.IsWellKnownEnvironmentDerivedProperty(kvp.Key)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value));
+            }
         }
 
         /// <summary>
@@ -177,12 +182,15 @@ namespace Microsoft.Build.BackEnd.Logging
         }
 
         /// <summary>
-        /// At the end of the build, repeats the errors and warnings that occurred 
+        /// At the end of the build, repeats the errors and warnings that occurred
         /// during the build, and displays the error count and warning count.
         /// </summary>
         private void ShowErrorWarningSummary()
         {
-            if (warningCount == 0 && errorCount == 0) return;
+            if (warningCount == 0 && errorCount == 0)
+            {
+                return;
+            }
 
             // Make some effort to distinguish the summary from the previous output
             WriteNewLine();
@@ -290,7 +298,7 @@ namespace Microsoft.Build.BackEnd.Logging
                 counter.InScope = false;
             }
 
-            // if verbosity is detailed or diagnostic, 
+            // if verbosity is detailed or diagnostic,
             // or there was an error or warning
             if (contextStack.Peek().hasErrorsOrWarnings
                 || (IsVerbosityAtLeast(LoggerVerbosity.Detailed)))
@@ -367,7 +375,7 @@ namespace Microsoft.Build.BackEnd.Logging
 
             bool targetHasErrorsOrWarnings = contextStack.Peek().hasErrorsOrWarnings;
 
-            // if verbosity is diagnostic, 
+            // if verbosity is diagnostic,
             // or there was an error or warning and verbosity is normal or detailed
             if ((targetHasErrorsOrWarnings && (IsVerbosityAtLeast(LoggerVerbosity.Normal)))
                   || Verbosity == LoggerVerbosity.Diagnostic)
@@ -497,28 +505,8 @@ namespace Microsoft.Build.BackEnd.Logging
         /// </summary>
         public override void MessageHandler(object sender, BuildMessageEventArgs e)
         {
-            bool print = false;
-            bool lightenText = false;
-            switch (e.Importance)
-            {
-                case MessageImportance.High:
-                    print = IsVerbosityAtLeast(LoggerVerbosity.Minimal);
-                    break;
-
-                case MessageImportance.Normal:
-                    print = IsVerbosityAtLeast(LoggerVerbosity.Normal);
-                    lightenText = true;
-                    break;
-
-                case MessageImportance.Low:
-                    print = IsVerbosityAtLeast(LoggerVerbosity.Detailed);
-                    lightenText = true;
-                    break;
-
-                default:
-                    ErrorUtilities.VerifyThrow(false, "Impossible");
-                    break;
-            }
+            LoggerVerbosity minimumVerbosity = ImportanceToMinimumVerbosity(e.Importance, out bool lightenText);
+            bool print = IsVerbosityAtLeast(minimumVerbosity);
 
             if (print)
             {
@@ -529,17 +517,14 @@ namespace Microsoft.Build.BackEnd.Logging
                     setColor(ConsoleColor.DarkGray);
                 }
 
-                string nonNullMessage;
+                string nonNullMessage = e is EnvironmentVariableReadEventArgs environmentDerivedProperty ?
+                    ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("EnvironmentDerivedPropertyRead", environmentDerivedProperty.EnvironmentVariableName, e.Message)
+                    : e.Message ?? String.Empty;
 
                 // Include file information if present.
                 if (e.File != null)
                 {
                     nonNullMessage = EventArgsFormatting.FormatEventMessage(e, showProjectFile);
-                }
-                else
-                {
-                    // null messages are ok -- treat as blank line
-                    nonNullMessage = e.Message ?? String.Empty;
                 }
 
                 WriteLinePretty(nonNullMessage);
@@ -571,24 +556,35 @@ namespace Microsoft.Build.BackEnd.Logging
 
         public override void StatusEventHandler(object sender, BuildStatusEventArgs e)
         {
-            if (showPerfSummary)
+            if (e is ProjectEvaluationStartedEventArgs projectEvaluationStarted)
             {
-                ProjectEvaluationStartedEventArgs projectEvaluationStarted = e as ProjectEvaluationStartedEventArgs;
-
-                if (projectEvaluationStarted != null)
+                if (showPerfSummary)
                 {
                     PerformanceCounter counter = GetPerformanceCounter(projectEvaluationStarted.ProjectFile, ref projectEvaluationPerformanceCounters);
                     counter.InScope = true;
-
-                    return;
                 }
-
-                ProjectEvaluationFinishedEventArgs projectEvaluationFinished = e as ProjectEvaluationFinishedEventArgs;
-
-                if (projectEvaluationFinished != null)
+            }
+            else if (e is ProjectEvaluationFinishedEventArgs projectEvaluationFinished)
+            {
+                if (showPerfSummary)
                 {
                     PerformanceCounter counter = GetPerformanceCounter(projectEvaluationFinished.ProjectFile, ref projectEvaluationPerformanceCounters);
                     counter.InScope = false;
+                }
+
+                if (Verbosity == LoggerVerbosity.Diagnostic && showItemAndPropertyList)
+                {
+                    if (projectEvaluationFinished.Properties != null)
+                    {
+                        var propertyList = ExtractPropertyList(projectEvaluationFinished.Properties);
+                        WriteProperties(propertyList);
+                    }
+
+                    if (projectEvaluationFinished.Items != null)
+                    {
+                        SortedList itemList = ExtractItemList(projectEvaluationFinished.Items);
+                        WriteItems(itemList);
+                    }
                 }
             }
         }
@@ -600,7 +596,7 @@ namespace Microsoft.Build.BackEnd.Logging
         {
             this.VerifyStack(!contextStack.IsEmpty(), "Bad project stack");
 
-            //Pop the current project
+            // Pop the current project
             Frame outerMost = contextStack.Pop();
 
             this.VerifyStack(!outerMost.displayed, "Bad project stack on {0}", outerMost.ID);
@@ -711,7 +707,7 @@ namespace Microsoft.Build.BackEnd.Logging
             }
             else
             {
-                ErrorUtilities.VerifyThrow(false, "Unexpected frame type.");
+                ErrorUtilities.ThrowInternalError("Unexpected frame type.");
                 return null;
             }
         }
@@ -734,9 +730,9 @@ namespace Microsoft.Build.BackEnd.Logging
 
                 ShowDeferredMessages();
 
-                //push now, so that the stack is in a good state
-                //for WriteProjectStarted() and WriteLinePretty()
-                //because we use the stack to control indenting
+                // push now, so that the stack is in a good state
+                // for WriteProjectStarted() and WriteLinePretty()
+                // because we use the stack to control indenting
                 contextStack.Push(f);
 
                 switch (f.type)
@@ -761,7 +757,7 @@ namespace Microsoft.Build.BackEnd.Logging
                         break;
 
                     default:
-                        ErrorUtilities.VerifyThrow(false, "Unexpected frame type.");
+                        ErrorUtilities.ThrowInternalError("Unexpected frame type.");
                         break;
                 }
             }
@@ -795,12 +791,10 @@ namespace Microsoft.Build.BackEnd.Logging
         /// <param name="condition"></param>
         /// <param name="unformattedMessage"></param>
         /// <param name="args"></param>
-        private void VerifyStack
-            (
+        private void VerifyStack(
             bool condition,
             string unformattedMessage,
-            params object[] args
-            )
+            params object[] args)
         {
             if (!condition && !ignoreLoggerErrors)
             {
@@ -829,7 +823,7 @@ namespace Microsoft.Build.BackEnd.Logging
         internal struct Frame
         {
             /// <summary>
-            /// Creates a new instance of frame with all fields specified.
+            /// Initializes a new instance of the <see cref="Frame"/> struct with all fields specified.
             /// </summary>
             /// <param name="t">the type of the this frame</param>
             /// <param name="d">display state. true indicates this frame has been displayed to the user</param>
@@ -838,16 +832,14 @@ namespace Microsoft.Build.BackEnd.Logging
             /// <param name="targets">targets to execute, in the case of a project frame</param>
             /// <param name="fileOfTarget">the file name where the target is defined</param>
             /// <param name="parent">parent project file</param>
-            internal Frame
-                (
+            internal Frame(
                 FrameType t,
                 bool d,
                 int indent,
                 string s,
                 string targets,
                 string fileOfTarget,
-                string parent
-                )
+                string parent)
             {
                 type = t;
                 displayed = d;
@@ -893,8 +885,8 @@ namespace Microsoft.Build.BackEnd.Logging
 
             /// <summary>
             /// For TargetStarted events, this stores the filename where the Target is defined
-            /// (e.g., Microsoft.Common.targets).  This is different than the project that is 
-            /// being built.  
+            /// (e.g., Microsoft.Common.targets).  This is different than the project that is
+            /// being built.
             /// For ProjectStarted events, this is null.
             /// </summary>
             internal string file;
@@ -914,14 +906,14 @@ namespace Microsoft.Build.BackEnd.Logging
             /// The frames member is contained by FrameStack and does
             /// all the heavy lifting for FrameStack.
             /// </summary>
-            private System.Collections.Stack _frames;
+            private readonly Stack<Frame> _frames;
 
             /// <summary>
-            /// Create a new, empty, FrameStack.
+            /// Initializes a new instance of the <see cref="FrameStack"/> class.
             /// </summary>
             internal FrameStack()
             {
-                _frames = new System.Collections.Stack();
+                _frames = new Stack<Frame>();
             }
 
             /// <summary>
@@ -930,7 +922,7 @@ namespace Microsoft.Build.BackEnd.Logging
             /// <exception cref="InvalidOperationException">Thrown when stack is empty.</exception>
             internal Frame Pop()
             {
-                return (Frame)(_frames.Pop());
+                return _frames.Pop();
             }
 
             /// <summary>
@@ -938,7 +930,7 @@ namespace Microsoft.Build.BackEnd.Logging
             /// </summary>
             internal Frame Peek()
             {
-                return (Frame)(_frames.Peek());
+                return _frames.Peek();
             }
 
             /// <summary>

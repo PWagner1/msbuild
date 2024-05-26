@@ -1,11 +1,13 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.IO;
 using Microsoft.Build.Framework;
-using Microsoft.Build.Utilities;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Utilities;
+
+#nullable disable
 
 namespace Microsoft.Build.Tasks
 {
@@ -71,13 +73,19 @@ namespace Microsoft.Build.Tasks
 
                 for (int i = 0; i < Files.Length; ++i)
                 {
-                    string link = Files[i].GetMetadata(ItemMetadataNames.link);
                     AssignedFiles[i] = new TaskItem(Files[i]);
 
-                    // If file has a link, use that.
-                    string targetPath = link;
+                    // If TargetPath is already set, it takes priority.
+                    // https://github.com/dotnet/msbuild/issues/2795
+                    string targetPath = Files[i].GetMetadata(ItemMetadataNames.targetPath);
 
-                    if (string.IsNullOrEmpty(link))
+                    // If TargetPath not already set, fall back to default behavior.
+                    if (string.IsNullOrEmpty(targetPath))
+                    {
+                        targetPath = Files[i].GetMetadata(ItemMetadataNames.link);
+                    }
+
+                    if (string.IsNullOrEmpty(targetPath))
                     {
                         if (// if the file path is relative
                             !Path.IsPathRooted(Files[i].ItemSpec) &&

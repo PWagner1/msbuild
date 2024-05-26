@@ -121,6 +121,16 @@
         <target state="translated">MSB3654: Podpisywanie opóźnione wymaga określenia przynajmniej klucza publicznego.  Podaj klucz publiczny przy użyciu właściwości KeyFile lub KeyContainer albo wyłącz podpisywanie opóźnione.</target>
         <note>{StrBegin="MSB3654: "}</note>
       </trans-unit>
+      <trans-unit id="CombineTargetFrameworkInfoProperties.NotNullAndEmptyRootElementName">
+        <source>MSB3991: '{0}' is not set or empty. When {1} is false, make sure to set a non-empty value for '{0}'.</source>
+        <target state="translated">MSB3991: „{0}” nie jest ustawiony ani pusty. Jeśli {1} ma wartość false, ustaw wartość, która nie jest pusta dla „{0}”.</target>
+        <note>{StrBegin="MSB3991: "}</note>
+      </trans-unit>
+      <trans-unit id="CombineTargetFrameworkInfoProperties.NotNullRootElementName">
+        <source>MSB3992: '{0}' is not set. When {1} is true, make sure to set a value for '{0}'.</source>
+        <target state="translated">MSB3992: nie ustawiono „{0}”. Jeśli {1} ma wartość true, upewnij się, że ustawiono wartość dla „{0}”.</target>
+        <note>{StrBegin="MSB3992: "}</note>
+      </trans-unit>
       <trans-unit id="Compiler.FatalArguments">
         <source>MSB3881: Fatal Error: more than {0} command line arguments.</source>
         <target state="translated">MSB3881: Błąd krytyczny: liczba argumentów wiersza polecenia większa niż {0}.</target>
@@ -181,10 +191,25 @@
         <target state="translated">Tworzenie twardego łącza w celu skopiowania „{0}” do „{1}”.</target>
         <note>LOCALIZATION: {0} and {1} are paths.</note>
       </trans-unit>
+      <trans-unit id="Copy.IOException">
+        <source>MSB3894: Got {0} copying "{1}" to "{2}" and HR is {3}</source>
+        <target state="translated">MSB3894: „Mam {0} kopiowane z „{1}” do „{2}”, a HR to {3}”</target>
+        <note>{StrBegin="MSB3894: "} LOCALIZATION: {0} is exception.ToString(), {1} and {2} are paths, {3} is a number")</note>
+      </trans-unit>
+      <trans-unit id="Copy.IncompatibleParameters">
+        <source>MSB3896: Both "{0}" and "{1}" were specified as parameters in the project file but cannot be used together. Please choose one or the other.</source>
+        <target state="translated">MSB3896: parametry „{0}” i „{1}” zostały określone jako parametry w pliku projektu, ale nie mogą być używane razem. Wybierz jeden lub drugi.</target>
+        <note>{StrBegin="MSB3896: "}</note>
+      </trans-unit>
       <trans-unit id="Copy.LinkFailed">
         <source>MSB3893: Could not use a link to copy "{0}" to "{1}".</source>
         <target state="translated">MSB3893: Nie można użyć linku w celu skopiowania ścieżki „{0}” do ścieżki „{1}”.</target>
         <note>{StrBegin="MSB3893: "} LOCALIZATION: {0} and {1} are paths.</note>
+      </trans-unit>
+      <trans-unit id="Copy.NonWindowsLinkErrorMessage">
+        <source>The {0} library call failed with the following error code: {1}.</source>
+        <target state="translated">Wywołanie biblioteki {0} nie powiodło się. Kod błędu: {1}.</target>
+        <note />
       </trans-unit>
       <trans-unit id="Copy.RetryingAsFileCopy">
         <source>Could not use a link to copy "{0}" to "{1}". Copying the file instead. {2}</source>
@@ -200,6 +225,16 @@
         <source>Removing read-only attribute from "{0}".</source>
         <target state="translated">Usuwanie atrybutu tylko do odczytu z elementu „{0}”.</target>
         <note />
+      </trans-unit>
+      <trans-unit id="Copy.RetryingAsSymbolicLink">
+        <source>Could not use a hard link to copy "{0}" to "{1}". Copying the file with symbolic link instead. {2}</source>
+        <target state="translated">Nie można użyć twardego linku do skopiowania „{0}” do „{1}”. Zamiast tego kopiuje plik za pomocą linku symbolicznego. {2}</target>
+        <note>LOCALIZATION: {0} and {1} are paths. {2} is an optional localized message.</note>
+      </trans-unit>
+      <trans-unit id="Copy.RetryingOnAccessDenied">
+        <source>MSB3895: Retrying on ERROR_ACCESS_DENIED because environment variable MSBUILDALWAYSRETRY=1</source>
+        <target state="translated">MSB3895: ponowienie próby w przypadku ERROR_ACCESS_DENIED, ponieważ zmienną środowiskową jest MSBUILDALWAYSRETRY = 1</target>
+        <note>{StrBegin="MSB3895: "} LOCALIZATION: Do NOT translate MSBUILDALWAYSRETRY)</note>
       </trans-unit>
       <trans-unit id="Copy.SourceIsDirectory">
         <source>MSB3025: The source file "{0}" is actually a directory.  The "Copy" task does not support copying directories.</source>
@@ -295,6 +330,21 @@
         <source>MSB3061: Unable to delete file "{0}". {1}</source>
         <target state="translated">MSB3061: Nie można usunąć pliku „{0}”. {1}</target>
         <note>{StrBegin="MSB3061: "}</note>
+      </trans-unit>
+      <trans-unit id="Delete.InvalidRetryCount">
+        <source>MSB3028: {0} is an invalid retry count. Value must not be negative.</source>
+        <target state="translated">MSB3028: {0} jest nieprawidłową liczbą ponownych prób. Wartość nie może być ujemna.</target>
+        <note>{StrBegin="MSB3028: "} LOCALIZATION: {0} is a number.</note>
+      </trans-unit>
+      <trans-unit id="Delete.InvalidRetryDelay">
+        <source>MSB3029: {0} is an invalid retry delay. Value must not be negative.</source>
+        <target state="translated">MSB3029: {0} jest nieprawidłowym opóźnieniem ponownych prób. Wartość nie może być ujemna.</target>
+        <note>{StrBegin="MSB3029: "} LOCALIZATION: {0} is a number.</note>
+      </trans-unit>
+      <trans-unit id="Delete.Retrying">
+        <source>MSB3062: Could not delete file "{0}". Beginning retry {1} in {2}ms. {3}</source>
+        <target state="translated">MSB3062: nie można usunąć pliku „{0}”. Rozpoczynanie ponawiania próby {1} za {2} ms. {3}</target>
+        <note>{StrBegin="MSB3062: "} LOCALIZATION: {0} are paths. {1} and {2} are numbers. {3} is an optional localized message.</note>
       </trans-unit>
       <trans-unit id="Delete.SkippingNonexistentFile">
         <source>File "{0}" doesn't exist. Skipping.</source>
@@ -509,6 +559,16 @@
         <target state="translated">Właściwości globalne:</target>
         <note />
       </trans-unit>
+      <trans-unit id="General.StateFileAlreadyPresent">
+        <source>MSB3667: There is already a file at "{0}". If you are trying to create a precomputed cache, ensure that you are building a single project that depends on your assemblies rather than building your assemblies themselves. If you are running the ResolveAssemblyReference task normally, do not set the "AssemblyInformationCacheOutputPath" parameter of the ResolveAssemblyReference task.</source>
+        <target state="translated">MSB3667: W lokalizacji „{0}” już istnieje plik. Jeśli próbujesz utworzyć wstępnie obliczoną pamięć podręczną, upewnij się, że kompilujesz pojedynczy projekt zależący od zestawów, a nie same zestawy. Jeśli uruchamiasz zadanie ResolveAssemblyReference w normalny sposób, nie ustawiaj parametru „AssemblyInformationCacheOutputPath” zadania ResolveAssemblyReference.</target>
+        <note>{StrBegin="MSB3667: "}</note>
+      </trans-unit>
+      <trans-unit id="General.TaskRequiresWindows">
+        <source>MSB3096: Task "{0}" is only supported when building on Windows.</source>
+        <target state="translated">MSB3096: zadanie „{0}“ jest obsługiwane tylko podczas kompilowania w systemie Windows.</target>
+        <note>{StrBegin="MSB3096: "}</note>
+      </trans-unit>
       <trans-unit id="General.UndefineProperties">
         <source>Removing Properties:</source>
         <target state="translated">Usuwanie właściwości:</target>
@@ -588,6 +648,11 @@
         <source>MSB3094: "{2}" refers to {0} item(s), and "{3}" refers to {1} item(s). They must have the same number of items.</source>
         <target state="translated">MSB3094: „{2}” odwołuje się do następującej liczby elementów: {0}, a „{3}” odwołuje się do następującej liczby elementów: {1}. Liczba tych elementów musi być taka sama.</target>
         <note>{StrBegin="MSB3094: "}</note>
+      </trans-unit>
+      <trans-unit id="GenerateBindingRedirects.CreatingBindingRedirectionFile">
+        <source>Creating binding redirection file "{0}".</source>
+        <target state="translated">Tworzenie pliku przekierowania powiązania „{0}”.</target>
+        <note />
       </trans-unit>
       <trans-unit id="GenerateBindingRedirects.MissingConfigurationNode">
         <source>MSB3831: The application configuration file must have root configuration element.</source>
@@ -995,14 +1060,21 @@
         <note>{StrBegin="MSB3183: "}</note>
       </trans-unit>
       <trans-unit id="GenerateManifest.WriteOutputManifestFailed">
-        <source>MSB3173: Unable to write manifest '{0}'. {1}</source>
-        <target state="translated">MSB3173: Nie można zapisać manifestu '{0}'. {1}</target>
+        <source>MSB3173: Unable to write manifest '{0}'. {1} {2}</source>
+        <target state="translated">MSB3173: Nie można zapisać manifestu „{0}”. {1} {2}</target>
         <note>{StrBegin="MSB3173: "}</note>
       </trans-unit>
       <trans-unit id="GenerateManifest.InvalidRequestedExecutionLevel">
         <source>MSB3190: ClickOnce does not support the request execution level '{0}'.</source>
         <target state="translated">MSB3190: Funkcja ClickOnce nie obsługuje poziomu wykonania żądania „{0}”.</target>
         <note>{StrBegin="MSB3190: "}</note>
+      </trans-unit>
+      <trans-unit id="GenerateResource.BinaryFormatterUse">
+        <source>MSB3825: Resource "{0}" of type "{1}" is deserialized via BinaryFormatter at runtime. BinaryFormatter is deprecated due to possible security risks and will be removed with .NET 9. If you wish to continue using it, set property "GenerateResourceWarnOnBinaryFormatterUse" to false.
+           More information: https://aka.ms/msbuild/net8-binaryformatter</source>
+        <target state="translated">MSB3825: zasób „{0}” typu „{1}” jest deserializowany za pośrednictwem elementu BinaryFormatter w czasie wykonywania. Element BinaryFormatter jest przestarzały z powodu możliwych zagrożeń bezpieczeństwa i zostanie usunięty z platformy .NET 9. Jeśli chcesz nadal go używać, ustaw właściwość „GenerateResourceWarnOnBinaryFormatterUse” na wartość false.
+           Więcej informacji: https://aka.ms/msbuild/net8-binaryformatter</target>
+        <note>{StrBegin="MSB3825: "}</note>
       </trans-unit>
       <trans-unit id="GenerateResource.CoreSupportsLimitedScenarios">
         <source>MSB3824: In order to build with .NET Core, resource inputs must be in .txt or .resx format.</source>
@@ -1033,6 +1105,11 @@
         <source>MSB3821: Couldn't process file {0} due to its being in the Internet or Restricted zone or having the mark of the web on the file. Remove the mark of the web if you want to process these files.</source>
         <target state="translated">MSB3821: Nie można przetworzyć pliku {0}, ponieważ znajduje się on w strefie Internet lub Witryny z ograniczeniami albo zawiera znacznik strony internetowej. Jeśli chcesz przetwarzać te pliki, usuń znacznik strony internetowej.</target>
         <note>{StrBegin="MSB3821: "} "Internet zone", "Restricted zone", and "mark of the web" are Windows concepts that may have a specific translation.</note>
+      </trans-unit>
+      <trans-unit id="GenerateResource.MimeTypeNotSupportedOnCore">
+        <source>MSB3826: Resource \"{0}\" in \"{1}\" uses MIME type \"{2}\", which is not supported by MSBuild when running on .NET.</source>
+        <target state="translated">MSB3826: zasób „{0}” w „{1}” używa typu MIME „{2}”, który nie jest obsługiwany przez program MSBuild w przypadku uruchamiania na platformie .NET.</target>
+        <note>{StrBegin="MSB3826: "}</note>
       </trans-unit>
       <trans-unit id="GenerateResource.OutputDoesntExist">
         <source>Output file "{0}" does not exist.</source>
@@ -1321,6 +1398,51 @@
         <target state="translated">MSB3441: Nie można pobrać nazwy zestawu dla „{0}”. {1}</target>
         <note>{StrBegin="MSB3441: "}</note>
       </trans-unit>
+      <trans-unit id="GetCompatiblePlatform.AnyCPUDefault">
+        <source>Choosing AnyCPU by default.</source>
+        <target state="translated">Wybieranie opcji AnyCPU w sposób domyślny.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform.DisplayChosenPlatform">
+        <source>Project '{0}' will build with platform: '{1}'.</source>
+        <target state="translated">Projekt "{0}" zostanie skompilowany przy użyciu platformy: "{1}".</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform.FoundMappingInTable">
+        <source>Found mapping '{0}'='{1}' in given lookup table: '{2}'.</source>
+        <target state="translated">Znaleziono mapowanie "{0}" = "{1}" w danej tabeli wyszukiwania: "{2}".</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform.InvalidLookupTableFormat">
+        <source>MSB3983: The PlatformLookupTable '{0}' is in an invalid format and won't be used. The format should be 'A=B;C=D'.</source>
+        <target state="translated">MSB3983: element PlatformLookupTable "{0}" ma nieprawidłowy format i nie zostanie użyty. Formatem powinno być "A = B; C = D '.</target>
+        <note>{StrBegin="MSB3983: "}</note>
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform.LookupTableParsed">
+        <source>Parsed lookup table:'{0}'.</source>
+        <target state="translated">Przeanalizowana tabela wyszukiwania: "{0}".</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform.NoCompatiblePlatformFound">
+        <source>MSB3981: Could not determine what '{0}' should be built as. The project will be built without the Platform property set.</source>
+        <target state="translated">MSB3981: nie można było określić, jako co ma zostać skompilowany projekt "{0}". Zostanie on skompilowany bez ustawionej właściwości platformy.</target>
+        <note>{StrBegin="MSB3981: "}</note>
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform.NoPlatformsListed">
+        <source>MSB3982: EnableDynamicPlatformResolution is true but referenced project '{0}' has no 'Platforms' or 'Platform' metadata set. It will be built without a specified platform.</source>
+        <target state="translated">MSB3982: element EnableDynamicPlatformResolution ma wartość True, ale projekt „{0}”, do którego się odnosi, nie ma ustawionych metadanych „Platform” lub „Platformy”. Zostanie on skompilowany bez określonej platformy.</target>
+        <note>{StrBegin="MSB3982: "}</note>
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform.ReferencedProjectHasDefinitivePlatform">
+        <source>Platform property of referenced project '{0}' matches current project's platform: '{1}'. Referenced project will be built without a global Platform property.</source>
+        <target state="translated">Właściwość platformy przywoływanego projektu „{0}” jest zgodna z platformą bieżącego projektu: „{1}”. Przywoływany projekt zostanie utworzony bez globalnej właściwości platformy.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform.SamePlatform">
+        <source>ProjectReference and current project have the same platform.</source>
+        <target state="translated">Element ProjectReference i bieżący projekt mają tę samą platformę.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GetFrameworkSdkPath.CouldNotFindSDK">
         <source>Could not locate the expected version of the Microsoft Windows SDK. Looked for a location specified in the "{0}" value of the registry key "{1}". If your build process does not need the SDK then this can be ignored. Otherwise you can solve the problem by doing one of the following:  1) Install the Microsoft Windows SDK.  2) Install Visual Studio 2010.  3) Manually set the above registry key to the correct location.</source>
         <target state="translated">Nie można zlokalizować oczekiwanej wersji zestawu Microsoft Windows SDK. Poszukiwano lokalizacji określonej w wartości „{0}” klucza rejestru „{1}”. Jeżeli proces kompilacji nie wymaga zestawu SDK, można zignorować ten element. W przeciwnym przypadku problem można rozwiązać, wykonując jedną z następujących czynności: 1) zainstalowanie zestawu Microsoft Windows SDK,  2) zainstalowanie programu Visual Studio 2010, 3) ręczne ustawienie poprawnej lokalizacji w powyższym kluczu rejestru.</target>
@@ -1333,7 +1455,7 @@
       </trans-unit>
       <trans-unit id="GetReferenceAssemblyPaths.OutOfDateSDK">
         <source>MSB3971: The reference assemblies for "{0}" were not found. You might be using an older .NET SDK to target .NET 5.0 or higher. Update Visual Studio and/or your .NET SDK.</source>
-        <target state="new">MSB3971: The reference assemblies for "{0}" were not found. You might be using an older .NET SDK to target .NET 5.0 or higher. Update Visual Studio and/or your .NET SDK.</target>
+        <target state="translated">MSB3971: Nie znaleziono zestawów odwołań dla elementu „{0}”. Być może używasz starszego zestawu SDK platformy .NET do kierowania się do platformy docelowej .NET 5.0 lub nowszej. Zaktualizuj program Visual Studio i/lub zestaw SDK platformy .NET.</target>
         <note>{StrBegin="MSB3971: "}</note>
       </trans-unit>
       <trans-unit id="MakeDir.Comment">
@@ -1497,6 +1619,11 @@
         <target state="translated">MSB3216: Nie można zarejestrować zestawu „{0}” — odmowa dostępu. Upewnij się, że aplikacja została uruchomiona z uprawnieniami administratora. {1}</target>
         <note>{StrBegin="MSB3216: "}</note>
       </trans-unit>
+      <trans-unit id="RemoveDir.EmptyPath">
+        <source>MSB3232: An empty directory was passed to RemoveDir and was ignored.</source>
+        <target state="translated">MSB3232: Pusty katalog został przekazany do narzędzia RemoveDir i został zignorowany.</target>
+        <note>{StrBegin="MSB3232: "}</note>
+      </trans-unit>
       <trans-unit id="RemoveDir.Error">
         <source>MSB3231: Unable to remove directory "{0}". {1}</source>
         <target state="translated">MSB3231: Nie można usunąć katalogu „{0}”. {1}</target>
@@ -1551,6 +1678,18 @@
         <source>AssemblyFoldersEx location: "{0}"</source>
         <target state="translated">Lokalizacja klucza rejestru AssemblyFoldersEx: „{0}”</target>
         <note />
+      </trans-unit>
+      <trans-unit id="ResolveAssemblyReference.NoBecauseBadImage">
+        <source>This reference is not "CopyLocal" because it is a bad image. It may be a native binary, or it may not be an assembly at all.</source>
+        <target state="translated">To odwołanie nie jest „CopyLocal”, ponieważ jest to zły obraz. Może to być natywny plik binarny lub w ogóle nie jest on zestawem.</target>
+        <note>
+      LOCALIZATION: Please don't localize "CopyLocal" this is an item meta-data name.
+    </note>
+      </trans-unit>
+      <trans-unit id="ResolveAssemblyReference.SearchPathAddedByParentAssembly">
+        <source>For SearchPath "{0}" (added by referencing assembly "{1}").</source>
+        <target state="translated">Dla elementu SearchPath „{0}” (dodanego przez odwołanie do zestawu „{1}”).</target>
+        <note> {1} is the name of the parent assembly for which SearchPath was used.</note>
       </trans-unit>
       <trans-unit id="ResolveAssemblyReference.SearchedAssemblyFoldersEx">
         <source>Considered AssemblyFoldersEx locations.</source>
@@ -1607,8 +1746,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ResolveAssemblyReference.ConsideredAndRejectedBecauseTargetDidntHaveFusionName">
-        <source>Considered "{0}", which existed but didn't have a valid identity. This may not be an assembly.</source>
-        <target state="translated">Wybrano element „{0}”, który istnieje, ale nie ma prawidłowej tożsamości. Może on nie być zestawem.</target>
+        <source>Considered "{0}", which existed but did not appear to be a valid .NET assembly.</source>
+        <target state="translated">Brany pod uwagę element „{0}”, który istniał, ale nie był prawidłowym zestawem platformy .NET.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResolveAssemblyReference.TargetedProcessorArchitectureDoesNotMatch">
@@ -1811,6 +1950,11 @@
         <target state="translated">Znaleziono nieprawidłowy nagłówek PE. Plik implementacji nie zostanie użyty.</target>
         <note>This message can be used as the {1} in MSB3272</note>
       </trans-unit>
+      <trans-unit id="ResolveAssemblyReference.UnifiedReferenceDependsOn">
+        <source>References which depend on or have been unified to "{0}" [{1}].</source>
+        <target state="translated">Odwołania, które są zależne lub zostały ujednolicone dla „{0}” [{1}].</target>
+        <note> This will look like references which depend on or have been unified to "A, Version=2.0.0.0 PublicKey=4a4fded9gisujf" [a.dll].</note>
+      </trans-unit>
       <trans-unit id="ResolveAssemblyReference.UnknownProcessorArchitecture">
         <source>MSB3273: Unknown processor architecture. The implementation file "{0}" for "{1}" had an ImageFileMachine value of "0x{2}". If you wish to use this implementation file make sure the "ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch" property in your project is set to "Warning" or "None".</source>
         <target state="translated">MSB3273: Nieznana architektura procesora. Plik implementacji {0} dla „{1}” ma wartość ImageFileMachine równą „0x{2}”. Jeśli chcesz użyć tego pliku implementacji, upewnij się, że dla właściwości „ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch” w projekcie jest ustawiona wartość „Warning” lub „None”.</target>
@@ -1834,7 +1978,7 @@
       <trans-unit id="ResolveAssemblyReference.FoundConflicts">
         <source>MSB3277: Found conflicts between different versions of "{0}" that could not be resolved.
 {1}</source>
-        <target state="new">MSB3277: Found conflicts between different versions of "{0}" that could not be resolved.
+        <target state="translated">MSB3277: Znaleziono konflikty między różnymi wersjami elementu „{0}”, których nie można rozstrzygnąć.
 {1}</target>
         <note>{StrBegin="MSB3277: "}</note>
       </trans-unit>
@@ -2016,7 +2160,7 @@
         <target state="translated">Informacje o liście profilów TargetFramework:</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResolveAssemblyReference.TargetFrameworkWhiteListLogHeader">
+      <trans-unit id="ResolveAssemblyReference.TargetFrameworkAllowListLogHeader">
         <source>TargetFramework Profile List Paths:</source>
         <target state="translated">Ścieżki listy profilów TargetFramework:</target>
         <note />
@@ -2261,6 +2405,11 @@
         <target state="translated">MSB3326: Nie można zaimportować następującego pliku klucza: {0}. Plik klucza może być chroniony hasłem. Aby rozwiązać ten problem, spróbuj ponownie zaimportować certyfikat lub zaimportuj certyfikat ręcznie do osobistego magazynu certyfikatów bieżącego użytkownika.</target>
         <note>{StrBegin="MSB3326: "}</note>
       </trans-unit>
+      <trans-unit id="ResolveKeySource.PfxUnsupported">
+        <source>PFX signing not supported on .NET Core.</source>
+        <target state="translated">Podpisywanie PFX nie jest obsługiwane na platformie .NET Core.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResolveKeySource.ResolvedThumbprintEmpty">
         <source>MSB3327: Unable to find code signing certificate in the current user’s Windows certificate store. To correct this, either disable signing of the ClickOnce manifest or install the certificate into the certificate store.</source>
         <target state="translated">MSB3327: Nie można znaleźć certyfikatu podpisywania kodu w magazynie certyfikatów bieżącego użytkownika systemu Windows. Aby naprawić ten błąd, wyłącz podpisywanie manifestu ClickOnce lub zainstaluj certyfikat w magazynie certyfikatów.</target>
@@ -2369,6 +2518,11 @@
         <source>MSB3353: Public key necessary for delay signing was not specified.</source>
         <target state="translated">MSB3353: Klucz publiczny jest niezbędny, ponieważ nie określono znaku opóźnienia.</target>
         <note>{StrBegin="MSB3353: "}</note>
+      </trans-unit>
+      <trans-unit id="Task.FileLocked">
+        <source>The file is locked by: "{0}"</source>
+        <target state="translated">Plik jest zablokowany przez: „{0}”</target>
+        <note />
       </trans-unit>
       <trans-unit id="TaskRequiresFrameworkFailure">
         <source>MSB4803: The task "{0}" is not supported on the .NET Core version of MSBuild. Please use the .NET Framework version of MSBuild. See https://aka.ms/msbuild/MSB4803 for further details.</source>
@@ -2480,6 +2634,11 @@
         <target state="translated">Nie wykonano rozpakowywania z pliku „{0}” do pliku „{1}”, ponieważ parametr „{2}” w projekcie został ustawiony na wartość „{3}”, a rozmiary plików i sygnatury czasowe pasują do siebie.</target>
         <note />
       </trans-unit>
+      <trans-unit id="Unzip.DidNotUnzipBecauseOfFilter">
+        <source>Did not unzip file "{0}" because it didn't match the include filter or because it matched the exclude filter.</source>
+        <target state="translated">Nie rozpakowano pliku „{0}”, ponieważ nie pasował do filtru uwzględniania lub był zgodny z filtrem wykluczania.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Unzip.ErrorCouldNotCreateDestinationDirectory">
         <source>MSB3931: Failed to unzip to directory "{0}" because it could not be created.  {1}</source>
         <target state="translated">MSB3931: Nie można rozpakować do katalogu „{0}”, ponieważ nie można go utworzyć. {1}</target>
@@ -2510,9 +2669,24 @@
         <target state="translated">MSB3932: Nie można rozpakować pliku „{0}”, ponieważ plik nie istnieje lub jest niedostępny.</target>
         <note>{StrBegin="MSB3932: "}</note>
       </trans-unit>
+      <trans-unit id="Unzip.ErrorParsingPatternInvalidPath">
+        <source>MSB3937: Failed to parse pattern "{0}" because it contains an invalid path character.</source>
+        <target state="translated">MSB3937: nie można przeanalizować wzorca „{0}”, ponieważ zawiera on nieprawidłowy znak ścieżki.</target>
+        <note>{StrBegin="MSB3937: "}</note>
+      </trans-unit>
+      <trans-unit id="Unzip.ErrorParsingPatternPropertyReferences">
+        <source>MSB3938: Failed to parse pattern "{0}" because it contains a property reference which isn't supported.</source>
+        <target state="translated">MSB3938: nie można przeanalizować wzorca „{0}”, ponieważ zawiera on odwołanie do właściwości, które nie jest obsługiwane.</target>
+        <note>{StrBegin="MSB3938: "}</note>
+      </trans-unit>
       <trans-unit id="Unzip.FileComment">
         <source>Unzipping file "{0}" to "{1}".</source>
         <target state="translated">Rozpakowywanie pliku „{0}” do pliku „{1}”.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Unzip.ZipSlipExploit">
+        <source>Entry is outside the target directory: "{0}"</source>
+        <target state="translated">Wpis znajduje się poza katalogiem docelowym: „{0}”</target>
         <note />
       </trans-unit>
       <trans-unit id="Vbc.EnumParameterHasInvalidValue">
@@ -2534,6 +2708,31 @@
         <source>MSB3952: File hash mismatch. Expected {0} to have a {1} file hash of {2}, but it was {3}.</source>
         <target state="translated">MSB3952: Niezgodność skrótów pliku. Oczekiwano, że element {0} będzie miał skrót pliku {1} równy {2}, ale miał skrót równy {3}.</target>
         <note>{StrBegin="MSB3952: "}</note>
+      </trans-unit>
+      <trans-unit id="WriteCodeFragment.CouldNotConvertToInferredType">
+        <source>Could not convert the value for parameter "{0}" to the inferred type "{1}". The value will be treated as a string. {2}</source>
+        <target state="translated">Nie można przekonwertować wartości parametru „{0}” na wywnioskowany typ „{1}. Wartość będzie traktowana jako ciąg. {2}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WriteCodeFragment.CouldNotConvertValue">
+        <source>MSB3716: The parameter value "{0}" could not be converted to "{1}". {2}</source>
+        <target state="translated">MSB3716: nie można przekonwertować wartości parametru „{0}” na „{1}”. {2}</target>
+        <note>{StrBegin="MSB3716: "}</note>
+      </trans-unit>
+      <trans-unit id="WriteCodeFragment.CouldNotInferParameterType">
+        <source>Could not infer the type of parameter "{0}" because the attribute type is unknown. The value will be treated as a string.</source>
+        <target state="translated">Nie można wywnioskować typu parametru „{0}”, ponieważ typ atrybutu jest nieznany. Wartość będzie traktowana jako ciąg.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WriteCodeFragment.MultipleConstructorsFound">
+        <source>Multiple attribute constructors were found for type inferencing.</source>
+        <target state="translated">Znaleziono wiele konstruktorów atrybutów w przypadku wnioskowania typu.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WriteCodeFragment.ParameterTypeNotFound">
+        <source>MSB3715: The type "{0}" was not found.</source>
+        <target state="translated">MSB3715: nie znaleziono typu „{0}”.</target>
+        <note>{StrBegin="MSB3715: "}</note>
       </trans-unit>
       <trans-unit id="WriteLinesToFile.ErrorOrWarning">
         <source>MSB3491: Could not write lines to file "{0}". {1}</source>
@@ -2564,6 +2763,11 @@
         <source>MSB3762: No references were passed to the task. References to at least mscorlib and Windows.Foundation are required.</source>
         <target state="translated">MSB3762: Do zadania nie zostały przekazane informacje o żadnych odwołaniach. Wymagane są odwołania co najmniej do biblioteki mscorlib i elementu Windows.Foundation.</target>
         <note>{StrBegin="MSB3762: "}</note>
+      </trans-unit>
+      <trans-unit id="WriteLinesToFile.UnusedWriteOnlyWhenDifferent">
+        <source>'WriteOnlyWhenDifferent' attribute on "{0}" takes effect only when 'Overwrite="true"'.</source>
+        <target state="translated">Atrybut „WriteOnlyWhenDifferent” w elemencie „{0}” obowiązuje tylko wtedy, gdy atrybut „Overwrite="true"”.</target>
+        <note />
       </trans-unit>
       <trans-unit id="Xaml.DuplicatePropertyName">
         <source>MSB3724: Unable to create Xaml task.  Duplicate property name '{0}'.</source>
@@ -2639,6 +2843,11 @@
         <source>MSB3705: XslCompiledDllPath is not supported when building with .NET Core.</source>
         <target state="translated">MSB3705: Element XslCompiledDllPath nie jest obsługiwany podczas kompilowania przy użyciu platformy .NET Core.</target>
         <note>{StrBegin="MSB3705: "}</note>
+      </trans-unit>
+      <trans-unit id="XslTransform.SecuritySettingsViaUseTrustedSettings">
+        <source>You are enabling relaxed XSLT security settings via the UseTrustedSettings parameter. For more details on security implications of this setting please see https://aka.ms/msbuild/xsltransformation-task</source>
+        <target state="translated">Włączasz swobodne ustawienia zabezpieczeń XSLT za pośrednictwem parametru UseTrustedSettings. Aby uzyskać więcej informacji na temat wpływu tego ustawienia na zabezpieczenia, zobacz https://aka.ms/msbuild/xsltransformation-task</target>
+        <note />
       </trans-unit>
       <trans-unit id="XslTransform.XsltArgumentsError">
         <source>MSB3702: Unable to process the XsltParameters argument for the XslTransformation task. {0}</source>
@@ -3175,11 +3384,6 @@
         <target state="translated">Plik konfiguracji AssemblyFolder („{0}”) określony w elemencie Microsoft.Common.CurrentVersion.targets był nieprawidłowy. Błąd: {1}</target>
         <note />
       </trans-unit>
-      <trans-unit id="Copy.ExactlyOneTypeOfLink">
-        <source>MSB3891: Both "{0}" and "{1}" were specified in the project file. Please choose one or the other.</source>
-        <target state="translated">MSB3891: W pliku projektu określono elementy „{0}” i „{1}”. Wybierz jeden z nich.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="WriteLinesToFile.ErrorReadingFile">
         <source>MSB3492: Could not read existing file "{0}" to determine whether its contents are up to date. Overwriting it.</source>
         <target state="translated">MSB3492: nie można odczytać istniejącego pliku „{0}” w celu sprawdzenia, czy jego zawartość jest aktualna. Zostanie on zastąpiony.</target>
@@ -3204,11 +3408,6 @@
         <source>MSB4801: The task factory "{0}" is not supported on the .NET Core version of MSBuild.</source>
         <target state="translated">MSB4801: Fabryka zadań „{0}” nie jest obsługiwana przez wersję programu MSBuild dla platformy .NET Core.</target>
         <note>{StrBegin="MSB4801: "}</note>
-      </trans-unit>
-      <trans-unit id="Copy.FileLocked">
-        <source>The file is locked by: "{0}"</source>
-        <target state="translated">Plik jest zablokowany przez: „{0}”</target>
-        <note />
       </trans-unit>
       <trans-unit id="CodeTaskFactory.InvalidCodeType">
         <source>MSB3759: The specified code type "{0}" is invalid.  The supported code types are "{1}".</source>

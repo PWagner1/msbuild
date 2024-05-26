@@ -1,5 +1,5 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections.Generic;
@@ -9,18 +9,16 @@ namespace Microsoft.Build.Framework
     /// <summary>
     /// Arguments for build started events.
     /// </summary>
-    /// <remarks>
-    /// WARNING: marking a type [Serializable] without implementing
-    /// ISerializable imposes a serialization contract -- it is a
-    /// promise to never change the type's fields i.e. the type is
-    /// immutable; adding new fields in the next version of the type
-    /// without following certain special FX guidelines, can break both
-    /// forward and backward compatibility
-    /// </remarks>
+    // WARNING: marking a type [Serializable] without implementing
+    // ISerializable imposes a serialization contract -- it is a
+    // promise to never change the type's fields i.e. the type is
+    // immutable; adding new fields in the next version of the type
+    // without following certain special FX guidelines, can break both
+    // forward and backward compatibility
     [Serializable]
     public class BuildStartedEventArgs : BuildStatusEventArgs
     {
-        private IDictionary<string, string> environmentOnBuildStart;
+        private IDictionary<string, string>? environmentOnBuildStart;
 
         /// <summary>
         /// Default constructor
@@ -37,11 +35,9 @@ namespace Microsoft.Build.Framework
         /// </summary>
         /// <param name="message">text message</param>
         /// <param name="helpKeyword">help keyword </param>
-        public BuildStartedEventArgs
-        (
+        public BuildStartedEventArgs(
             string message,
-            string helpKeyword
-        )
+            string helpKeyword)
             : this(message, helpKeyword, DateTime.UtcNow)
         {
             // do nothing
@@ -54,12 +50,10 @@ namespace Microsoft.Build.Framework
         /// <param name="message">text message</param>
         /// <param name="helpKeyword">help keyword </param>
         /// <param name="environmentOfBuild">A dictionary which lists the environment of the build when the build is started.</param>
-        public BuildStartedEventArgs
-        (
-            string message,
-            string helpKeyword,
-            IDictionary<string, string> environmentOfBuild
-        )
+        public BuildStartedEventArgs(
+            string? message,
+            string? helpKeyword,
+            IDictionary<string, string>? environmentOfBuild)
             : this(message, helpKeyword, DateTime.UtcNow)
         {
             environmentOnBuildStart = environmentOfBuild;
@@ -71,12 +65,10 @@ namespace Microsoft.Build.Framework
         /// <param name="message">text message</param>
         /// <param name="helpKeyword">help keyword </param>
         /// <param name="eventTimestamp">Timestamp when the event was created</param>
-        public BuildStartedEventArgs
-        (
-            string message,
-            string helpKeyword,
-            DateTime eventTimestamp
-        )
+        public BuildStartedEventArgs(
+            string? message,
+            string? helpKeyword,
+            DateTime eventTimestamp)
             : this(message, helpKeyword, eventTimestamp, null)
         {
             // do nothing
@@ -89,13 +81,11 @@ namespace Microsoft.Build.Framework
         /// <param name="helpKeyword">help keyword </param>
         /// <param name="eventTimestamp">Timestamp when the event was created</param>
         /// <param name="messageArgs">message args</param>
-        public BuildStartedEventArgs
-        (
-            string message,
-            string helpKeyword,
+        public BuildStartedEventArgs(
+            string? message,
+            string? helpKeyword,
             DateTime eventTimestamp,
-            params object[] messageArgs
-        )
+            params object[]? messageArgs)
             : base(message, helpKeyword, "MSBuild", eventTimestamp, messageArgs)
         {
             // do nothing
@@ -104,7 +94,7 @@ namespace Microsoft.Build.Framework
         /// <summary>
         /// The environment which is used at the start of the build
         /// </summary>
-        public IDictionary<string, string> BuildEnvironment
+        public IDictionary<string, string>? BuildEnvironment
         {
             get { return environmentOnBuildStart; }
         }

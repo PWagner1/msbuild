@@ -1,5 +1,5 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections;
@@ -10,22 +10,22 @@ using Microsoft.Build.Framework;
 using Shouldly;
 using Xunit;
 
+#nullable disable
+
 namespace Microsoft.Build.UnitTests
 {
     public class CustomEventArgSerialization_Tests : IDisposable
     {
         // Generic build class to test custom serialization of abstract class BuildEventArgs
-        internal class GenericBuildEventArg : BuildEventArgs
+        internal sealed class GenericBuildEventArg : BuildEventArgs
         {
-            internal GenericBuildEventArg
-        (
+            internal GenericBuildEventArg(
             string message,
             string helpKeyword,
-            string senderName
-        )
+            string senderName)
                 : base(message, helpKeyword, senderName)
             {
-                //Do Nothing
+                // Do Nothing
             }
         }
 
@@ -192,7 +192,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Compare two BuildEventArgs 
+        /// Compare two BuildEventArgs
         /// </summary>
         private static void VerifyBuildErrorEventArgs(BuildErrorEventArgs genericEvent, BuildErrorEventArgs newGenericEvent)
         {
@@ -441,7 +441,7 @@ namespace Microsoft.Build.UnitTests
             genericEvent.WriteToStream(_writer);
             long streamWriteEndPosition = _stream.Position;
 
-            //Deserialize and Verify
+            // Deserialize and Verify
             _stream.Position = 0;
             BuildWarningEventArgs newGenericEvent = new BuildWarningEventArgs(null, null, null, -1, -1, -1, -1, null, null, null);
             newGenericEvent.CreateFromStream(_reader, _eventArgVersion);
@@ -458,7 +458,7 @@ namespace Microsoft.Build.UnitTests
             genericEvent.WriteToStream(_writer);
             streamWriteEndPosition = _stream.Position;
 
-            //Deserialize and Verify
+            // Deserialize and Verify
             _stream.Position = 0;
             newGenericEvent = new BuildWarningEventArgs(null, null, null, -1, -1, -1, -1, null, null, null);
             newGenericEvent.CreateFromStream(_reader, _eventArgVersion);
@@ -471,11 +471,11 @@ namespace Microsoft.Build.UnitTests
             genericEvent = new BuildWarningEventArgs(null, null, null, 1, 2, 3, 4, null, null, null);
             genericEvent.BuildEventContext = null;
 
-            //Serialize
+            // Serialize
             genericEvent.WriteToStream(_writer);
             streamWriteEndPosition = _stream.Position;
 
-            //Deserialize and Verify
+            // Deserialize and Verify
             _stream.Position = 0;
             newGenericEvent = new BuildWarningEventArgs("Something", "SomeThing", "SomeThing", -1, -1, -1, -1, "Something", "SomeThing", "Something");
             newGenericEvent.CreateFromStream(_reader, _eventArgVersion);
@@ -614,7 +614,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Compare the BuildProperties in propertyList with the Name Value pairs in the entryList. 
+        /// Compare the BuildProperties in propertyList with the Name Value pairs in the entryList.
         /// We need to make sure that each of the BuildProperties passed into the serializer come out correctly
         /// </summary>
         /// <param name="entryList">List of DictionaryEntries which were deserialized</param>
@@ -701,7 +701,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Compare two project started events 
+        /// Compare two project started events
         /// </summary>
         private static void VerifyProjectStartedEvent(ProjectStartedEventArgs genericEvent, ProjectStartedEventArgs newGenericEvent)
         {
@@ -732,7 +732,7 @@ namespace Microsoft.Build.UnitTests
             VerifyGenericEventArg(genericEvent, newGenericEvent);
             VerifyTargetStarted(genericEvent, newGenericEvent);
 
-            //Test using Empty strings
+            // Test using Empty strings
             _stream.Position = 0;
             // Make sure empty strings are passed correctly
             genericEvent = new TargetStartedEventArgs(string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, TargetBuiltReason.AfterTargets, DateTime.Now);
@@ -755,10 +755,10 @@ namespace Microsoft.Build.UnitTests
             // Make sure null string are passed correctly
             genericEvent = new TargetStartedEventArgs(null, null, null, null, null, null, TargetBuiltReason.AfterTargets, DateTime.Now);
             genericEvent.BuildEventContext = null;
-            //Serialize
+            // Serialize
             genericEvent.WriteToStream(_writer);
             streamWriteEndPosition = _stream.Position;
-            //Deserialize and Verify
+            // Deserialize and Verify
             _stream.Position = 0;
             newGenericEvent = new TargetStartedEventArgs("Something", "Something", "Something", "Something", "Something", "Something", TargetBuiltReason.AfterTargets, DateTime.Now);
             newGenericEvent.CreateFromStream(_reader, _eventArgVersion);
@@ -820,10 +820,10 @@ namespace Microsoft.Build.UnitTests
             // Make sure null string are passed correctly
             genericEvent = new TargetFinishedEventArgs(null, null, null, null, null, true);
             genericEvent.BuildEventContext = null;
-            //Serialize
+            // Serialize
             genericEvent.WriteToStream(_writer);
             streamWriteEndPosition = _stream.Position;
-            //Deserialize and Verify
+            // Deserialize and Verify
             _stream.Position = 0;
             newGenericEvent = new TargetFinishedEventArgs("Something", "Something", "Something", "Something", "Something", false);
             newGenericEvent.CreateFromStream(_reader, _eventArgVersion);
@@ -927,7 +927,7 @@ namespace Microsoft.Build.UnitTests
             VerifyGenericEventArg(genericEvent, newGenericEvent);
             VerifyTaskFinished(genericEvent, newGenericEvent);
 
-            //Test using empty strings
+            // Test using empty strings
             _stream.Position = 0;
             // Make sure empty strings are passed correctly
             genericEvent = new TaskFinishedEventArgs(string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, true);
@@ -945,7 +945,7 @@ namespace Microsoft.Build.UnitTests
             VerifyGenericEventArg(genericEvent, newGenericEvent);
             VerifyTaskFinished(genericEvent, newGenericEvent);
 
-            //Test using null strings
+            // Test using null strings
             _stream.Position = 0;
             // Make sure null string are passed correctly
             genericEvent = new TaskFinishedEventArgs(null, null, null, null, null, true);

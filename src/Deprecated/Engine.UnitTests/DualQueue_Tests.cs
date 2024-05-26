@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.Collections.Generic;
 using System.Collections;
@@ -30,8 +34,8 @@ namespace Microsoft.Build.UnitTests
             // List of strings which are supposed to be in the queue
             List<string> stringsSupposedToBeInQueue  = new List<string>();
             // List of strings which are supposed to be in the queue which uses EnQueueArray
-            List<string> stringsSupposedToBeInQueueTwo = new List<string>();  
-            
+            List<string> stringsSupposedToBeInQueueTwo = new List<string>();
+
             // Array containing our set of ManualResetEvents which is the number of threads we are going to use
             ManualResetEvent[] waitHandles = new ManualResetEvent[50];
             for (int i = 0; i < waitHandles.Length; i++)
@@ -44,7 +48,7 @@ namespace Microsoft.Build.UnitTests
                                   string string1 = System.Guid.NewGuid().ToString();
                                   string string2 = System.Guid.NewGuid().ToString();
                                   string string3 = System.Guid.NewGuid().ToString();
-                                  
+
                                   stringQueue.Enqueue(string1);
                                   lock (stringsSupposedToBeInQueue)
                                   {
@@ -57,18 +61,18 @@ namespace Microsoft.Build.UnitTests
                                       stringsSupposedToBeInQueueTwo.Add(string2);
                                       stringsSupposedToBeInQueueTwo.Add(string3);
                                   }
-                                  
+
                                   // Say we are done the thread
                                   ((ManualResetEvent)state).Set();
                               }, waitHandles[i]);
             }
-            
+
           // Wait for all of the threads to complete
             foreach (ManualResetEvent resetEvent in waitHandles)
             {
                 resetEvent.WaitOne();
             }
-          
+
             // Pop off items from the queue and make sure that we got all of out items back out
             int numberOfItemsInQueue = 0;
             string result = null;

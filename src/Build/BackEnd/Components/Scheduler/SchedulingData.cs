@@ -1,10 +1,12 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections.Generic;
-using Microsoft.Build.Shared;
 using Microsoft.Build.Collections;
+using Microsoft.Build.Shared;
+
+#nullable disable
 
 namespace Microsoft.Build.BackEnd
 {
@@ -86,6 +88,15 @@ namespace Microsoft.Build.BackEnd
 
         #endregion
 
+        #region Resource management
+
+        /// <summary>
+        /// The sum of number of cores explicitly granted to all build requests.
+        /// </summary>
+        private int _grantedCores;
+
+        #endregion
+
         #region Diagnostic Information
 
         /// <summary>
@@ -150,6 +161,14 @@ namespace Microsoft.Build.BackEnd
         public int ReadyRequestsCount
         {
             get { return _readyRequests.Count; }
+        }
+
+        /// <summary>
+        /// Gets the total number of cores granted to executing and yielding build requests.
+        /// </summary>
+        public int ExplicitlyGrantedCores
+        {
+            get { return _grantedCores; }
         }
 
         /// <summary>
@@ -360,9 +379,9 @@ namespace Microsoft.Build.BackEnd
                     ErrorUtilities.VerifyThrow(_configurationToRequests.ContainsKey(request.BuildRequest.ConfigurationId), "Configuration {0} never had requests assigned to it.", request.BuildRequest.ConfigurationId);
                     ErrorUtilities.VerifyThrow(_configurationToRequests[request.BuildRequest.ConfigurationId].Count > 0, "Configuration {0} has no requests assigned to it.", request.BuildRequest.ConfigurationId);
                     _configurationToRequests[request.BuildRequest.ConfigurationId].Remove(request);
-                    if (_scheduledRequestsByNode.ContainsKey(request.AssignedNode))
+                    if (_scheduledRequestsByNode.TryGetValue(request.AssignedNode, out var requests))
                     {
-                        _scheduledRequestsByNode[request.AssignedNode].Remove(request);
+                        requests.Remove(request);
                     }
 
                     request.EndTime = EventTime;
@@ -477,7 +496,7 @@ namespace Microsoft.Build.BackEnd
         }
 
         /// <summary>
-        /// Retrieves a request which has been assigned to a node and is in the executing, blocked or ready states.
+        /// Retrieves a request which has been assigned to a node and is in the executing, yielding, blocked, or ready states.
         /// </summary>
         public SchedulableRequest GetScheduledRequest(int globalRequestId)
         {
@@ -586,7 +605,7 @@ namespace Microsoft.Build.BackEnd
         }
 
         /// <summary>
-        /// Retrieves a set of build requests which have the specified parent.  If root is null, this will retrieve all of the 
+        /// Retrieves a set of build requests which have the specified parent.  If root is null, this will retrieve all of the
         /// top-level requests.
         /// </summary>
         public IEnumerable<SchedulableRequest> GetRequestsByHierarchy(SchedulableRequest root)
@@ -629,8 +648,40 @@ namespace Microsoft.Build.BackEnd
         /// </summary>
         public bool CanScheduleRequestToNode(SchedulableRequest request, int nodeId)
         {
-            int requiredNodeId = GetAssignedNodeForRequestConfiguration(request.BuildRequest.ConfigurationId);
+            return CanScheduleConfigurationToNode(request.BuildRequest.ConfigurationId, nodeId);
+        }
+
+        public bool CanScheduleConfigurationToNode(int configurationId, int nodeId)
+        {
+            int requiredNodeId = GetAssignedNodeForRequestConfiguration(configurationId);
             return requiredNodeId == Scheduler.InvalidNodeId || requiredNodeId == nodeId;
+        }
+
+        /// <summary>
+        /// Explicitly grants CPU cores to a request.
+        /// </summary>
+        public void GrantCoresToRequest(int globalRequestId, int coresToGrant)
+        {
+            // Update per-request state.
+            SchedulableRequest request = GetScheduledRequest(globalRequestId);
+            request.GrantedCores += coresToGrant;
+
+            // Update global state.
+            _grantedCores += coresToGrant;
+        }
+
+        /// <summary>
+        /// Explicitly removes previously granted CPU cores from a request.
+        /// </summary>
+        public void RemoveCoresFromRequest(int globalRequestId, int coresToRemove)
+        {
+            // Update per-request state.
+            SchedulableRequest request = GetScheduledRequest(globalRequestId);
+            coresToRemove = Math.Min(request.GrantedCores, coresToRemove);
+            request.GrantedCores -= coresToRemove;
+
+            // Update global state.
+            _grantedCores -= coresToRemove;
         }
 
         /// <summary>

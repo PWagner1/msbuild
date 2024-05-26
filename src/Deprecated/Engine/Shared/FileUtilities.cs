@@ -1,5 +1,9 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
 
 using System;
 using System.IO;
@@ -13,11 +17,11 @@ namespace Microsoft.Build.BuildEngine.Shared
 {
     /// <summary>
     /// This class contains utility methods for file IO.
-    /// PERF\COVERAGE NOTE: Try to keep classes in 'shared' as granular as possible. All the methods in 
+    /// PERF\COVERAGE NOTE: Try to keep classes in 'shared' as granular as possible. All the methods in
     /// each class get pulled into the resulting assembly.
     /// </summary>
     /// <owner>SumedhK</owner>
-    static internal class FileUtilities
+    internal static class FileUtilities
     {
         #region Item-spec modifiers
 
@@ -25,9 +29,9 @@ namespace Microsoft.Build.BuildEngine.Shared
         /// Encapsulates the definitions of the item-spec modifiers a.k.a. reserved item metadata.
         /// </summary>
         /// <owner>SumedhK</owner>
-        static internal class ItemSpecModifiers
+        internal static class ItemSpecModifiers
         {
-            // NOTE: If you add an item here that starts with a new letter, you need to update the case 
+            // NOTE: If you add an item here that starts with a new letter, you need to update the case
             // statements in IsItemSpecModifier and IsDerivableItemSpecModifier.
             internal const string FullPath = "FullPath";
             internal const string RootDir = "RootDir";
@@ -93,23 +97,23 @@ namespace Microsoft.Build.BuildEngine.Shared
                 return false;
             }
 
-            /* 
+            /*
              * What follows requires some explanation.
-             * 
-             * This function is called many times and slowness here will be amplified 
+             *
+             * This function is called many times and slowness here will be amplified
              * in critical performance scenarios.
-             * 
+             *
              * The following switch statement attempts to identify item spec modifiers that
-             * have the exact case that our constants in ItemSpecModifiers have. This is the 
+             * have the exact case that our constants in ItemSpecModifiers have. This is the
              * 99% case.
-             * 
+             *
              * Further, the switch statement can identify certain cases in which there is
              * definitely no chance that 'name' is an item spec modifier. For example, a
              * 7 letter 'name' that doesn't start with 'r' or 'R' can't be RootDir and
              * therefore is not an item spec modifier.
-             * 
+             *
              */
-            switch (name.Length) 
+            switch (name.Length)
             {
                 case 7: // RootDir
                     switch (name[0])
@@ -122,12 +126,12 @@ namespace Microsoft.Build.BuildEngine.Shared
                                 return true;
                             }
                             break;
-                        case 'r':        
+                        case 'r':
                             break;
                     }
                     break;
                 case 8: // FullPath, Filename, Identity
-     
+
                     switch (name[0])
                     {
                         default:
@@ -150,7 +154,7 @@ namespace Microsoft.Build.BuildEngine.Shared
                                 return true;
                             }
                             break;
-                        case 'i':        
+                        case 'i':
                             break;
                     }
                     break;
@@ -165,7 +169,7 @@ namespace Microsoft.Build.BuildEngine.Shared
                                 return true;
                             }
                             break;
-                        case 'd':        
+                        case 'd':
                             break;
                         case 'E': // Extension
                             if (name == ItemSpecModifiers.Extension)
@@ -173,9 +177,9 @@ namespace Microsoft.Build.BuildEngine.Shared
                                 return true;
                             }
                             break;
-                        case 'e':        
+                        case 'e':
                             break;
-                    }             
+                    }
                     break;
                 case 11: // RelativeDir, CreatedTime
                     switch (name[0])
@@ -196,10 +200,10 @@ namespace Microsoft.Build.BuildEngine.Shared
                                 return true;
                             }
                             break;
-                        case 'r':        
+                        case 'r':
                             break;
                     }
-                    break; 
+                    break;
                 case 12: // RecursiveDir, ModifiedTime, AccessedTime
 
                     switch (name[0])
@@ -212,7 +216,7 @@ namespace Microsoft.Build.BuildEngine.Shared
                                 return true;
                             }
                             break;
-                        case 'a':        
+                        case 'a':
                             break;
                         case 'M': // ModifiedTime
                             if (name == ItemSpecModifiers.ModifiedTime)
@@ -220,7 +224,7 @@ namespace Microsoft.Build.BuildEngine.Shared
                                 return true;
                             }
                             break;
-                        case 'm':        
+                        case 'm':
                             break;
                         case 'R': // RecursiveDir
                             if (name == ItemSpecModifiers.RecursiveDir)
@@ -228,7 +232,7 @@ namespace Microsoft.Build.BuildEngine.Shared
                                 return true;
                             }
                             break;
-                        case 'r':        
+                        case 'r':
                             break;
                     }
                     break;
@@ -236,7 +240,7 @@ namespace Microsoft.Build.BuildEngine.Shared
                     // Not the right length for a match.
                     return false;
             }
-                   
+
 
             // Could still be a case-insensitive match.
             bool result = ItemSpecModifiers.TableOfItemSpecModifiers.ContainsKey(name);
@@ -259,18 +263,18 @@ namespace Microsoft.Build.BuildEngine.Shared
                 {
                     if (name[0] == 'R' || name[0] == 'r')
                     {
-                        // The only 12 letter ItemSpecModifier that starts with 'R' is 'RecursiveDir' 
+                        // The only 12 letter ItemSpecModifier that starts with 'R' is 'RecursiveDir'
                         return false;
                     }
                 }
             }
 
             return isItemSpecModifier;
-       }
+        }
 
         /// <summary>
         /// Performs path manipulations on the given item-spec as directed.
-        /// 
+        ///
         /// Supported modifiers:
         ///     %(FullPath)         = full path of item
         ///     %(RootDir)          = root directory of item
@@ -283,7 +287,7 @@ namespace Microsoft.Build.BuildEngine.Shared
         ///     %(ModifiedTime)     = last write time of item
         ///     %(CreatedTime)      = creation time of item
         ///     %(AccessedTime)     = last access time of item
-        /// 
+        ///
         /// NOTES:
         /// 1) This method always returns an empty string for the %(RecursiveDir) modifier because it does not have enough
         ///    information to compute it -- only the BuildItem class can compute this modifier.
@@ -294,7 +298,7 @@ namespace Microsoft.Build.BuildEngine.Shared
         /// 1) successive slashes are combined into 1 slash
         /// 2) trailing periods are discarded
         /// 3) forward slashes are changed to back-slashes
-        /// 
+        ///
         /// As a result, we cannot rely on any file-spec that has passed through a Path method to remain the same. We will
         /// therefore not bother preserving slashes and periods when file-specs are transformed.
         /// </remarks>
@@ -330,7 +334,7 @@ namespace Microsoft.Build.BuildEngine.Shared
                 {
                     if (String.Equals(modifier, ItemSpecModifiers.FullPath, StringComparison.OrdinalIgnoreCase))
                     {
-                        if(currentDirectory == null)
+                        if (currentDirectory == null)
                         {
                             currentDirectory = String.Empty;
                         }
@@ -455,7 +459,7 @@ namespace Microsoft.Build.BuildEngine.Shared
                         }
                         else
                         {
-                            // File does not exist, or path is a directory                        
+                            // File does not exist, or path is a directory
                             modifiedItemSpec = String.Empty;
                         }
                     }
@@ -473,7 +477,7 @@ namespace Microsoft.Build.BuildEngine.Shared
                         }
                         else
                         {
-                            // File does not exist, or path is a directory                        
+                            // File does not exist, or path is a directory
                             modifiedItemSpec = String.Empty;
                         }
                     }
@@ -485,7 +489,10 @@ namespace Microsoft.Build.BuildEngine.Shared
                 catch (Exception e) // Catching Exception, but rethrowing unless it's a well-known exception.
                 {
                     if (ExceptionHandling.NotExpectedException(e))
+                    {
                         throw;
+                    }
+
                     ErrorUtilities.VerifyThrowInvalidOperation(false, "Shared.InvalidFilespecForTransform", modifier, itemSpec, e.Message);
                 }
 
@@ -497,7 +504,7 @@ namespace Microsoft.Build.BuildEngine.Shared
                     if (cachedModifiers == null)
                     {
                         cachedModifiers = new Hashtable(StringComparer.OrdinalIgnoreCase);
-     
+
                         // mark the cache to indicate the item-spec for which it was created
                         // NOTE: we've intentionally picked a key here that will never conflict with any modifier name -- if we
                         // use the item-spec as the key, it's possible for it to conflict with the name of a modifier
@@ -566,7 +573,7 @@ namespace Microsoft.Build.BuildEngine.Shared
         }
 
         /// <summary>
-        /// Indicates if the given character is a slash. 
+        /// Indicates if the given character is a slash.
         /// </summary>
         /// <owner>SumedhK</owner>
         /// <param name="c"></param>
@@ -715,7 +722,7 @@ namespace Microsoft.Build.BuildEngine.Shared
         /// <summary>
         /// Gets a file info object for the specified file path. If the file path
         /// is invalid, or is a directory, or cannot be accessed, or does not exist,
-        /// it returns null rather than throwing or returning a FileInfo around a non-existent file. 
+        /// it returns null rather than throwing or returning a FileInfo around a non-existent file.
         /// This allows it to be called where File.Exists() (which never throws, and returns false
         /// for directories) was called - but with the advantage that a FileInfo object is returned
         /// that can be queried (e.g., for LastWriteTime) without hitting the disk again.
@@ -733,7 +740,9 @@ namespace Microsoft.Build.BuildEngine.Shared
             catch (Exception e) // Catching Exception, but rethrowing unless it's a well-known exception.
             {
                 if (ExceptionHandling.NotExpectedException(e))
+                {
                     throw;
+                }
 
                 // Invalid or inaccessible path: treat as if nonexistent file, just as File.Exists does
                 return null;
@@ -775,11 +784,11 @@ namespace Microsoft.Build.BuildEngine.Shared
         }
 
         /// <summary>
-        /// Given the absolute location of a file, and a disc location, returns relative file path to that disk location. 
+        /// Given the absolute location of a file, and a disc location, returns relative file path to that disk location.
         /// Throws UriFormatException.
         /// </summary>
         /// <param name="basePath">
-        /// The base path we want to relativize to. Must be absolute.  
+        /// The base path we want to relativize to. Must be absolute.
         /// Should <i>not</i> include a filename as the last segment will be interpreted as a directory.
         /// </param>
         /// <param name="path">

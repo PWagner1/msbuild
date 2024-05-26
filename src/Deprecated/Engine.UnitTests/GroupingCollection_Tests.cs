@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.Globalization;
 using System.Reflection;
@@ -198,7 +202,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Make sure linked property group and item group counting works correctly. 
+        /// Make sure linked property group and item group counting works correctly.
         /// Parent grouping collections depend on child grouping collections to update the count for nested groups.
         /// </summary>
         /// <owner>LukaszG</owner>
@@ -239,13 +243,13 @@ namespace Microsoft.Build.UnitTests
             nestedGroup.Clear();
             nestedGroup.InsertAtEnd(this.ig2);
             nestedGroup.InsertAfter(this.ig3, this.ig2);
-            
+
             childGroup1.RemovePropertyGroup(this.pg1);
             childGroup1.RemoveItemGroup(this.ig1);
             childGroup1.InsertAtEnd(this.ig3);
 
             childGroup2.RemovePropertyGroup(this.pg1);
-            
+
             masterGroup.RemoveItemGroup(this.ig2);
 
             Assertion.AssertEquals(nestedGroup.ItemGroupCount, 2);

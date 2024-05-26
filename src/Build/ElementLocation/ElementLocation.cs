@@ -1,11 +1,13 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.Build.Shared;
-using Microsoft.Build.BackEnd;
-using Microsoft.Build.Collections;
 using System;
 using System.Diagnostics;
+using Microsoft.Build.BackEnd;
+using Microsoft.Build.Collections;
+using Microsoft.Build.Shared;
+
+#nullable disable
 
 namespace Microsoft.Build.Construction
 {
@@ -78,7 +80,7 @@ namespace Microsoft.Build.Construction
         /// It is to be used for the project location when the project has not been given a name.
         /// In that case, it exists, but can't have a specific location.
         /// </summary>
-        internal static ElementLocation EmptyLocation
+        public static ElementLocation EmptyLocation
         {
             get { return s_emptyElementLocation; }
         }
@@ -299,8 +301,8 @@ namespace Microsoft.Build.Construction
         /// For when the line and column each fit in a short - under 65536
         /// (almost always will: microsoft.common.targets is less than 5000 lines long)
         /// When loading Australian Government, for example, there are over 31,000 ElementLocation
-        /// objects so this saves 4 bytes each = 123KB 
-        /// 
+        /// objects so this saves 4 bytes each = 123KB
+        ///
         /// A "very small" variation that used two bytes (or halves of a short) would fit about half of them
         /// and save 4 more bytes each, but the CLR packs each field to 4 bytes, so it isn't actually any smaller.
         /// </summary>

@@ -1,5 +1,9 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
 
 using System;
 using Microsoft.Build.BuildEngine.Shared;
@@ -32,9 +36,9 @@ namespace Microsoft.Build.BuildEngine
 
             if (containsEscapedWildcards && containsRealWildcards)
             {
-                // Umm, this makes no sense.  The item's Include has both escaped wildcards and 
+                // Umm, this makes no sense.  The item's Include has both escaped wildcards and
                 // real wildcards.  What does he want us to do?  Go to the file system and find
-                // files that literally have '*' in their filename?  Well, that's not going to 
+                // files that literally have '*' in their filename?  Well, that's not going to
                 // happen because '*' is an illegal character to have in a filename.
 
                 // Just return the original string.
@@ -60,7 +64,7 @@ namespace Microsoft.Build.BuildEngine
                 // and on every machine.
                 Array.Sort(fileList);
 
-                // We must now go back and make sure all special characters are escaped because we always 
+                // We must now go back and make sure all special characters are escaped because we always
                 // store data in the engine in escaped form so it doesn't screw up our parsing.
                 // Note that this means that characters that were not escaped in the original filespec
                 // may now be escaped, but that's not easy to avoid.
@@ -71,7 +75,7 @@ namespace Microsoft.Build.BuildEngine
             }
             else
             {
-                // No real wildcards means we just return the original string.  Don't even bother 
+                // No real wildcards means we just return the original string.  Don't even bother
                 // escaping ... it should already be escaped appropriately since it came directly
                 // from the project file or the OM host.
                 fileList = new string[] { filespec };

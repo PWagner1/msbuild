@@ -1,5 +1,9 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
 
 using System.Globalization;
 using System;
@@ -17,7 +21,7 @@ namespace Microsoft.Build.BuildEngine
     ///    do {
     ///      s.Advance();
     ///    while (s.IsNext(Token.EndOfInput));
-    /// 
+    ///
     ///  After Advance() is called, you can get the current token (s.CurrentToken),
     ///  check it's type (s.IsNext()), get the string for it (s.NextString()).
     /// </summary>
@@ -29,11 +33,11 @@ namespace Microsoft.Build.BuildEngine
         private bool errorState;
         private int errorPosition;
         // What we found instead of what we were looking for
-        private string unexpectedlyFound = null; 
+        private string unexpectedlyFound = null;
         private ParserOptions options;
         private string errorResource = null;
-        
-        // Shared instances of "hardcoded" token strings. These are only used 
+
+        // Shared instances of "hardcoded" token strings. These are only used
         // in error messages.
         private const string comma = ",";
         private const string leftParenthesis = "(";
@@ -104,7 +108,7 @@ namespace Microsoft.Build.BuildEngine
             }
         }
 
-        internal bool IsNext( Token.TokenType type )
+        internal bool IsNext(Token.TokenType type)
         {
             return lookahead.IsToken(type);
         }
@@ -125,7 +129,7 @@ namespace Microsoft.Build.BuildEngine
             return errorPosition;
         }
 
-        // The string (usually a single character) we found unexpectedly. 
+        // The string (usually a single character) we found unexpectedly.
         // We might want to show it in the error message, to help the user spot the error.
         internal string UnexpectedlyFound
         {
@@ -146,10 +150,14 @@ namespace Microsoft.Build.BuildEngine
         internal bool Advance()
         {
             if (errorState)
+            {
                 return false;
+            }
 
             if (lookahead?.IsToken(Token.TokenType.EndOfInput) == true)
-                return true;          
+            {
+                return true;
+            }
 
             SkipWhiteSpace();
 
@@ -178,7 +186,10 @@ namespace Microsoft.Build.BuildEngine
                         break;
                     case '$':
                         if (!ParseProperty())
+                        {
                             return false;
+                        }
+
                         break;
                     case '%':
                         // If the caller specified that he DOESN'T want to allow item metadata ...
@@ -191,7 +202,10 @@ namespace Microsoft.Build.BuildEngine
                             return false;
                         }
                         if (!ParseItemMetadata())
+                        {
                             return false;
+                        }
+
                         break;
                     case '@':
                         int start = this.parsePoint;
@@ -207,7 +221,10 @@ namespace Microsoft.Build.BuildEngine
                             }
                         }
                         if (!ParseItemList())
+                        {
                             return false;
+                        }
+
                         break;
                     case '!':
                         // negation and not-equal
@@ -274,12 +291,18 @@ namespace Microsoft.Build.BuildEngine
                         break;
                     case '\'':
                         if (!ParseQuotedString())
+                        {
                             return false;
+                        }
+
                         break;
                     default:
                         // Simple strings, function calls, decimal numbers, hex numbers
                         if (!ParseRemaining())
+                        {
                             return false;
+                        }
+
                         break;
                 }
             }
@@ -287,7 +310,7 @@ namespace Microsoft.Build.BuildEngine
         }
 
         /// <summary>
-        /// Parses either the $(propertyname) syntax or the %(metadataname) syntax, 
+        /// Parses either the $(propertyname) syntax or the %(metadataname) syntax,
         /// and returns the parsed string beginning with the '$' or '%', and ending with the
         /// closing parenthesis.
         /// </summary>
@@ -532,12 +555,16 @@ namespace Microsoft.Build.BuildEngine
             if (CharacterUtilities.IsNumberStart(expression[parsePoint])) // numeric
             {
                 if (!ParseNumeric(start))
+                {
                     return false;
+                }
             }
             else if (CharacterUtilities.IsSimpleStringStart(expression[parsePoint])) // simple string (handle 'and' and 'or')
             {
                 if (!ParseSimpleStringOrFunction(start))
+                {
                     return false;
+                }
             }
             else
             {
@@ -550,7 +577,7 @@ namespace Microsoft.Build.BuildEngine
             }
             return true;
         }
-        private bool ParseSimpleStringOrFunction( int start )
+        private bool ParseSimpleStringOrFunction(int start)
         {
             SkipSimpleStringChars();
             if (string.Equals(expression.Substring(start, parsePoint - start), "and", StringComparison.OrdinalIgnoreCase))
@@ -577,16 +604,16 @@ namespace Microsoft.Build.BuildEngine
             }
             return true;
         }
-        private bool ParseNumeric( int start )
+        private bool ParseNumeric(int start)
         {
-            if ((expression.Length-parsePoint) > 2 && expression[parsePoint] == '0' && (expression[parsePoint + 1] == 'x' || expression[parsePoint + 1] == 'X'))
+            if ((expression.Length - parsePoint) > 2 && expression[parsePoint] == '0' && (expression[parsePoint + 1] == 'x' || expression[parsePoint + 1] == 'X'))
             {
                 // Hex number
                 parsePoint += 2;
                 SkipHexDigits();
                 lookahead = new Token(Token.TokenType.Numeric, expression.Substring(start, parsePoint - start));
             }
-            else if ( CharacterUtilities.IsNumberStart(expression[parsePoint]))
+            else if (CharacterUtilities.IsNumberStart(expression[parsePoint]))
             {
                 // Decimal number
                 if (expression[parsePoint] == '+')
@@ -622,25 +649,37 @@ namespace Microsoft.Build.BuildEngine
         private void SkipWhiteSpace()
         {
             while (parsePoint < expression.Length && char.IsWhiteSpace(expression[parsePoint]))
+            {
                 parsePoint++;
+            }
+
             return;
         }
         private void SkipDigits()
         {
             while (parsePoint < expression.Length && char.IsDigit(expression[parsePoint]))
+            {
                 parsePoint++;
+            }
+
             return;
         }
         private void SkipHexDigits()
         {
             while (parsePoint < expression.Length && CharacterUtilities.IsHexDigit(expression[parsePoint]))
+            {
                 parsePoint++;
+            }
+
             return;
         }
         private void SkipSimpleStringChars()
         {
             while (parsePoint < expression.Length && CharacterUtilities.IsSimpleStringChar(expression[parsePoint]))
+            {
                 parsePoint++;
+            }
+
             return;
         }
     }

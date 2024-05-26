@@ -1,5 +1,7 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+#if FEATURE_FILE_TRACKER
 
 using System;
 using System.Collections.Generic;
@@ -9,7 +11,7 @@ using System.IO;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 
-#if FEATURE_FILE_TRACKER
+#nullable disable
 
 namespace Microsoft.Build.Utilities
 {
@@ -19,6 +21,7 @@ namespace Microsoft.Build.Utilities
     /// </summary>
     public class CanonicalTrackedOutputFiles
     {
+#pragma warning disable format // region formatting is different in net7.0 and net472, and cannot be fixed for both
         #region Member Data
         // The .write. tracking log files
         private ITaskItem[] _tlogFiles;
@@ -116,10 +119,7 @@ namespace Microsoft.Build.Utilities
                 {
                     // The tracking logs are not available, they may have been deleted at some point.
                     // Be safe and remove any references from the cache.
-                    if (DependencyTableCache.DependencyTable.ContainsKey(tLogRootingMarker))
-                    {
-                        DependencyTableCache.DependencyTable.Remove(tLogRootingMarker);
-                    }
+                    DependencyTableCache.DependencyTable.Remove(tLogRootingMarker);
                 }
                 return;
             }
@@ -246,11 +246,7 @@ namespace Microsoft.Build.Utilities
                 // sure that we essentially force a rebuild of this particular root.
                 if (encounteredInvalidTLogContents)
                 {
-                    if (DependencyTableCache.DependencyTable.ContainsKey(tLogRootingMarker))
-                    {
-                        DependencyTableCache.DependencyTable.Remove(tLogRootingMarker);
-                    }
-
+                    DependencyTableCache.DependencyTable.Remove(tLogRootingMarker);
                     DependencyTable = new Dictionary<string, Dictionary<string, DateTime>>(StringComparer.OrdinalIgnoreCase);
                 }
                 else
@@ -263,13 +259,13 @@ namespace Microsoft.Build.Utilities
 
         /// <summary>
         /// Given a set of sources, removes from the dependency graph any roots that share
-        /// the same outputs as the rooting marker constructed from the given set of sources. 
+        /// the same outputs as the rooting marker constructed from the given set of sources.
         /// </summary>
         /// <comment>
-        /// Used when there's a possibility that more than one set of inputs may produce the 
-        /// same output -- this is a way to invalidate any other roots that produce that same 
-        /// outputs, so that the next time the task is run with that other set of inputs, it 
-        /// won't incorrectly believe that it is up-to-date.  
+        /// Used when there's a possibility that more than one set of inputs may produce the
+        /// same output -- this is a way to invalidate any other roots that produce that same
+        /// outputs, so that the next time the task is run with that other set of inputs, it
+        /// won't incorrectly believe that it is up-to-date.
         /// </comment>
         /// <param name="sources">The set of sources that form the rooting marker whose outputs
         /// should not be shared by any other rooting marker.</param>
@@ -283,15 +279,15 @@ namespace Microsoft.Build.Utilities
 
             if (DependencyTable.TryGetValue(currentRoot, out Dictionary<string, DateTime> currentOutputs))
             {
-                // This is O(n*m), but in most cases, both n (the number of roots in the file) and m (the number 
-                // of outputs per root) should be fairly small. 
+                // This is O(n*m), but in most cases, both n (the number of roots in the file) and m (the number
+                // of outputs per root) should be fairly small.
                 // UNDONE: Can we make this faster?
                 foreach (KeyValuePair<string, Dictionary<string, DateTime>> root in DependencyTable)
                 {
                     if (!currentRoot.Equals(root.Key, StringComparison.Ordinal))
                     {
-                        // If the current entry contains any of the outputs of the rooting marker we have sources for, 
-                        // then we want to remove it from the dependency table. 
+                        // If the current entry contains any of the outputs of the rooting marker we have sources for,
+                        // then we want to remove it from the dependency table.
                         foreach (string output in currentOutputs.Keys)
                         {
                             if (root.Value.ContainsKey(output))
@@ -303,7 +299,7 @@ namespace Microsoft.Build.Utilities
                     }
                 }
 
-                // Now actually remove the markers that we intend to remove. 
+                // Now actually remove the markers that we intend to remove.
                 foreach (string removedMarker in removedMarkers)
                 {
                     DependencyTable.Remove(removedMarker);
@@ -320,9 +316,9 @@ namespace Microsoft.Build.Utilities
         /// <param name="outputPathToRemove">The output path to be removed</param>
         public bool RemoveOutputForSourceRoot(string sourceRoot, string outputPathToRemove)
         {
-            if (DependencyTable.ContainsKey(sourceRoot))
+            if (DependencyTable.TryGetValue(sourceRoot, out var outputPaths))
             {
-                bool removed = DependencyTable[sourceRoot].Remove(outputPathToRemove);
+                bool removed = outputPaths.Remove(outputPathToRemove);
                 // If we just removed the last entry for this root, remove the root.
                 if (DependencyTable[sourceRoot].Count == 0)
                 {
@@ -584,10 +580,7 @@ namespace Microsoft.Build.Utilities
                 {
                     // The tracking logs in the cache will be invalidated by this compaction
                     // remove the cached entries to be sure
-                    if (DependencyTableCache.DependencyTable.ContainsKey(tLogRootingMarker))
-                    {
-                        DependencyTableCache.DependencyTable.Remove(tLogRootingMarker);
-                    }
+                    DependencyTableCache.DependencyTable.Remove(tLogRootingMarker);
                 }
 
                 string firstTlog = _tlogFiles[0].ItemSpec;
@@ -601,9 +594,10 @@ namespace Microsoft.Build.Utilities
                 // Write out the dependency information as a new tlog
                 using (StreamWriter outputs = FileUtilities.OpenWrite(firstTlog, false, System.Text.Encoding.Unicode))
                 {
-                    foreach (string rootingMarker in DependencyTable.Keys)
+                    foreach (KeyValuePair<string, Dictionary<string, DateTime>> kvp in DependencyTable)
                     {
-                        Dictionary<string, DateTime> dependencies = DependencyTable[rootingMarker];
+                        string rootingMarker = kvp.Key;
+                        Dictionary<string, DateTime> dependencies = kvp.Value;
                         outputs.WriteLine("^" + rootingMarker);
                         foreach (string file in dependencies.Keys)
                         {
@@ -761,8 +755,9 @@ namespace Microsoft.Build.Utilities
                 var dependenciesWithoutMissingFiles = new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
                 int keyIndex = 0;
 
-                foreach (string file in dependencies.Keys)
+                foreach (KeyValuePair<string, DateTime> kvp in dependencies)
                 {
+                    string file = kvp.Key;
                     if (keyIndex++ > 0)
                     {
                         // Record whether or not each file exists and cache it.
@@ -779,7 +774,7 @@ namespace Microsoft.Build.Utilities
                         // Does the cached file exist?
                         if (fileExists)
                         {
-                            dependenciesWithoutMissingFiles.Add(file, dependencies[file]);
+                            dependenciesWithoutMissingFiles.Add(file, kvp.Value);
                         }
                     }
                     else
@@ -792,6 +787,7 @@ namespace Microsoft.Build.Utilities
             }
         }
         #endregion
+#pragma warning restore format
     }
 }
 

@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -91,7 +95,7 @@ namespace Microsoft.Build.UnitTests
 
             // Custom metadata count only
             Assertion.AssertEquals(2, item.CustomMetadataCount);
-            
+
             // All metadata count
             Assertion.AssertEquals(2 + FileUtilities.ItemSpecModifiers.All.Length, item.MetadataCount);
         }
@@ -99,7 +103,7 @@ namespace Microsoft.Build.UnitTests
         [Test]
         public void MetadataIncludesItemDefinitionMetadata()
         {
-            // Get an item of type "i" that has an item definition library 
+            // Get an item of type "i" that has an item definition library
             // for type "i" that has default value "m1" for metadata "m"
             // and has value "n1" for metadata "n"
             BuildItem item = GetXmlBackedItemWithDefinitionLibrary();
@@ -191,7 +195,7 @@ namespace Microsoft.Build.UnitTests
             item.SetMetadata("n", "n1");
             return item;
         }
-        
+
         private static BuildItem CreateBuildItemFromXmlDocument(XmlDocument doc)
         {
             ItemDefinitionLibrary itemDefinitionLibrary = new ItemDefinitionLibrary(new Project());

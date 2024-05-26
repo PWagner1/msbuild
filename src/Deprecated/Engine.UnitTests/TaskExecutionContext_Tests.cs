@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -29,18 +33,18 @@ namespace Microsoft.Build.UnitTests
              // Create some items to instantiate a task execution context and check to make sure those values are set properly
             Engine engine = new Engine();
                    engine.BinPath="TestBinPath";
-          
-            ArrayList targetsToBuild = new ArrayList(); 
+
+            ArrayList targetsToBuild = new ArrayList();
             targetsToBuild.Add("targetName");
             ProjectBuildState projectContext = new ProjectBuildState(null, targetsToBuild, new BuildEventContext(0, 1, 1, 1));
 
             TaskExecutionContext context = new TaskExecutionContext(null, null, null, projectContext, 4, EngineCallback.inProcNode, new BuildEventContext(BuildEventContext.InvalidNodeId, BuildEventContext.InvalidTargetId, BuildEventContext.InvalidProjectContextId, BuildEventContext.InvalidTaskId));
-         
+
             Assert.IsTrue(context.BuildContext.TargetNamesToBuild.Contains("targetName"),"Expected target list to contain targetName");
             Assert.IsNull(context.ParentTarget,"ParentTarget should be null");
             Assert.IsNull(context.ThrownException,"ThrownException should be null");
             Assert.AreEqual(4,context.HandleId,"Node ProxyId should be 4");
-        } 
+        }
 
 
         /// <summary>

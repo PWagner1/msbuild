@@ -1,11 +1,15 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Generic;
 using System.Diagnostics;
-using Microsoft.Build.Shared;
-using Microsoft.Build.Framework;
+using System.Linq;
 using Microsoft.Build.Execution;
+using Microsoft.Build.Experimental.ProjectCache;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Shared;
+
+#nullable disable
 
 namespace Microsoft.Build.BackEnd
 {
@@ -41,6 +45,11 @@ namespace Microsoft.Build.BackEnd
         private int _configurationId;
 
         /// <summary>
+        /// The project context id, if already determined.
+        /// </summary>
+        private int _projectContextId;
+
+        /// <summary>
         /// The global build request id, assigned by the Build Manager
         /// </summary>
         private int _globalRequestId;
@@ -55,10 +64,11 @@ namespace Microsoft.Build.BackEnd
         /// </summary>
         private int _nodeRequestId;
 
-        /// <summary>
-        /// The targets specified when the request was made.  Doesn't include default or initial targets.
-        /// </summary>
+        /// <inheritdoc cref="BuildRequest.Targets"/>
         private List<string> _targets;
+
+        /// <inheritdoc cref="BuildRequest.ProxyTargets"/>
+        private ProxyTargets _proxyTargets;
 
         /// <summary>
         /// The build event context of the parent
@@ -89,6 +99,63 @@ namespace Microsoft.Build.BackEnd
         {
         }
 
+        private BuildRequest(
+            int submissionId,
+            int nodeRequestId,
+            int configurationId,
+            HostServices hostServices,
+            BuildRequestDataFlags buildRequestDataFlags,
+            RequestedProjectState requestedProjectState,
+            int projectContextId)
+        {
+            _submissionId = submissionId;
+            _configurationId = configurationId;
+            _projectContextId = projectContextId;
+
+            HostServices = hostServices;
+            _buildEventContext = BuildEventContext.Invalid;
+            _globalRequestId = InvalidGlobalRequestId;
+
+            _nodeRequestId = nodeRequestId;
+            _buildRequestDataFlags = buildRequestDataFlags;
+            _requestedProjectState = requestedProjectState;
+
+            if (_requestedProjectState != null)
+            {
+                _buildRequestDataFlags |= BuildRequestDataFlags.ProvideSubsetOfStateAfterBuild;
+            }
+        }
+
+        /// <summary>
+        /// Initializes a build request with proxy targets.
+        /// </summary>
+        /// <param name="submissionId">The id of the build submission.</param>
+        /// <param name="nodeRequestId">The id of the node issuing the request</param>
+        /// <param name="configurationId">The configuration id to use.</param>
+        /// <param name="proxyTargets"><see cref="ProxyTargets"/></param>
+        /// <param name="hostServices">Host services if any. May be null.</param>
+        /// <param name="buildRequestDataFlags">Additional flags for the request.</param>
+        /// <param name="requestedProjectState">Filter for desired build results.</param>
+        /// <param name="projectContextId">The project context id</param>
+        public BuildRequest(
+            int submissionId,
+            int nodeRequestId,
+            int configurationId,
+            ProxyTargets proxyTargets,
+            HostServices hostServices,
+            BuildRequestDataFlags buildRequestDataFlags = BuildRequestDataFlags.None,
+            RequestedProjectState requestedProjectState = null,
+            int projectContextId = BuildEventContext.InvalidProjectContextId)
+            : this(submissionId, nodeRequestId, configurationId, hostServices, buildRequestDataFlags, requestedProjectState, projectContextId)
+        {
+            _proxyTargets = proxyTargets;
+            _targets = proxyTargets.ProxyTargetToRealTargetMap.Keys.ToList();
+
+            // Only root requests can have proxy targets.
+            _parentGlobalRequestId = InvalidGlobalRequestId;
+            _parentBuildEventContext = BuildEventContext.Invalid;
+        }
+
         /// <summary>
         /// Initializes a build request with a parent context.
         /// </summary>
@@ -102,6 +169,7 @@ namespace Microsoft.Build.BackEnd
         /// <param name="skipStaticGraphIsolationConstraints"></param>
         /// <param name="buildRequestDataFlags">Additional flags for the request.</param>
         /// <param name="requestedProjectState">Filter for desired build results.</param>
+        /// <param name="projectContextId">The project context id</param>
         public BuildRequest(
             int submissionId,
             int nodeRequestId,
@@ -112,13 +180,12 @@ namespace Microsoft.Build.BackEnd
             BuildRequest parentRequest,
             BuildRequestDataFlags buildRequestDataFlags = BuildRequestDataFlags.None,
             RequestedProjectState requestedProjectState = null,
-            bool skipStaticGraphIsolationConstraints = false)
+            bool skipStaticGraphIsolationConstraints = false,
+            int projectContextId = BuildEventContext.InvalidProjectContextId)
+        : this(submissionId, nodeRequestId, configurationId, hostServices, buildRequestDataFlags, requestedProjectState, projectContextId)
         {
             ErrorUtilities.VerifyThrowArgumentNull(escapedTargets, "targets");
             ErrorUtilities.VerifyThrowArgumentNull(parentBuildEventContext, nameof(parentBuildEventContext));
-
-            _submissionId = submissionId;
-            _configurationId = configurationId;
 
             // When targets come into a build request, we unescape them.
             _targets = new List<string>(escapedTargets.Count);
@@ -127,15 +194,8 @@ namespace Microsoft.Build.BackEnd
                 _targets.Add(EscapingUtilities.UnescapeAll(target));
             }
 
-            HostServices = hostServices;
-            _buildEventContext = BuildEventContext.Invalid;
             _parentBuildEventContext = parentBuildEventContext;
-            _globalRequestId = InvalidGlobalRequestId;
             _parentGlobalRequestId = parentRequest?.GlobalRequestId ?? InvalidGlobalRequestId;
-
-            _nodeRequestId = nodeRequestId;
-            _buildRequestDataFlags = buildRequestDataFlags;
-            _requestedProjectState = requestedProjectState;
 
             _skipStaticGraphIsolationConstraints = skipStaticGraphIsolationConstraints;
         }
@@ -176,6 +236,16 @@ namespace Microsoft.Build.BackEnd
             [DebuggerStepThrough]
             get
             { return _configurationId; }
+        }
+
+        /// <summary>
+        /// Returns the project context id
+        /// </summary>
+        public int ProjectContextId
+        {
+            [DebuggerStepThrough]
+            get
+            { return _projectContextId; }
         }
 
         /// <summary>
@@ -221,13 +291,24 @@ namespace Microsoft.Build.BackEnd
         }
 
         /// <summary>
-        /// Returns the set of unescaped targets to be built
+        /// The targets specified when the request was made.  Doesn't include default or initial targets.
+        /// Either this is null or <see cref="ProxyTargets"/> is null;
         /// </summary>
         public List<string> Targets
         {
             [DebuggerStepThrough]
             get
             { return _targets; }
+        }
+
+        /// <summary>
+        /// See <see cref="ProxyTargets"/>. Either this is null, or <see cref="_targets"/> is null;
+        /// </summary>
+        public ProxyTargets ProxyTargets
+        {
+            [DebuggerStepThrough]
+            get
+            { return _proxyTargets; }
         }
 
         /// <summary>
@@ -350,6 +431,8 @@ namespace Microsoft.Build.BackEnd
             translator.Translate(ref _skipStaticGraphIsolationConstraints);
             translator.Translate(ref _requestedProjectState);
             translator.Translate(ref _hostServices);
+            translator.Translate(ref _proxyTargets, ProxyTargets.FactoryForDeserialization);
+            translator.Translate(ref _projectContextId);
 
             // UNDONE: (Compat) Serialize the host object.
         }
@@ -363,5 +446,10 @@ namespace Microsoft.Build.BackEnd
         }
 
         #endregion
+
+        public bool IsProxyBuildRequest()
+        {
+            return ProxyTargets != null;
+        }
     }
 }

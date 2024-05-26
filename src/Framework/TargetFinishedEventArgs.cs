@@ -1,29 +1,29 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.IO;
 using System.Collections;
+using System.IO;
 using Microsoft.Build.Shared;
+
+#nullable disable
 
 namespace Microsoft.Build.Framework
 {
     /// <summary>
     /// Arguments for target finished events
     /// </summary>
-    /// <remarks>
-    /// WARNING: marking a type [Serializable] without implementing
-    /// ISerializable imposes a serialization contract -- it is a
-    /// promise to never change the type's fields i.e. the type is
-    /// immutable; adding new fields in the next version of the type
-    /// without following certain special FX guidelines, can break both
-    /// forward and backward compatibility
-    /// </remarks>
+    // WARNING: marking a type [Serializable] without implementing
+    // ISerializable imposes a serialization contract -- it is a
+    // promise to never change the type's fields i.e. the type is
+    // immutable; adding new fields in the next version of the type
+    // without following certain special FX guidelines, can break both
+    // forward and backward compatibility
     [Serializable]
     public class TargetFinishedEventArgs : BuildStatusEventArgs
     {
         /// <summary>
-        /// Default constructor 
+        /// Default constructor
         /// </summary>
         protected TargetFinishedEventArgs()
             : base()
@@ -41,15 +41,13 @@ namespace Microsoft.Build.Framework
         /// <param name="projectFile">project file</param>
         /// <param name="targetFile">file in which the target is defined</param>
         /// <param name="succeeded">true if target built successfully</param>
-        public TargetFinishedEventArgs
-        (
+        public TargetFinishedEventArgs(
             string message,
             string helpKeyword,
             string targetName,
             string projectFile,
             string targetFile,
-            bool succeeded
-        )
+            bool succeeded)
             : this(message, helpKeyword, targetName, projectFile, targetFile, succeeded, DateTime.UtcNow, null)
         {
         }
@@ -65,16 +63,14 @@ namespace Microsoft.Build.Framework
         /// <param name="targetFile">file in which the target is defined</param>
         /// <param name="succeeded">true if target built successfully</param>
         /// <param name="targetOutputs">Target output items for the target. If batching will be null for everything except for the last target in the batch</param>
-        public TargetFinishedEventArgs
-        (
+        public TargetFinishedEventArgs(
             string message,
             string helpKeyword,
             string targetName,
             string projectFile,
             string targetFile,
             bool succeeded,
-            IEnumerable targetOutputs
-        )
+            IEnumerable targetOutputs)
             : this(message, helpKeyword, targetName, projectFile, targetFile, succeeded, DateTime.UtcNow, targetOutputs)
         {
         }
@@ -91,8 +87,7 @@ namespace Microsoft.Build.Framework
         /// <param name="succeeded">true if target built successfully</param>
         /// <param name="eventTimestamp">Timestamp when the event was created</param>
         /// <param name="targetOutputs">An <see cref="IEnumerable"/> containing the outputs of the target.</param>
-        public TargetFinishedEventArgs
-        (
+        public TargetFinishedEventArgs(
             string message,
             string helpKeyword,
             string targetName,
@@ -100,8 +95,7 @@ namespace Microsoft.Build.Framework
             string targetFile,
             bool succeeded,
             DateTime eventTimestamp,
-            IEnumerable targetOutputs
-        )
+            IEnumerable targetOutputs)
             : base(message, helpKeyword, "MSBuild", eventTimestamp)
         {
             this.targetName = targetName;
@@ -161,7 +155,7 @@ namespace Microsoft.Build.Framework
         public bool Succeeded => succeeded;
 
         /// <summary>
-        /// Project file associated with event.   
+        /// Project file associated with event.
         /// </summary>
         public string ProjectFile => projectFile;
 
@@ -177,6 +171,19 @@ namespace Microsoft.Build.Framework
         {
             get => targetOutputs;
             set => targetOutputs = value;
+        }
+
+        public override string Message
+        {
+            get
+            {
+                if (RawMessage == null)
+                {
+                    RawMessage = FormatResourceStringIgnoreCodeAndKeyword(Succeeded ? "TargetFinishedSuccess" : "TargetFinishedFailure", targetName, Path.GetFileName(projectFile));
+                }
+
+                return RawMessage;
+            }
         }
     }
 }

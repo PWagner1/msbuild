@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.Collections;
 using System.Text;
@@ -25,7 +29,7 @@ namespace Microsoft.Build.UnitTests
 
             // Just wrote to 'c' so it should contain data.
             Assertion.Assert(c.ContainsKey("Foo"));
-            
+
             // Writing to a depended upon hashtable should not be visible to the dependents.
             Assertion.Assert(!a.ContainsKey("Foo"));
             Assertion.Assert(!b.ContainsKey("Foo"));
@@ -59,7 +63,7 @@ namespace Microsoft.Build.UnitTests
         {
             Hashtable c = new Hashtable(StringComparer.OrdinalIgnoreCase);
             c["key"] = null;
-            CopyOnWriteHashtable refc = new CopyOnWriteHashtable(c, StringComparer.OrdinalIgnoreCase); 
+            CopyOnWriteHashtable refc = new CopyOnWriteHashtable(c, StringComparer.OrdinalIgnoreCase);
 
             Assertion.Assert(c.ContainsKey("kEy"));
             Assertion.Assert(refc.ContainsKey("kEy"));
@@ -68,7 +72,7 @@ namespace Microsoft.Build.UnitTests
         /// <summary>
         /// Missing unittest found by mutation testing.
         /// REASON TEST WASN'T ORIGINALLY PRESENT: (Note 1)
-        /// 
+        ///
         /// In this test, verify that a CopyOnWriteHashtable passed through the constructor that
         /// accepts an IDictionary results in a shallow copy not a deep copy.
         /// </summary>
@@ -84,7 +88,7 @@ namespace Microsoft.Build.UnitTests
         /// <summary>
         /// Missing unittest found by mutation testing.
         /// REASON TEST WASN'T ORIGINALLY PRESENT: (Note 1)
-        /// 
+        ///
         /// In this test, verify that writing a value that exists already in a shallow copy
         /// doesn't cause a deep copy of the hash table.
         /// </summary>
@@ -94,7 +98,7 @@ namespace Microsoft.Build.UnitTests
             CopyOnWriteHashtable c = new CopyOnWriteHashtable(StringComparer.OrdinalIgnoreCase);
             c["answer"] = "yes";
             CopyOnWriteHashtable refc = new CopyOnWriteHashtable(c, StringComparer.OrdinalIgnoreCase);
-            
+
             Assertion.Assert(refc.IsShallowCopy);
             refc["answer"] = "yes";
             Assertion.Assert(refc.IsShallowCopy);  // Setting the same value should not cause a deep copy.
@@ -103,10 +107,10 @@ namespace Microsoft.Build.UnitTests
 
         /// <summary>
         /// Missing unittest found by mutation testing.
-        /// REASON TEST WASN'T ORIGINALLY PRESENT: This is a design change, we require a string comparer 
+        /// REASON TEST WASN'T ORIGINALLY PRESENT: This is a design change, we require a string comparer
         /// in all cases because we can't construct a deep copy without always knowing what string
         /// comparer to use.
-        /// 
+        ///
         /// In this test, try to construct a CopyOnWriteHashtable with no string comparer.
         /// </summary>
         [Test]
@@ -118,10 +122,10 @@ namespace Microsoft.Build.UnitTests
 
         /// <summary>
         /// Missing unittest found by mutation testing.
-        /// REASON TEST WASN'T ORIGINALLY PRESENT: This is a design change, we require a string comparer 
+        /// REASON TEST WASN'T ORIGINALLY PRESENT: This is a design change, we require a string comparer
         /// in all cases because we can't construct a deep copy without always knowing what string
         /// comparer to use.
-        /// 
+        ///
         /// In this test, try to construct a CopyOnWriteHashtable with no string comparer.
         /// </summary>
         [Test]
@@ -134,7 +138,7 @@ namespace Microsoft.Build.UnitTests
         /// <summary>
         /// Missing unittest found by mutation testing.
         /// REASON TEST WASN'T ORIGINALLY PRESENT: Missed test.
-        /// 
+        ///
         /// In this test, make sure Clear works on shallow-copy hashtable.
         /// </summary>
         [Test]
@@ -153,11 +157,11 @@ namespace Microsoft.Build.UnitTests
 
         /*
          * Root cause analysis: reasons for missing tests:
-         * 
+         *
          * (Note 1) It was intended that the user of CopyOnWriteHashtable should not be able to detect
          *          whether a shallow copy or deep copy was made. So there was no way to unittest this.
          *          This test required adding 'IsShallowCopy' to detect this case.
-         * 
+         *
          */
     }
 }

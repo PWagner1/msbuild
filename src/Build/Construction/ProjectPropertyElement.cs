@@ -1,10 +1,13 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Microsoft.Build.Execution;
 using Microsoft.Build.Internal;
 using Microsoft.Build.ObjectModelRemoting;
 using Microsoft.Build.Shared;
+
+#nullable disable
 
 namespace Microsoft.Build.Construction
 {
@@ -12,13 +15,13 @@ namespace Microsoft.Build.Construction
     /// ProjectPropertyElement class represents the Property element in the MSBuild project.
     /// </summary>
     /// <remarks>
-    /// We do not need to use or set the PropertyType enumeration in the CM. 
+    /// We do not need to use or set the PropertyType enumeration in the CM.
     /// The CM does not know about Environment or Global properties, and does not create Output properties.
     /// We can just verify that we haven't read a PropertyType.Reserved property ourselves.
     /// So the CM only represents Normal properties.
     /// </remarks>
     [DebuggerDisplay("{Name} Value={Value} Condition={Condition}")]
-    public class ProjectPropertyElement : ProjectElement
+    public class ProjectPropertyElement : ProjectElement, IPropertyElementWithLocation
     {
         internal ProjectPropertyElementLink PropertyLink => (ProjectPropertyElementLink)Link;
 
@@ -57,7 +60,7 @@ namespace Microsoft.Build.Construction
         }
 
         /// <summary>
-        /// Gets or sets the unevaluated value. 
+        /// Gets or sets the unevaluated value.
         /// Returns empty string if it is not present.
         /// </summary>
         public string Value

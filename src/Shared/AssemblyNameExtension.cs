@@ -1,18 +1,17 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Text;
-using System.Reflection;
-using System.Globalization;
 using System.Collections.Generic;
 using System.Configuration.Assemblies;
-using System.Runtime.Serialization;
+using System.Globalization;
 using System.IO;
-#if FEATURE_ASSEMBLYLOADCONTEXT
-using System.Reflection.PortableExecutable;
-using System.Reflection.Metadata;
-#endif
+using System.Reflection;
+using System.Runtime.Serialization;
+using System.Text;
+using Microsoft.Build.BackEnd;
+
+#nullable disable
 
 namespace Microsoft.Build.Shared
 {
@@ -54,7 +53,7 @@ namespace Microsoft.Build.Shared
     /// between the two is done lazily on demand.
     /// </summary>
     [Serializable]
-    internal sealed class AssemblyNameExtension : ISerializable, IEquatable<AssemblyNameExtension>
+    internal sealed class AssemblyNameExtension : ISerializable, IEquatable<AssemblyNameExtension>, ITranslatable
     {
         private AssemblyName asAssemblyName = null;
         private string asString = null;
@@ -131,11 +130,11 @@ namespace Microsoft.Build.Shared
             if (hasAssemblyName)
             {
                 var name = info.GetString("name");
-                var publicKey = (byte[]) info.GetValue("pk", typeof(byte[]));
-                var publicKeyToken = (byte[]) info.GetValue("pkt", typeof(byte[]));
+                var publicKey = (byte[])info.GetValue("pk", typeof(byte[]));
+                var publicKeyToken = (byte[])info.GetValue("pkt", typeof(byte[]));
                 var version = (Version)info.GetValue("ver", typeof(Version));
-                var flags = (AssemblyNameFlags) info.GetInt32("flags");
-                var processorArchitecture = (ProcessorArchitecture) info.GetInt32("cpuarch");
+                var flags = (AssemblyNameFlags)info.GetInt32("flags");
+                var processorArchitecture = (ProcessorArchitecture)info.GetInt32("cpuarch");
 
                 CultureInfo cultureInfo = null;
                 var hasCultureInfo = info.GetBoolean("hasCI");
@@ -144,10 +143,9 @@ namespace Microsoft.Build.Shared
                     cultureInfo = new CultureInfo(info.GetInt32("ci"));
                 }
 
-                var hashAlgorithm = (System.Configuration.Assemblies.AssemblyHashAlgorithm) info.GetInt32("hashAlg");
-                var versionCompatibility = (AssemblyVersionCompatibility) info.GetInt32("verCompat");
+                var hashAlgorithm = (System.Configuration.Assemblies.AssemblyHashAlgorithm)info.GetInt32("hashAlg");
+                var versionCompatibility = (AssemblyVersionCompatibility)info.GetInt32("verCompat");
                 var codeBase = info.GetString("codebase");
-                var keyPair = (StrongNameKeyPair) info.GetValue("keypair", typeof(StrongNameKeyPair));
 
                 asAssemblyName = new AssemblyName
                 {
@@ -159,7 +157,6 @@ namespace Microsoft.Build.Shared
                     HashAlgorithm = hashAlgorithm,
                     VersionCompatibility = versionCompatibility,
                     CodeBase = codeBase,
-                    KeyPair = keyPair
                 };
 
                 asAssemblyName.SetPublicKey(publicKey);
@@ -170,7 +167,15 @@ namespace Microsoft.Build.Shared
             isSimpleName = info.GetBoolean("isSName");
             hasProcessorArchitectureInFusionName = info.GetBoolean("hasCpuArch");
             immutable = info.GetBoolean("immutable");
-            remappedFrom = (HashSet<AssemblyNameExtension>) info.GetValue("remapped", typeof(HashSet<AssemblyNameExtension>));
+            remappedFrom = (HashSet<AssemblyNameExtension>)info.GetValue("remapped", typeof(HashSet<AssemblyNameExtension>));
+        }
+
+        /// <summary>
+        /// Ctor for deserializing from state file (custom binary serialization) using translator.
+        /// </summary>
+        internal AssemblyNameExtension(ITranslator translator) : this()
+        {
+            Translate(translator);
         }
 
         /// <summary>
@@ -180,59 +185,22 @@ namespace Microsoft.Build.Shared
         /// <returns></returns>
         internal static AssemblyNameExtension GetAssemblyNameEx(string path)
         {
-            AssemblyName assemblyName = null;
-#if !FEATURE_ASSEMBLYLOADCONTEXT
             try
             {
-                assemblyName = AssemblyName.GetAssemblyName(path);
+                return new AssemblyNameExtension(AssemblyName.GetAssemblyName(path));
             }
             catch (FileLoadException)
             {
                 // Its pretty hard to get here, you need an assembly that contains a valid reference
                 // to a dependent assembly that, in turn, throws a FileLoadException during GetAssemblyName.
-                // Still it happened once, with an older version of the CLR. 
-
-                // ...falling through and relying on the assemblyName == null behavior below...
+                // Still it happened once, with an older version of the CLR.
             }
             catch (FileNotFoundException)
             {
                 // Its pretty hard to get here, also since we do a file existence check right before calling this method so it can only happen if the file got deleted between that check and this call.
             }
-#else
-            using (var stream = File.OpenRead(path))
-            using (var peFile = new PEReader(stream))
-            {
-                bool hasMetadata = false;
-                try
-                {
-                    // This can throw if the stream is too small, which means
-                    // the assembly doesn't have metadata.
-                    hasMetadata = peFile.HasMetadata;
-                }
-                finally
-                {
-                    // If the file does not contain PE metadata, throw BadImageFormatException to preserve
-                    // behavior from AssemblyName.GetAssemblyName(). RAR will deal with this correctly.
-                    if (!hasMetadata)
-                    {
-                        throw new BadImageFormatException(string.Format(CultureInfo.CurrentCulture,
-                            AssemblyResources.GetString("ResolveAssemblyReference.AssemblyDoesNotContainPEMetadata"),
-                            path));
-                    }
-                }
 
-                var metadataReader = peFile.GetMetadataReader();
-                var entry = metadataReader.GetAssemblyDefinition();
-
-                assemblyName = new AssemblyName();
-                assemblyName.Name = metadataReader.GetString(entry.Name);
-                assemblyName.Version = entry.Version;
-                assemblyName.CultureName = metadataReader.GetString(entry.Culture);
-                assemblyName.SetPublicKey(metadataReader.GetBlobBytes(entry.PublicKey));
-                assemblyName.Flags = (AssemblyNameFlags)(int)entry.Flags;
-            }
-#endif
-            return assemblyName == null ? null : new AssemblyNameExtension(assemblyName);
+            return null;
         }
 
         /// <summary>
@@ -251,8 +219,16 @@ namespace Microsoft.Build.Shared
         {
             if (remappedFrom == null)
             {
-                remappedFrom = new HashSet<AssemblyNameExtension>(AssemblyNameComparer.GenericComparerConsiderRetargetable);
+                remappedFrom = CreateRemappedFrom();
             }
+        }
+
+        /// <summary>
+        /// Create remappedFrom HashSet. Used by deserialization as well.
+        /// </summary>
+        private static HashSet<AssemblyNameExtension> CreateRemappedFrom()
+        {
+            return new HashSet<AssemblyNameExtension>(AssemblyNameComparer.GenericComparerConsiderRetargetable);
         }
 
         /// <summary>
@@ -507,7 +483,7 @@ namespace Microsoft.Build.Shared
         /// <returns></returns>
         internal new int GetHashCode()
         {
-            // Ok, so this isn't a great hashing algorithm. However, basenames with different 
+            // Ok, so this isn't a great hashing algorithm. However, basenames with different
             // versions or PKTs are relatively uncommon and so collisions should be low.
             // Hashing on FullName is wrong because the order of tuple fields is undefined.
             int hash = StringComparer.OrdinalIgnoreCase.GetHashCode(this.Name);
@@ -618,7 +594,7 @@ namespace Microsoft.Build.Shared
         /// </summary>
         internal AssemblyNameExtension Clone()
         {
-            AssemblyNameExtension newExtension = new AssemblyNameExtension();
+            AssemblyNameExtension newExtension = new();
 
             if (asAssemblyName != null)
             {
@@ -805,11 +781,15 @@ namespace Microsoft.Build.Shared
             // Some assemblies (real case was interop assembly) may have null PKTs.
             if (aPKT == null)
             {
+#pragma warning disable CA1825 // Avoid zero-length array allocations
                 aPKT = new byte[0];
+#pragma warning restore CA1825 // Avoid zero-length array allocations
             }
             if (bPKT == null)
             {
+#pragma warning disable CA1825 // Avoid zero-length array allocations
                 bPKT = new byte[0];
+#pragma warning restore CA1825 // Avoid zero-length array allocations
             }
 
             if (aPKT.Length != bPKT.Length)
@@ -972,8 +952,8 @@ namespace Microsoft.Build.Shared
                 info.AddValue("pk", asAssemblyName.GetPublicKey());
                 info.AddValue("pkt", asAssemblyName.GetPublicKeyToken());
                 info.AddValue("ver", asAssemblyName.Version);
-                info.AddValue("flags", (int) asAssemblyName.Flags);
-                info.AddValue("cpuarch", (int) asAssemblyName.ProcessorArchitecture);
+                info.AddValue("flags", (int)asAssemblyName.Flags);
+                info.AddValue("cpuarch", (int)asAssemblyName.ProcessorArchitecture);
 
                 info.AddValue("hasCI", asAssemblyName.CultureInfo != null);
                 if (asAssemblyName.CultureInfo != null)
@@ -984,7 +964,6 @@ namespace Microsoft.Build.Shared
                 info.AddValue("hashAlg", asAssemblyName.HashAlgorithm);
                 info.AddValue("verCompat", asAssemblyName.VersionCompatibility);
                 info.AddValue("codebase", asAssemblyName.CodeBase);
-                info.AddValue("keypair", asAssemblyName.KeyPair);
             }
 
             info.AddValue("asStr", asString);
@@ -992,6 +971,24 @@ namespace Microsoft.Build.Shared
             info.AddValue("hasCpuArch", hasProcessorArchitectureInFusionName);
             info.AddValue("immutable", immutable);
             info.AddValue("remapped", remappedFrom);
+        }
+
+        /// <summary>
+        /// Reads/writes this class
+        /// </summary>
+        /// <param name="translator"></param>
+        public void Translate(ITranslator translator)
+        {
+            translator.Translate(ref asAssemblyName);
+            translator.Translate(ref asString);
+            translator.Translate(ref isSimpleName);
+            translator.Translate(ref hasProcessorArchitectureInFusionName);
+            translator.Translate(ref immutable);
+
+            // TODO: consider some kind of protection against infinite loop during serialization, hint: pre serialize check for cycle in graph
+            translator.TranslateHashSet(ref remappedFrom,
+                (ITranslator t) => new AssemblyNameExtension(t),
+                (int capacity) => CreateRemappedFrom());
         }
     }
 }

@@ -1,13 +1,16 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Xml;
-using Microsoft.Build.Evaluation;
-using Microsoft.Build.Shared;
 using Microsoft.Build.Collections;
+using Microsoft.Build.Evaluation;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Shared;
+
+#nullable disable
 
 namespace Microsoft.Build.Construction
 {
@@ -62,12 +65,33 @@ namespace Microsoft.Build.Construction
         }
 
         /// <summary>
+        /// Obtain the number of documents contained in the cache.
+        /// </summary>
+        internal int DocumentCount
+        {
+            get
+            {
+                lock (_locker)
+                {
+                    return _documents.Count;
+                }
+            }
+        }
+
+        /// <summary>
         /// Add the given string to the cache or return the existing string if it is already
         /// in the cache.
         /// Constant time operation.
         /// </summary>
         public string Add(string key, XmlDocument document)
         {
+            // Remove string interning in ChangeWave 17.6
+            // Note: When ready to remove the ChangeWaves under 17.6, please delete this entire class and all references to it. (See the PR https://github.com/dotnet/msbuild/pull/7952).
+            if (ChangeWaves.AreFeaturesEnabled(ChangeWaves.Wave17_6))
+            {
+                return key;
+            }
+
             if (key.Length == 0)
             {
                 return String.Empty;
@@ -194,7 +218,7 @@ namespace Microsoft.Build.Construction
                     uniqueEntries.Add(entry);
                     ErrorUtilities.VerifyThrow(entry.RefCount > 0, "extra deref");
 
-                    // We only ever create one StringCacheEntry instance per unique string, and that instance should be 
+                    // We only ever create one StringCacheEntry instance per unique string, and that instance should be
                     // the same in both collections.
                     ErrorUtilities.VerifyThrow(Object.ReferenceEquals(entry, _strings[entry.CachedString]), "bad state");
                 }
@@ -204,7 +228,7 @@ namespace Microsoft.Build.Construction
         }
 
         /// <summary>
-        /// Handle event that is fired when an entry in the project root element cache is removed 
+        /// Handle event that is fired when an entry in the project root element cache is removed
         /// from its strong cache.
         /// </summary>
         /// <remarks>

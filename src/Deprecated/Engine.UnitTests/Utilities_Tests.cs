@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.Xml;
 using System.Reflection;
@@ -23,11 +27,11 @@ namespace Microsoft.Build.UnitTests
 
         /// <summary>
         /// Tests our "Condition" parser's ability to extract certain property values
-        /// out, for the purposes of VS populating the "Configuration" and "Platform" 
+        /// out, for the purposes of VS populating the "Configuration" and "Platform"
         /// dropdown boxes.  This one tests the following expression:
-        /// 
+        ///
         ///     '$(Configuration)' == 'Debug'
-        /// 
+        ///
         /// </summary>
         /// <owner>RGoel</owner>
         [Test]
@@ -46,11 +50,11 @@ namespace Microsoft.Build.UnitTests
 
         /// <summary>
         /// Tests our "Condition" parser's ability to extract certain property values
-        /// out, for the purposes of VS populating the "Configuration" and "Platform" 
+        /// out, for the purposes of VS populating the "Configuration" and "Platform"
         /// dropdown boxes.  This one tests the following expression:
-        /// 
+        ///
         ///     'Debug' != '$(Configuration)'
-        /// 
+        ///
         /// </summary>
         /// <owner>RGoel</owner>
         [Test]
@@ -66,14 +70,14 @@ namespace Microsoft.Build.UnitTests
             Assertion.AssertEquals(1, configurations.Count);
             Assertion.AssertEquals("Debug", configurations[0]);
         }
-        
+
         /// <summary>
         /// Tests our "Condition" parser's ability to extract certain property values
-        /// out, for the purposes of VS populating the "Configuration" and "Platform" 
+        /// out, for the purposes of VS populating the "Configuration" and "Platform"
         /// dropdown boxes.  This one tests the following expression:
-        /// 
+        ///
         ///     '$(Configuration)|$(Platform)' != 'Debug|x86'
-        /// 
+        ///
         /// </summary>
         /// <owner>RGoel</owner>
         [Test]
@@ -92,14 +96,14 @@ namespace Microsoft.Build.UnitTests
             Assertion.AssertEquals("Debug", configurations[0]);
             Assertion.AssertEquals("x86", platforms[0]);
         }
-    
+
         /// <summary>
         /// Tests our "Condition" parser's ability to extract certain property values
-        /// out, for the purposes of VS populating the "Configuration" and "Platform" 
+        /// out, for the purposes of VS populating the "Configuration" and "Platform"
         /// dropdown boxes.  This one tests the following expression:
-        /// 
+        ///
         ///     'Debug|x86' == '$(Configuration)|$(Platform)'
-        /// 
+        ///
         /// </summary>
         /// <owner>RGoel</owner>
         [Test]
@@ -121,11 +125,11 @@ namespace Microsoft.Build.UnitTests
 
         /// <summary>
         /// Tests our "Condition" parser's ability to extract certain property values
-        /// out, for the purposes of VS populating the "Configuration" and "Platform" 
+        /// out, for the purposes of VS populating the "Configuration" and "Platform"
         /// dropdown boxes.  This one tests the following expression:
-        /// 
+        ///
         ///     '$(Configuration)|$(Platform)|$(Machine)' == 'Debug|x86|RGOEL3'
-        /// 
+        ///
         /// </summary>
         /// <owner>RGoel</owner>
         [Test]
@@ -150,11 +154,11 @@ namespace Microsoft.Build.UnitTests
 
         /// <summary>
         /// Tests our "Condition" parser's ability to extract certain property values
-        /// out, for the purposes of VS populating the "Configuration" and "Platform" 
+        /// out, for the purposes of VS populating the "Configuration" and "Platform"
         /// dropdown boxes.  This one tests the following expression:
-        /// 
+        ///
         ///     '$(Configuration)|$(Platform)|$(Machine)' == 'Debug'
-        /// 
+        ///
         /// </summary>
         /// <owner>RGoel</owner>
         [Test]
@@ -175,11 +179,11 @@ namespace Microsoft.Build.UnitTests
 
         /// <summary>
         /// Tests our "Condition" parser's ability to extract certain property values
-        /// out, for the purposes of VS populating the "Configuration" and "Platform" 
+        /// out, for the purposes of VS populating the "Configuration" and "Platform"
         /// dropdown boxes.  This one tests the following expression:
-        /// 
+        ///
         ///     '$(Configuration)' == 'Debug|x86|RGOEL3'
-        /// 
+        ///
         /// </summary>
         /// <owner>RGoel</owner>
         [Test]
@@ -224,7 +228,7 @@ namespace Microsoft.Build.UnitTests
         public void RepeatedProjectExtensions()
         {
             Project p = ObjectModelHelpers.CreateInMemoryProject(@"
-                <Project ToolsVersion=`3.5` xmlns=`msbuildnamespace`> 
+                <Project ToolsVersion=`3.5` xmlns=`msbuildnamespace`>
                     <ProjectExtensions/>
                     <Import Project=`$(MSBuildBinPath)\\Microsoft.CSharp.Targets` />
                     <ProjectExtensions/>

@@ -1,10 +1,12 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Text;
 using System.Threading;
 
 
@@ -12,8 +14,10 @@ using Microsoft.Build.BackEnd;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Utilities;
-
+using Shouldly;
 using Xunit;
+
+#nullable disable
 
 namespace Microsoft.Build.UnitTests.BackEnd
 {
@@ -28,7 +32,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         private bool _continueOnErrorDefault = true;
 
         /// <summary>
-        /// Test that an exception is thrown when the task name is null. 
+        /// Test that an exception is thrown when the task name is null.
         /// </summary>
         [Fact]
         public void ConstructorWithNullName()
@@ -36,27 +40,34 @@ namespace Microsoft.Build.UnitTests.BackEnd
             Assert.Throws<InternalErrorException>(() =>
             {
                 TaskHostConfiguration config = new TaskHostConfiguration(
-                    1,
-                    Directory.GetCurrentDirectory(),
-                    null,
-                    Thread.CurrentThread.CurrentCulture,
-                    Thread.CurrentThread.CurrentUICulture,
+                    nodeId: 1,
+                    startupDirectory: Directory.GetCurrentDirectory(),
+                    buildProcessEnvironment: null,
+                    culture: Thread.CurrentThread.CurrentCulture,
+                    uiCulture: Thread.CurrentThread.CurrentUICulture,
+#if FEATURE_APPDOMAIN
+                    appDomainSetup:
 #if FEATURE_APPDOMAIN
                     null,
 #endif
+                    lineNumberOfTask:
+#endif
                     1,
-                    1,
-                    @"c:\my project\myproj.proj",
-                    _continueOnErrorDefault,
-                    null,
-                    @"c:\my tasks\mytask.dll",
-                    null,
-                    null);
-            }
-           );
+                    columnNumberOfTask: 1,
+                    projectFileOfTask: @"c:\my project\myproj.proj",
+                    continueOnError: _continueOnErrorDefault,
+                    taskName: null,
+                    taskLocation: @"c:\my tasks\mytask.dll",
+                    isTaskInputLoggingEnabled: false,
+                    taskParameters: null,
+                    globalParameters: null,
+                    warningsAsErrors: null,
+                    warningsNotAsErrors: null,
+                    warningsAsMessages: null);
+            });
         }
         /// <summary>
-        /// Test that an exception is thrown when the task name is empty. 
+        /// Test that an exception is thrown when the task name is empty.
         /// </summary>
         [Fact]
         public void ConstructorWithEmptyName()
@@ -64,24 +75,31 @@ namespace Microsoft.Build.UnitTests.BackEnd
             Assert.Throws<InternalErrorException>(() =>
             {
                 TaskHostConfiguration config = new TaskHostConfiguration(
-                    1,
-                    Directory.GetCurrentDirectory(),
-                    null,
-                    Thread.CurrentThread.CurrentCulture,
-                    Thread.CurrentThread.CurrentUICulture,
+                    nodeId: 1,
+                    startupDirectory: Directory.GetCurrentDirectory(),
+                    buildProcessEnvironment: null,
+                    culture: Thread.CurrentThread.CurrentCulture,
+                    uiCulture: Thread.CurrentThread.CurrentUICulture,
+#if FEATURE_APPDOMAIN
+                    appDomainSetup:
 #if FEATURE_APPDOMAIN
                     null,
 #endif
+                    lineNumberOfTask:
+#endif
                     1,
-                    1,
-                    @"c:\my project\myproj.proj",
-                    _continueOnErrorDefault,
-                    String.Empty,
-                    @"c:\my tasks\mytask.dll",
-                    null,
-                    null);
-            }
-           );
+                    columnNumberOfTask: 1,
+                    projectFileOfTask: @"c:\my project\myproj.proj",
+                    continueOnError: _continueOnErrorDefault,
+                    taskName: String.Empty,
+                    taskLocation: @"c:\my tasks\mytask.dll",
+                    isTaskInputLoggingEnabled: false,
+                    taskParameters: null,
+                    globalParameters: null,
+                    warningsAsErrors: null,
+                    warningsNotAsErrors: null,
+                    warningsAsMessages: null);
+            });
         }
         /// <summary>
         /// Test that an exception is thrown when the path to the task assembly is null
@@ -92,24 +110,31 @@ namespace Microsoft.Build.UnitTests.BackEnd
             Assert.Throws<InternalErrorException>(() =>
             {
                 TaskHostConfiguration config = new TaskHostConfiguration(
-                    1,
-                    Directory.GetCurrentDirectory(),
-                    null,
-                    Thread.CurrentThread.CurrentCulture,
-                    Thread.CurrentThread.CurrentUICulture,
+                    nodeId: 1,
+                    startupDirectory: Directory.GetCurrentDirectory(),
+                    buildProcessEnvironment: null,
+                    culture: Thread.CurrentThread.CurrentCulture,
+                    uiCulture: Thread.CurrentThread.CurrentUICulture,
+#if FEATURE_APPDOMAIN
+                    appDomainSetup:
 #if FEATURE_APPDOMAIN
                     null,
 #endif
+                    lineNumberOfTask:
+#endif
                     1,
-                    1,
-                    @"c:\my project\myproj.proj",
-                    _continueOnErrorDefault,
-                    "TaskName",
-                    null,
-                    null,
-                    null);
-            }
-           );
+                    columnNumberOfTask: 1,
+                    projectFileOfTask: @"c:\my project\myproj.proj",
+                    continueOnError: _continueOnErrorDefault,
+                    taskName: "TaskName",
+                    taskLocation: null,
+                    isTaskInputLoggingEnabled: false,
+                    taskParameters: null,
+                    globalParameters: null,
+                    warningsAsErrors: null,
+                    warningsNotAsErrors: null,
+                    warningsAsMessages: null);
+            });
         }
 
 #if !FEATURE_ASSEMBLYLOADCONTEXT
@@ -122,87 +147,118 @@ namespace Microsoft.Build.UnitTests.BackEnd
             Assert.Throws<InternalErrorException>(() =>
             {
                 TaskHostConfiguration config = new TaskHostConfiguration(
-                    1,
-                    Directory.GetCurrentDirectory(),
-                    null,
-                    Thread.CurrentThread.CurrentCulture,
-                    Thread.CurrentThread.CurrentUICulture,
+                    nodeId: 1,
+                    startupDirectory: Directory.GetCurrentDirectory(),
+                    buildProcessEnvironment: null,
+                    culture: Thread.CurrentThread.CurrentCulture,
+                    uiCulture: Thread.CurrentThread.CurrentUICulture,
+#if FEATURE_APPDOMAIN
+                    appDomainSetup:
 #if FEATURE_APPDOMAIN
                     null,
 #endif
+                    lineNumberOfTask:
+#endif
                     1,
-                    1,
-                    @"c:\my project\myproj.proj",
-                    _continueOnErrorDefault,
-                    "TaskName",
-                    String.Empty,
-                    null,
-                    null);
-            }
-           );
+                    columnNumberOfTask: 1,
+                    projectFileOfTask: @"c:\my project\myproj.proj",
+                    continueOnError: _continueOnErrorDefault,
+                    taskName: "TaskName",
+                    taskLocation: String.Empty,
+                    isTaskInputLoggingEnabled: false,
+                    taskParameters: null,
+                    globalParameters: null,
+                    warningsAsErrors: null,
+                    warningsNotAsErrors: null,
+                    warningsAsMessages: null);
+            });
         }
 #endif
 
         /// <summary>
-        /// Test the valid constructors.  
+        /// Test the valid constructors.
         /// </summary>
         [Fact]
         public void TestValidConstructors()
         {
             TaskHostConfiguration config = new TaskHostConfiguration(
-                1,
-                Directory.GetCurrentDirectory(),
-                null,
-                Thread.CurrentThread.CurrentCulture,
-                Thread.CurrentThread.CurrentUICulture,
+                nodeId: 1,
+                startupDirectory: Directory.GetCurrentDirectory(),
+                buildProcessEnvironment: null,
+                culture: Thread.CurrentThread.CurrentCulture,
+                uiCulture: Thread.CurrentThread.CurrentUICulture,
+#if FEATURE_APPDOMAIN
+                appDomainSetup:
 #if FEATURE_APPDOMAIN
                 null,
 #endif
+                lineNumberOfTask:
+#endif
                 1,
-                1,
-                @"c:\my project\myproj.proj",
-                _continueOnErrorDefault,
-                "TaskName",
-                @"c:\MyTasks\MyTask.dll",
-                null,
-                null);
+                columnNumberOfTask: 1,
+                projectFileOfTask: @"c:\my project\myproj.proj",
+                continueOnError: _continueOnErrorDefault,
+                taskName: "TaskName",
+                taskLocation: @"c:\MyTasks\MyTask.dll",
+                isTaskInputLoggingEnabled: false,
+                taskParameters: null,
+                globalParameters: null,
+                warningsAsErrors: null,
+                warningsNotAsErrors: null,
+                warningsAsMessages: null);
 
             TaskHostConfiguration config2 = new TaskHostConfiguration(
-                1,
-                Directory.GetCurrentDirectory(),
-                null,
-                Thread.CurrentThread.CurrentCulture,
-                Thread.CurrentThread.CurrentUICulture,
+                nodeId: 1,
+                startupDirectory: Directory.GetCurrentDirectory(),
+                buildProcessEnvironment: null,
+                culture: Thread.CurrentThread.CurrentCulture,
+                uiCulture: Thread.CurrentThread.CurrentUICulture,
+#if FEATURE_APPDOMAIN
+                appDomainSetup:
 #if FEATURE_APPDOMAIN
                 null,
 #endif
+                lineNumberOfTask:
+#endif
                 1,
-                1,
-                @"c:\my project\myproj.proj",
-                _continueOnErrorDefault,
-                "TaskName",
-                @"c:\MyTasks\MyTask.dll",
-                null,
-                null);
+                columnNumberOfTask: 1,
+                projectFileOfTask: @"c:\my project\myproj.proj",
+                continueOnError: _continueOnErrorDefault,
+                taskName: "TaskName",
+                taskLocation: @"c:\MyTasks\MyTask.dll",
+                isTaskInputLoggingEnabled: false,
+                taskParameters: null,
+                globalParameters: null,
+                warningsAsErrors: null,
+                warningsNotAsErrors: null,
+                warningsAsMessages: null);
 
             IDictionary<string, object> parameters = new Dictionary<string, object>();
             TaskHostConfiguration config3 = new TaskHostConfiguration(
-                1,
-                Directory.GetCurrentDirectory(),
-                null,
-                Thread.CurrentThread.CurrentCulture,
-                Thread.CurrentThread.CurrentUICulture,
+                nodeId: 1,
+                startupDirectory: Directory.GetCurrentDirectory(),
+                buildProcessEnvironment: null,
+                culture: Thread.CurrentThread.CurrentCulture,
+                uiCulture: Thread.CurrentThread.CurrentUICulture,
+#if FEATURE_APPDOMAIN
+                appDomainSetup:
 #if FEATURE_APPDOMAIN
                 null,
 #endif
+                lineNumberOfTask:
+#endif
                 1,
-                1,
-                @"c:\my project\myproj.proj",
-                _continueOnErrorDefault,
-                "TaskName",
-                @"c:\MyTasks\MyTask.dll",
-                parameters,
-                null);
+                columnNumberOfTask: 1,
+                projectFileOfTask: @"c:\my project\myproj.proj",
+                continueOnError: _continueOnErrorDefault,
+                taskName: "TaskName",
+                taskLocation: @"c:\MyTasks\MyTask.dll",
+                isTaskInputLoggingEnabled: false,
+                taskParameters: parameters,
+                globalParameters: null,
+                warningsAsErrors: null,
+                warningsNotAsErrors: null,
+                warningsAsMessages: null);
 
             IDictionary<string, object> parameters2 = new Dictionary<string, object>();
             parameters2.Add("Text", "Hello!");
@@ -211,26 +267,66 @@ namespace Microsoft.Build.UnitTests.BackEnd
             parameters2.Add("ItemArray", new ITaskItem[] { new TaskItem("DEF"), new TaskItem("GHI"), new TaskItem("JKL") });
 
             TaskHostConfiguration config4 = new TaskHostConfiguration(
-                1,
-                Directory.GetCurrentDirectory(),
-                null,
-                Thread.CurrentThread.CurrentCulture,
-                Thread.CurrentThread.CurrentUICulture,
+                nodeId: 1,
+                startupDirectory: Directory.GetCurrentDirectory(),
+                buildProcessEnvironment: null,
+                culture: Thread.CurrentThread.CurrentCulture,
+                uiCulture: Thread.CurrentThread.CurrentUICulture,
+#if FEATURE_APPDOMAIN
+                appDomainSetup:
 #if FEATURE_APPDOMAIN
                 null,
 #endif
+                lineNumberOfTask:
+#endif
                 1,
+                columnNumberOfTask: 1,
+                projectFileOfTask: @"c:\my project\myproj.proj",
+                continueOnError: _continueOnErrorDefault,
+                taskName: "TaskName",
+                taskLocation: @"c:\MyTasks\MyTask.dll",
+                isTaskInputLoggingEnabled: false,
+                taskParameters: parameters2,
+                globalParameters: null,
+                warningsAsErrors: null,
+                warningsNotAsErrors: null,
+                warningsAsMessages: null);
+
+            HashSet<string> WarningsAsErrors = new HashSet<string>();
+            WarningsAsErrors.Add("MSB1234");
+            WarningsAsErrors.Add("MSB1235");
+            WarningsAsErrors.Add("MSB1236");
+            WarningsAsErrors.Add("MSB1237");
+
+            TaskHostConfiguration config5 = new TaskHostConfiguration(
+                nodeId: 1,
+                startupDirectory: Directory.GetCurrentDirectory(),
+                buildProcessEnvironment: null,
+                culture: Thread.CurrentThread.CurrentCulture,
+                uiCulture: Thread.CurrentThread.CurrentUICulture,
+#if FEATURE_APPDOMAIN
+                appDomainSetup:
+#if FEATURE_APPDOMAIN
+                null,
+#endif
+                lineNumberOfTask:
+#endif
                 1,
-                @"c:\my project\myproj.proj",
-                _continueOnErrorDefault,
-                "TaskName",
-                @"c:\MyTasks\MyTask.dll",
-                parameters2,
-                null);
+                columnNumberOfTask: 1,
+                projectFileOfTask: @"c:\my project\myproj.proj",
+                continueOnError: _continueOnErrorDefault,
+                taskName: "TaskName",
+                taskLocation: @"c:\MyTasks\MyTask.dll",
+                isTaskInputLoggingEnabled: false,
+                taskParameters: parameters2,
+                globalParameters: null,
+                warningsAsErrors: WarningsAsErrors,
+                warningsNotAsErrors: null,
+                warningsAsMessages: null);
         }
 
         /// <summary>
-        /// Test serialization / deserialization when the parameter dictionary is null. 
+        /// Test serialization / deserialization when the parameter dictionary is null.
         /// </summary>
         [Fact]
         public void TestTranslationWithNullDictionary()
@@ -242,22 +338,30 @@ namespace Microsoft.Build.UnitTests.BackEnd
             };
 
             TaskHostConfiguration config = new TaskHostConfiguration(
-                1,
-                Directory.GetCurrentDirectory(),
-                null,
-                Thread.CurrentThread.CurrentCulture,
-                Thread.CurrentThread.CurrentUICulture,
+                nodeId: 1,
+                startupDirectory: Directory.GetCurrentDirectory(),
+                buildProcessEnvironment: null,
+                culture: Thread.CurrentThread.CurrentCulture,
+                uiCulture: Thread.CurrentThread.CurrentUICulture,
+#if FEATURE_APPDOMAIN
+                appDomainSetup:
 #if FEATURE_APPDOMAIN
                 null,
 #endif
+                lineNumberOfTask:
+#endif
                 1,
-                1,
-                @"c:\my project\myproj.proj",
-                _continueOnErrorDefault,
-                "TaskName",
-                @"c:\MyTasks\MyTask.dll",
-                null,
-                expectedGlobalProperties);
+                columnNumberOfTask: 1,
+                projectFileOfTask: @"c:\my project\myproj.proj",
+                continueOnError: _continueOnErrorDefault,
+                taskName: "TaskName",
+                taskLocation: @"c:\MyTasks\MyTask.dll",
+                isTaskInputLoggingEnabled: false,
+                taskParameters: null,
+                globalParameters: expectedGlobalProperties,
+                warningsAsErrors: null,
+                warningsNotAsErrors: null,
+                warningsAsMessages: null);
 
             ((ITranslatable)config).Translate(TranslationHelpers.GetWriteTranslator());
             INodePacket packet = TaskHostConfiguration.FactoryForDeserialization(TranslationHelpers.GetReadTranslator());
@@ -273,29 +377,88 @@ namespace Microsoft.Build.UnitTests.BackEnd
             Assert.Equal(expectedGlobalProperties, deserializedConfig.GlobalProperties);
         }
 
+#if FEATURE_APPDOMAIN
         /// <summary>
-        /// Test serialization / deserialization when the parameter dictionary is empty. 
+        /// Test serialization / deserialization of the AppDomainSetup instance.
+        /// </summary>
+        [Theory]
+        [InlineData(new byte[] { 1, 2, 3 })]
+        [InlineData(null)]
+        public void TestTranslationWithAppDomainSetup(byte[] configBytes)
+        {
+            AppDomainSetup setup = new AppDomainSetup();
+
+            TaskHostConfiguration config = new TaskHostConfiguration(
+                nodeId: 1,
+                startupDirectory: Directory.GetCurrentDirectory(),
+                buildProcessEnvironment: null,
+                culture: Thread.CurrentThread.CurrentCulture,
+                uiCulture: Thread.CurrentThread.CurrentUICulture,
+                appDomainSetup: setup,
+                lineNumberOfTask: 1,
+                columnNumberOfTask: 1,
+                projectFileOfTask: @"c:\my project\myproj.proj",
+                continueOnError: _continueOnErrorDefault,
+                taskName: "TaskName",
+                taskLocation: @"c:\MyTasks\MyTask.dll",
+                isTaskInputLoggingEnabled: false,
+                taskParameters: new Dictionary<string, object>(),
+                globalParameters: new Dictionary<string, string>(),
+                warningsAsErrors: null,
+                warningsNotAsErrors: null,
+                warningsAsMessages: null);
+
+            setup.SetConfigurationBytes(configBytes);
+
+            ((ITranslatable)config).Translate(TranslationHelpers.GetWriteTranslator());
+            INodePacket packet = TaskHostConfiguration.FactoryForDeserialization(TranslationHelpers.GetReadTranslator());
+
+            TaskHostConfiguration deserializedConfig = packet as TaskHostConfiguration;
+
+            deserializedConfig.AppDomainSetup.ShouldNotBeNull();
+
+            if (configBytes is null)
+            {
+                deserializedConfig.AppDomainSetup.GetConfigurationBytes().ShouldBeNull();
+            }
+            else
+            {
+                deserializedConfig.AppDomainSetup.GetConfigurationBytes().SequenceEqual(configBytes).ShouldBeTrue();
+            }
+        }
+#endif
+
+        /// <summary>
+        /// Test serialization / deserialization when the parameter dictionary is empty.
         /// </summary>
         [Fact]
         public void TestTranslationWithEmptyDictionary()
         {
             TaskHostConfiguration config = new TaskHostConfiguration(
-                1,
-                Directory.GetCurrentDirectory(),
-                null,
-                Thread.CurrentThread.CurrentCulture,
-                Thread.CurrentThread.CurrentUICulture,
+                nodeId: 1,
+                startupDirectory: Directory.GetCurrentDirectory(),
+                buildProcessEnvironment: null,
+                culture: Thread.CurrentThread.CurrentCulture,
+                uiCulture: Thread.CurrentThread.CurrentUICulture,
+#if FEATURE_APPDOMAIN
+                appDomainSetup:
 #if FEATURE_APPDOMAIN
                 null,
 #endif
+                lineNumberOfTask:
+#endif
                 1,
-                1,
-                @"c:\my project\myproj.proj",
-                _continueOnErrorDefault,
-                "TaskName",
-                @"c:\MyTasks\MyTask.dll",
-                new Dictionary<string, object>(),
-                new Dictionary<string, string>());
+                columnNumberOfTask: 1,
+                projectFileOfTask: @"c:\my project\myproj.proj",
+                continueOnError: _continueOnErrorDefault,
+                taskName: "TaskName",
+                taskLocation: @"c:\MyTasks\MyTask.dll",
+                isTaskInputLoggingEnabled: false,
+                taskParameters: new Dictionary<string, object>(),
+                globalParameters: new Dictionary<string, string>(),
+                warningsAsErrors: null,
+                warningsNotAsErrors: null,
+                warningsAsMessages: null);
 
             ((ITranslatable)config).Translate(TranslationHelpers.GetWriteTranslator());
             INodePacket packet = TaskHostConfiguration.FactoryForDeserialization(TranslationHelpers.GetReadTranslator());
@@ -314,7 +477,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         }
 
         /// <summary>
-        /// Test serialization / deserialization when the parameter dictionary contains just value types. 
+        /// Test serialization / deserialization when the parameter dictionary contains just value types.
         /// </summary>
         [Fact]
         public void TestTranslationWithValueTypesInDictionary()
@@ -323,22 +486,30 @@ namespace Microsoft.Build.UnitTests.BackEnd
             parameters.Add("Text", "Foo");
             parameters.Add("BoolValue", false);
             TaskHostConfiguration config = new TaskHostConfiguration(
-                1,
-                Directory.GetCurrentDirectory(),
-                null,
-                Thread.CurrentThread.CurrentCulture,
-                Thread.CurrentThread.CurrentUICulture,
+                nodeId: 1,
+                startupDirectory: Directory.GetCurrentDirectory(),
+                buildProcessEnvironment: null,
+                culture: Thread.CurrentThread.CurrentCulture,
+                uiCulture: Thread.CurrentThread.CurrentUICulture,
+#if FEATURE_APPDOMAIN
+                appDomainSetup:
 #if FEATURE_APPDOMAIN
                 null,
 #endif
+                lineNumberOfTask:
+#endif
                 1,
-                1,
-                @"c:\my project\myproj.proj",
-                _continueOnErrorDefault,
-                "TaskName",
-                @"c:\MyTasks\MyTask.dll",
-                parameters,
-                null);
+                columnNumberOfTask: 1,
+                projectFileOfTask: @"c:\my project\myproj.proj",
+                continueOnError: _continueOnErrorDefault,
+                taskName: "TaskName",
+                taskLocation: @"c:\MyTasks\MyTask.dll",
+                isTaskInputLoggingEnabled: false,
+                taskParameters: parameters,
+                globalParameters: null,
+                warningsAsErrors: null,
+                warningsNotAsErrors: null,
+                warningsAsMessages: null);
 
             ((ITranslatable)config).Translate(TranslationHelpers.GetWriteTranslator());
             INodePacket packet = TaskHostConfiguration.FactoryForDeserialization(TranslationHelpers.GetReadTranslator());
@@ -356,7 +527,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         }
 
         /// <summary>
-        /// Test serialization / deserialization when the parameter dictionary contains an ITaskItem. 
+        /// Test serialization / deserialization when the parameter dictionary contains an ITaskItem.
         /// </summary>
         [Fact]
         public void TestTranslationWithITaskItemInDictionary()
@@ -364,22 +535,30 @@ namespace Microsoft.Build.UnitTests.BackEnd
             IDictionary<string, object> parameters = new Dictionary<string, object>();
             parameters.Add("TaskItemValue", new TaskItem("Foo"));
             TaskHostConfiguration config = new TaskHostConfiguration(
-                1,
-                Directory.GetCurrentDirectory(),
-                null,
-                Thread.CurrentThread.CurrentCulture,
-                Thread.CurrentThread.CurrentUICulture,
+                nodeId: 1,
+                startupDirectory: Directory.GetCurrentDirectory(),
+                buildProcessEnvironment: null,
+                culture: Thread.CurrentThread.CurrentCulture,
+                uiCulture: Thread.CurrentThread.CurrentUICulture,
+#if FEATURE_APPDOMAIN
+                appDomainSetup:
 #if FEATURE_APPDOMAIN
                 null,
 #endif
+                lineNumberOfTask:
+#endif
                 1,
-                1,
-                @"c:\my project\myproj.proj",
-                _continueOnErrorDefault,
-                "TaskName",
-                @"c:\MyTasks\MyTask.dll",
-                parameters,
-                null);
+                columnNumberOfTask: 1,
+                projectFileOfTask: @"c:\my project\myproj.proj",
+                continueOnError: _continueOnErrorDefault,
+                taskName: "TaskName",
+                taskLocation: @"c:\MyTasks\MyTask.dll",
+                isTaskInputLoggingEnabled: false,
+                taskParameters: parameters,
+                globalParameters: null,
+                warningsAsErrors: null,
+                warningsNotAsErrors: null,
+                warningsAsMessages: null);
 
             ((ITranslatable)config).Translate(TranslationHelpers.GetWriteTranslator());
             INodePacket packet = TaskHostConfiguration.FactoryForDeserialization(TranslationHelpers.GetReadTranslator());
@@ -396,7 +575,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         }
 
         /// <summary>
-        /// Test serialization / deserialization when the parameter dictionary contains an ITaskItem array. 
+        /// Test serialization / deserialization when the parameter dictionary contains an ITaskItem array.
         /// </summary>
         [Fact]
         public void TestTranslationWithITaskItemArrayInDictionary()
@@ -404,22 +583,30 @@ namespace Microsoft.Build.UnitTests.BackEnd
             IDictionary<string, object> parameters = new Dictionary<string, object>();
             parameters.Add("TaskItemArrayValue", new ITaskItem[] { new TaskItem("Foo"), new TaskItem("Baz") });
             TaskHostConfiguration config = new TaskHostConfiguration(
-                1,
-                Directory.GetCurrentDirectory(),
-                null,
-                Thread.CurrentThread.CurrentCulture,
-                Thread.CurrentThread.CurrentUICulture,
+                nodeId: 1,
+                startupDirectory: Directory.GetCurrentDirectory(),
+                buildProcessEnvironment: null,
+                culture: Thread.CurrentThread.CurrentCulture,
+                uiCulture: Thread.CurrentThread.CurrentUICulture,
+#if FEATURE_APPDOMAIN
+                appDomainSetup:
 #if FEATURE_APPDOMAIN
                 null,
 #endif
+                lineNumberOfTask:
+#endif
                 1,
-                1,
-                @"c:\my project\myproj.proj",
-                _continueOnErrorDefault,
-                "TaskName",
-                @"c:\MyTasks\MyTask.dll",
-                parameters,
-                null);
+                columnNumberOfTask: 1,
+                projectFileOfTask: @"c:\my project\myproj.proj",
+                continueOnError: _continueOnErrorDefault,
+                taskName: "TaskName",
+                taskLocation: @"c:\MyTasks\MyTask.dll",
+                isTaskInputLoggingEnabled: false,
+                taskParameters: parameters,
+                globalParameters: null,
+                warningsAsErrors: null,
+                warningsNotAsErrors: null,
+                warningsAsMessages: null);
 
             ((ITranslatable)config).Translate(TranslationHelpers.GetWriteTranslator());
             INodePacket packet = TaskHostConfiguration.FactoryForDeserialization(TranslationHelpers.GetReadTranslator());
@@ -440,7 +627,103 @@ namespace Microsoft.Build.UnitTests.BackEnd
         }
 
         /// <summary>
-        /// Helper methods for testing the task host-related packets. 
+        /// Test serialization / deserialization when the parameter dictionary contains an ITaskItem array.
+        /// </summary>
+        [Fact]
+        public void TestTranslationWithWarningsAsErrors()
+        {
+            HashSet<string> WarningsAsErrors = new HashSet<string>();
+            WarningsAsErrors.Add("MSB1234");
+            WarningsAsErrors.Add("MSB1235");
+            WarningsAsErrors.Add("MSB1236");
+            WarningsAsErrors.Add("MSB1237");
+            TaskHostConfiguration config = new TaskHostConfiguration(
+                nodeId: 1,
+                startupDirectory: Directory.GetCurrentDirectory(),
+                buildProcessEnvironment: null,
+                culture: Thread.CurrentThread.CurrentCulture,
+                uiCulture: Thread.CurrentThread.CurrentUICulture,
+#if FEATURE_APPDOMAIN
+                appDomainSetup:
+#if FEATURE_APPDOMAIN
+                null,
+#endif
+                lineNumberOfTask:
+#endif
+                1,
+                columnNumberOfTask: 1,
+                projectFileOfTask: @"c:\my project\myproj.proj",
+                continueOnError: _continueOnErrorDefault,
+                taskName: "TaskName",
+                taskLocation: @"c:\MyTasks\MyTask.dll",
+                isTaskInputLoggingEnabled: false,
+                taskParameters: null,
+                globalParameters: null,
+                warningsAsErrors: WarningsAsErrors,
+                warningsNotAsErrors: null,
+                warningsAsMessages: null);
+
+            ((ITranslatable)config).Translate(TranslationHelpers.GetWriteTranslator());
+            INodePacket packet = TaskHostConfiguration.FactoryForDeserialization(TranslationHelpers.GetReadTranslator());
+
+            TaskHostConfiguration deserializedConfig = packet as TaskHostConfiguration;
+
+            Assert.Equal(config.TaskName, deserializedConfig.TaskName);
+#if !FEATURE_ASSEMBLYLOADCONTEXT
+            Assert.Equal(config.TaskLocation, deserializedConfig.TaskLocation);
+#endif
+            Assert.NotNull(deserializedConfig.WarningsAsErrors);
+            config.WarningsAsErrors.SequenceEqual(deserializedConfig.WarningsAsErrors, StringComparer.Ordinal).ShouldBeTrue();
+        }
+
+        /// <summary>
+        /// Test serialization / deserialization when the parameter dictionary contains warningsasmessages
+        /// </summary>
+        [Fact]
+        public void TestTranslationWithWarningsAsMessages()
+        {
+            HashSet<string> WarningsAsMessages = new HashSet<string>();
+            WarningsAsMessages.Add("MSB1234");
+            WarningsAsMessages.Add("MSB1235");
+            WarningsAsMessages.Add("MSB1236");
+            WarningsAsMessages.Add("MSB1237");
+            TaskHostConfiguration config = new TaskHostConfiguration(
+                nodeId: 1,
+                startupDirectory: Directory.GetCurrentDirectory(),
+                buildProcessEnvironment: null,
+                culture: Thread.CurrentThread.CurrentCulture,
+                uiCulture: Thread.CurrentThread.CurrentUICulture,
+#if FEATURE_APPDOMAIN
+                appDomainSetup:
+#if FEATURE_APPDOMAIN
+                null,
+#endif
+                lineNumberOfTask:
+#endif
+                1,
+                columnNumberOfTask: 1,
+                projectFileOfTask: @"c:\my project\myproj.proj",
+                continueOnError: _continueOnErrorDefault,
+                taskName: "TaskName",
+                taskLocation: @"c:\MyTasks\MyTask.dll",
+                isTaskInputLoggingEnabled: false,
+                taskParameters: null,
+                globalParameters: null,
+                warningsAsErrors: null,
+                warningsNotAsErrors: null,
+                warningsAsMessages: WarningsAsMessages);
+
+            ((ITranslatable)config).Translate(TranslationHelpers.GetWriteTranslator());
+            INodePacket packet = TaskHostConfiguration.FactoryForDeserialization(TranslationHelpers.GetReadTranslator());
+
+            TaskHostConfiguration deserializedConfig = packet as TaskHostConfiguration;
+
+            Assert.NotNull(deserializedConfig.WarningsAsMessages);
+            config.WarningsAsMessages.SequenceEqual(deserializedConfig.WarningsAsMessages, StringComparer.Ordinal).ShouldBeTrue();
+        }
+
+        /// <summary>
+        /// Helper methods for testing the task host-related packets.
         /// </summary>
         internal static class TaskHostPacketHelpers
         {

@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.Xml;
 using System.Collections;
@@ -19,10 +23,10 @@ namespace Microsoft.Build.UnitTests
         /// <summary>
         /// Missing unittest found by mutation testing.
         /// REASON TEST WASN'T ORIGINALLY PRESENT: HashTableUtility was not a separate class and
-        /// there was no way to hit this case through BatchingEngine directly because it never 
+        /// there was no way to hit this case through BatchingEngine directly because it never
         /// calls Compare() with unequal numbers of items.
-        /// 
-        /// This test ensures that hashtable     with unequal numbers of items are considered not 
+        ///
+        /// This test ensures that hashtable     with unequal numbers of items are considered not
         /// equivalent.
         /// </summary>
         [Test]

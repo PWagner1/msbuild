@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.IO;
 using System.Xml;
@@ -13,7 +17,7 @@ using Microsoft.Build.Framework;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
 
-    
+
 namespace Microsoft.Build.UnitTests
 {
     /*
@@ -23,7 +27,7 @@ namespace Microsoft.Build.UnitTests
      * Utility methods for unit tests that work through the object model.
      *
      */
-    sealed public class EngineHelpers        
+    sealed public class EngineHelpers
     {
         internal static string EnsureNoLeadingSlash(string path)
         {
@@ -58,26 +62,26 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Amazingly sophisticated :) helper function to determine if the set of ITaskItems returned from 
+        /// Amazingly sophisticated :) helper function to determine if the set of ITaskItems returned from
         /// a task match the expected set of ITaskItems.  It can also check that the ITaskItems have the expected
         /// metadata, and that the ITaskItems are returned in the correct order.
-        /// 
+        ///
         /// The "expectedItemsString" is a formatted way of easily specifying which items you expect to see.
         /// The format is:
-        /// 
+        ///
         ///         itemspec1 :   metadataname1=metadatavalue1 ; metadataname2=metadatavalue2 ; ...
         ///         itemspec2 :   metadataname3=metadatavalue3 ; metadataname4=metadatavalue4 ; ...
         ///         itemspec3 :   metadataname5=metadatavalue5 ; metadataname6=metadatavalue6 ; ...
-        /// 
+        ///
         /// (Each item needs to be on its own line.)
-        /// 
+        ///
         /// </summary>
         /// <param name="expectedItemsString"></param>
         /// <param name="actualItems"></param>
         /// <owner>RGoel</owner>
         static internal void AssertItemsMatch
             (
-            string expectedItemsString, 
+            string expectedItemsString,
             BuildItem[] actualItems
             )
         {
@@ -85,27 +89,27 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Amazingly sophisticated :) helper function to determine if the set of ITaskItems returned from 
+        /// Amazingly sophisticated :) helper function to determine if the set of ITaskItems returned from
         /// a task match the expected set of ITaskItems.  It can also check that the ITaskItems have the expected
         /// metadata, and that the ITaskItems are returned in the correct order.
-        /// 
+        ///
         /// The "expectedItemsString" is a formatted way of easily specifying which items you expect to see.
         /// The format is:
-        /// 
+        ///
         ///         itemspec1 :   metadataname1=metadatavalue1 ; metadataname2=metadatavalue2 ; ...
         ///         itemspec2 :   metadataname3=metadatavalue3 ; metadataname4=metadatavalue4 ; ...
         ///         itemspec3 :   metadataname5=metadatavalue5 ; metadataname6=metadatavalue6 ; ...
-        /// 
+        ///
         /// (Each item needs to be on its own line.)
-        /// 
+        ///
         /// </summary>
         /// <param name="expectedItemsString"></param>
         /// <param name="actualItems"></param>
         /// <owner>RGoel</owner>
         static internal void AssertItemsMatch
             (
-            string expectedItemsString, 
-            BuildItem[] actualItems, 
+            string expectedItemsString,
+            BuildItem[] actualItems,
             bool orderOfItemsShouldMatch
             )
         {
@@ -121,26 +125,26 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Amazingly sophisticated :) helper function to determine if the set of ITaskItems returned from 
+        /// Amazingly sophisticated :) helper function to determine if the set of ITaskItems returned from
         /// a task match the expected set of ITaskItems.  It can also check that the ITaskItems have the expected
         /// metadata, and that the ITaskItems are returned in the correct order.
-        /// 
+        ///
         /// The "expectedItemsString" is a formatted way of easily specifying which items you expect to see.
         /// The format is:
-        /// 
+        ///
         ///         itemspec1 :   metadataname1=metadatavalue1 ; metadataname2=metadatavalue2 ; ...
         ///         itemspec2 :   metadataname3=metadatavalue3 ; metadataname4=metadatavalue4 ; ...
         ///         itemspec3 :   metadataname5=metadatavalue5 ; metadataname6=metadatavalue6 ; ...
-        /// 
+        ///
         /// (Each item needs to be on its own line.)
-        /// 
+        ///
         /// </summary>
         /// <param name="expectedItemsString"></param>
         /// <param name="actualItems"></param>
         /// <owner>RGoel</owner>
         static internal void AssertItemsMatch
             (
-            string expectedItemsString, 
+            string expectedItemsString,
             BuildItemGroup actualItems
             )
         {
@@ -148,27 +152,27 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Amazingly sophisticated :) helper function to determine if the set of ITaskItems returned from 
+        /// Amazingly sophisticated :) helper function to determine if the set of ITaskItems returned from
         /// a task match the expected set of ITaskItems.  It can also check that the ITaskItems have the expected
         /// metadata, and that the ITaskItems are returned in the correct order.
-        /// 
+        ///
         /// The "expectedItemsString" is a formatted way of easily specifying which items you expect to see.
         /// The format is:
-        /// 
+        ///
         ///         itemspec1 :   metadataname1=metadatavalue1 ; metadataname2=metadatavalue2 ; ...
         ///         itemspec2 :   metadataname3=metadatavalue3 ; metadataname4=metadatavalue4 ; ...
         ///         itemspec3 :   metadataname5=metadatavalue5 ; metadataname6=metadatavalue6 ; ...
-        /// 
+        ///
         /// (Each item needs to be on its own line.)
-        /// 
+        ///
         /// </summary>
         /// <param name="expectedItemsString"></param>
         /// <param name="actualItems"></param>
         /// <owner>RGoel</owner>
         static internal void AssertItemsMatch
             (
-            string expectedItemsString, 
-            BuildItemGroup actualItems, 
+            string expectedItemsString,
+            BuildItemGroup actualItems,
             bool orderOfItemsShouldMatch
             )
         {

@@ -1,5 +1,9 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
 
 using System;
 using System.Xml;
@@ -31,7 +35,7 @@ namespace Microsoft.Build.BuildEngine
 
         // If this is a persisted <ItemGroup>, this boolean tells us whether
         // it came from the main project file, or an imported project file.
-        bool importedFromAnotherProject = false;
+        private bool importedFromAnotherProject = false;
 
         // These are the loose Items beneath this BuildItemGroup.  This is
         // valid for both persisted and virtual ItemGroups.
@@ -346,7 +350,7 @@ namespace Microsoft.Build.BuildEngine
                 itemToAdd.ItemDefinitionLibrary = parentProject.ItemDefinitionLibrary;
             }
 
-            // If this BuildItemGroup is a persisted <ItemGroup>, then we need the 
+            // If this BuildItemGroup is a persisted <ItemGroup>, then we need the
             // items to have a reference back to their parent BuildItemGroup.  This
             // makes it *much* easier to delete items through the object model.
             if (IsPersisted)
@@ -379,20 +383,20 @@ namespace Microsoft.Build.BuildEngine
                 ErrorUtilities.VerifyThrow(itemToAdd.ItemElement.OwnerDocument == xml.OwnerDocument, "Cannot add an Item with a different XML owner document.");
 
                 // Generally, the desired behavior is to keep items of the same Type physically
-                // contiguous within the BuildItemGroup.  (It's just easier to read that way.)  So we 
+                // contiguous within the BuildItemGroup.  (It's just easier to read that way.)  So we
                 // scan through the existing items in our BuildItemGroup, and try to find the spot where
-                // the new item would fit in alphabetically.  This is nice because it helps 
-                // source code control scenarios where multiple clients are adding items to 
-                // the same list.  By putting them in alphabetical order, there's less of a 
+                // the new item would fit in alphabetically.  This is nice because it helps
+                // source code control scenarios where multiple clients are adding items to
+                // the same list.  By putting them in alphabetical order, there's less of a
                 // chance of merge conflicts.
                 int insertionIndex = items.Count;
                 for (int i = 0; i < items.Count; i++)
                 {
-                    if ( String.Equals(itemToAdd.Name, items[i].Name, StringComparison.OrdinalIgnoreCase))
+                    if (String.Equals(itemToAdd.Name, items[i].Name, StringComparison.OrdinalIgnoreCase))
                     {
                         insertionIndex = i + 1;
 
-                        if ( 0 > String.Compare(itemToAdd.Include, items[i].Include, StringComparison.OrdinalIgnoreCase))
+                        if (0 > String.Compare(itemToAdd.Include, items[i].Include, StringComparison.OrdinalIgnoreCase))
                         {
                             insertionIndex = i;
                             break;
@@ -484,7 +488,7 @@ namespace Microsoft.Build.BuildEngine
                 BackupPersistedItems();
             }
 
-            // Don't remove the XML node, or mark the itemgroup as dirty; this is 
+            // Don't remove the XML node, or mark the itemgroup as dirty; this is
             // strictly an operation on temporary items, because we'll be un-backing up the
             // persisted items at the end of the build
 
@@ -597,7 +601,7 @@ namespace Microsoft.Build.BuildEngine
             {
                 MustNotBeImported();
 
-                foreach(BuildItem itemToRemove in items)
+                foreach (BuildItem itemToRemove in items)
                 {
                     XmlElement itemElement = itemToRemove.ItemElement;
                     MustHaveThisParentElement(itemToRemove);
@@ -855,7 +859,7 @@ namespace Microsoft.Build.BuildEngine
                 BuildItemGroup itemizedGroup = expander.ExpandSingleItemListExpressionIntoItemsLeaveEscaped(itemIncludePieces[i], originalItem.IncludeAttribute);
                 if (itemizedGroup == null)
                 {
-                    // The expression did not represent a single @(...) item list reference. 
+                    // The expression did not represent a single @(...) item list reference.
                     if (expandMetadata)
                     {
                         // We're inside a target: metadata expressions like %(foo) are legal, so expand them now

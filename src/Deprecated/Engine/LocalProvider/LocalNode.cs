@@ -1,13 +1,17 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
 
 using System;
 using System.Collections;
 using System.Diagnostics;
 using System.IO;
+using System.Security.AccessControl;
 using System.Threading;
 using Microsoft.Build.BuildEngine.Shared;
-using System.Security.AccessControl;
 
 namespace Microsoft.Build.BuildEngine
 {
@@ -45,42 +49,42 @@ namespace Microsoft.Build.BuildEngine
         /// </summary>
         internal static void DumpExceptionToFile(Exception ex)
         {
-                // Lock as multiple threads may throw simultaneously
-                lock (dumpFileLocker)
+            // Lock as multiple threads may throw simultaneously
+            lock (dumpFileLocker)
+            {
+                if (dumpFileName == null)
                 {
-                    if (dumpFileName == null)
+                    Guid guid = Guid.NewGuid();
+                    string tempPath = Path.GetTempPath();
+
+                    // For some reason we get Watson buckets because GetTempPath gives us a folder here that doesn't exist.
+                    // Either because %TMP% is misdefined, or because they deleted the temp folder during the build.
+                    if (!Directory.Exists(tempPath))
                     {
-                        Guid guid = Guid.NewGuid();
-                        string tempPath = Path.GetTempPath();
-
-                        // For some reason we get Watson buckets because GetTempPath gives us a folder here that doesn't exist.
-                        // Either because %TMP% is misdefined, or because they deleted the temp folder during the build.
-                        if (!Directory.Exists(tempPath))
-                        {
-                            // If this throws, no sense catching it, we can't log it now, and we're here
-                            // because we're a child node with no console to log to, so die
-                            Directory.CreateDirectory(tempPath);
-                        }
-
-                        dumpFileName = Path.Combine(tempPath, "MSBuild_" + guid.ToString());
-
-                        using (StreamWriter writer = new StreamWriter(dumpFileName, true /*append*/))
-                        {
-                            writer.WriteLine("UNHANDLED EXCEPTIONS FROM CHILD NODE:");
-                            writer.WriteLine("===================");
-                        }
+                        // If this throws, no sense catching it, we can't log it now, and we're here
+                        // because we're a child node with no console to log to, so die
+                        Directory.CreateDirectory(tempPath);
                     }
+
+                    dumpFileName = Path.Combine(tempPath, "MSBuild_" + guid.ToString());
 
                     using (StreamWriter writer = new StreamWriter(dumpFileName, true /*append*/))
                     {
-                        writer.WriteLine(DateTime.Now.ToLongTimeString());
-                        writer.WriteLine(ex.ToString());
+                        writer.WriteLine("UNHANDLED EXCEPTIONS FROM CHILD NODE:");
                         writer.WriteLine("===================");
                     }
                 }
+
+                using (StreamWriter writer = new StreamWriter(dumpFileName, true /*append*/))
+                {
+                    writer.WriteLine(DateTime.Now.ToLongTimeString());
+                    writer.WriteLine(ex.ToString());
+                    writer.WriteLine("===================");
+                }
+            }
         }
 
-#endregion
+        #endregion
 
         #region Constructors
 
@@ -101,15 +105,15 @@ namespace Microsoft.Build.BuildEngine
         /// <summary>
         /// This method causes the reader and writer threads to start and create the shared memory structures
         /// </summary>
-        void StartCommunicationThreads()
+        private void StartCommunicationThreads()
         {
             // The writer thread should be created before the
             // reader thread because some LocalCallDescriptors
             // assume the shared memory for the writer thread
-            // has already been created. The method will both 
-            // instantiate the shared memory for the writer 
+            // has already been created. The method will both
+            // instantiate the shared memory for the writer
             // thread and also start the writer thread itself.
-            // We will verifyThrow in the method if the 
+            // We will verifyThrow in the method if the
             // sharedMemory was not created correctly.
             engineCallback.StartWriterThread(nodeNumber);
 
@@ -120,7 +124,7 @@ namespace Microsoft.Build.BuildEngine
                         // Generate the name for the shared memory region
                         LocalNodeProviderGlobalNames.NodeInputMemoryName(nodeNumber),
                         SharedMemoryType.ReadOnly,
-                        // Reuse an existing shared memory region as it should have already 
+                        // Reuse an existing shared memory region as it should have already
                         // been created by the parent node side
                         true
                   );
@@ -138,7 +142,7 @@ namespace Microsoft.Build.BuildEngine
         /// <summary>
         /// This method causes the reader and writer threads to exit and dispose of the shared memory structures
         /// </summary>
-        void StopCommunicationThreads()
+        private void StopCommunicationThreads()
         {
             communicationThreadExitEvent.Set();
 
@@ -146,7 +150,7 @@ namespace Microsoft.Build.BuildEngine
             Thread writerThread = engineCallback.GetWriterThread();
             // The threads may not exist if the child has timed out before the parent has told the node
             // to start up its communication threads. This can happen if the node is started with /nodemode:x
-            // and no parent is running, or if the parent node has spawned a new process and then crashed 
+            // and no parent is running, or if the parent node has spawned a new process and then crashed
             // before establishing communication with the child node.
             writerThread?.Join();
 
@@ -213,6 +217,7 @@ namespace Microsoft.Build.BuildEngine
         /// This function starts local node when process is launched and shuts it down on time out
         /// Called by msbuild.exe.
         /// </summary>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Agreed not to touch entries from Deprecated folder")]
         public static void StartLocalNodeServer(int nodeNumber)
         {
             // Create global events necessary for handshaking with the parent
@@ -259,7 +264,7 @@ namespace Microsoft.Build.BuildEngine
                     globalNodeActivate.Reset();
                     // Set the global inuse event so other parent processes know this node is now initialized
                     globalNodeInUse.Set();
-                    // Make a copy of the parents handle to protect ourselves in case the parent dies, 
+                    // Make a copy of the parents handle to protect ourselves in case the parent dies,
                     // this is to prevent a parent from reserving a node another parent is trying to use.
                     globalNodeReserveHandle =
                         new EventWaitHandle(false, EventResetMode.ManualReset, LocalNodeProviderGlobalNames.NodeReserveEventName(nodeNumber));
@@ -320,7 +325,7 @@ namespace Microsoft.Build.BuildEngine
 
             globalNodeActive.Close();
             globalNodeInUse.Close();
-         }
+        }
 
         #endregion
 
@@ -355,7 +360,7 @@ namespace Microsoft.Build.BuildEngine
                     {
                         // Read the list of LocalCallDescriptors from sharedMemory,
                         // this will be null if a large object is being read from shared
-                        // memory and will continue to be null until the large object has 
+                        // memory and will continue to be null until the large object has
                         // been completly sent.
                         IList localCallDescriptorList = sharedMemory.Read();
 
@@ -370,7 +375,7 @@ namespace Microsoft.Build.BuildEngine
                                 {
                                     // Process the reply from the parent so it can be looked in a hashtable based
                                     // on the call descriptor who requested the reply.
-                                    engineCallback.PostReplyFromParent((LocalReplyCallDescriptor) callDescriptor);
+                                    engineCallback.PostReplyFromParent((LocalReplyCallDescriptor)callDescriptor);
                                 }
                             }
                         }
@@ -413,11 +418,11 @@ namespace Microsoft.Build.BuildEngine
                             new LocalCallDescriptorForShutdownComplete(shutdownLevel, node.TotalTaskTime);
                         // Post the message indicating that the shutdown is complete
                         engineCallback.PostMessageToParent(callDescriptor, true);
-                     }
+                    }
                 }
                 catch (Exception e)
                 {
-                     if (shutdownLevel != Node.NodeShutdownLevel.ErrorShutdown)
+                    if (shutdownLevel != Node.NodeShutdownLevel.ErrorShutdown)
                     {
                         ReportNonFatalCommunicationError(e);
                     }
@@ -437,7 +442,7 @@ namespace Microsoft.Build.BuildEngine
             {
                 // Even if we completed a build, if we are goign to exit the process we need to null out the node and set the notInUseEvent, this is
                 // accomplished by calling this method again with the ErrorShutdown handle
-                if ( shutdownLevel == Node.NodeShutdownLevel.BuildCompleteSuccess || shutdownLevel == Node.NodeShutdownLevel.BuildCompleteFailure )
+                if (shutdownLevel == Node.NodeShutdownLevel.BuildCompleteSuccess || shutdownLevel == Node.NodeShutdownLevel.BuildCompleteFailure)
                 {
                     ShutdownNode(Node.NodeShutdownLevel.ErrorShutdown, false, true);
                 }
@@ -468,7 +473,7 @@ namespace Microsoft.Build.BuildEngine
 
             inUseEvent.Set();
 
-            // Clear the environment so that we dont have extra variables laying around, this 
+            // Clear the environment so that we dont have extra variables laying around, this
             // may be a performance hog but needs to be done
             IDictionary variableDictionary = Environment.GetEnvironmentVariables();
             foreach (string variableName in variableDictionary.Keys)
@@ -476,9 +481,9 @@ namespace Microsoft.Build.BuildEngine
                 Environment.SetEnvironmentVariable(variableName, null);
             }
 
-            foreach(string key in environmentVariables.Keys)
+            foreach (string key in environmentVariables.Keys)
             {
-                Environment.SetEnvironmentVariable(key,(string)environmentVariables[key]);
+                Environment.SetEnvironmentVariable(key, (string)environmentVariables[key]);
             }
 
             // Host the msbuild engine and system
@@ -514,7 +519,7 @@ namespace Microsoft.Build.BuildEngine
 
             if (!isParentAlive)
             {
-                // No logging's going to reach the parent at this point: 
+                // No logging's going to reach the parent at this point:
                 // indicate on the console what's going on
                 string message = ResourceUtilities.FormatResourceString("ParentProcessUnexpectedlyDied", node.NodeId);
                 Console.WriteLine(message);
@@ -601,8 +606,8 @@ namespace Microsoft.Build.BuildEngine
         // This event is used to cause the child to create the shared memory structures to start communication
         // with the parent
         private static EventWaitHandle globalInitiateActivationEvent;
-        // This event is used to indicate to the parent that shared memory buffers have been created and are ready for 
-        // use 
+        // This event is used to indicate to the parent that shared memory buffers have been created and are ready for
+        // use
         private static EventWaitHandle globalNodeActivate;
         // Private local events
         private static ManualResetEvent communicationThreadExitEvent = new ManualResetEvent(false);
@@ -613,7 +618,7 @@ namespace Microsoft.Build.BuildEngine
         /// Indicates the node is now in use. This means the node has recieved an activate command with initialization
         /// data from the parent procss
         /// </summary>
-        private static ManualResetEvent inUseEvent    = new ManualResetEvent(false);
+        private static ManualResetEvent inUseEvent = new ManualResetEvent(false);
 
         /// <summary>
         /// Randomly generated file name for all exceptions thrown by this node that need to be dumped to a file.
@@ -622,7 +627,7 @@ namespace Microsoft.Build.BuildEngine
         private static string dumpFileName = null;
 
         // Timeouts && Constants
-        private const int inactivityTimeout   = 60 * 1000; // 60 seconds of inactivity to exit
+        private const int inactivityTimeout = 60 * 1000; // 60 seconds of inactivity to exit
         private const int parentCheckInterval = 5 * 1000; // Check if the parent process is there every 5 seconds
 
         #endregion

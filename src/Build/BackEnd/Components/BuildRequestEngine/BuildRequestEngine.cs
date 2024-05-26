@@ -1,5 +1,5 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections.Generic;
@@ -10,9 +10,14 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks.Dataflow;
 using Microsoft.Build.BackEnd.Logging;
+using Microsoft.Build.Experimental.BuildCheck.Infrastructure;
 using Microsoft.Build.Execution;
+using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Shared.Debugging;
 using BuildAbortedException = Microsoft.Build.Exceptions.BuildAbortedException;
+
+#nullable disable
 
 namespace Microsoft.Build.BackEnd
 {
@@ -115,13 +120,13 @@ namespace Microsoft.Build.BackEnd
         /// </summary>
         internal BuildRequestEngine()
         {
-            _debugDumpState = Environment.GetEnvironmentVariable("MSBUILDDEBUGSCHEDULER") == "1";
-            _debugDumpPath = Environment.GetEnvironmentVariable("MSBUILDDEBUGPATH");
+            _debugDumpState = Traits.Instance.DebugScheduler;
+            _debugDumpPath = DebugUtils.DebugPath;
             _debugForceCaching = Environment.GetEnvironmentVariable("MSBUILDDEBUGFORCECACHING") == "1";
 
             if (String.IsNullOrEmpty(_debugDumpPath))
             {
-                _debugDumpPath = Path.GetTempPath();
+                _debugDumpPath = FileUtilities.TempFileDirectory;
             }
 
             _status = BuildRequestEngineStatus.Uninitialized;
@@ -165,6 +170,11 @@ namespace Microsoft.Build.BackEnd
         public event EngineExceptionDelegate OnEngineException;
 
         /// <summary>
+        /// Raised when resources are requested.
+        /// </summary>
+        public event ResourceRequestDelegate OnResourceRequest;
+
+        /// <summary>
         /// Returns the current engine status.
         /// </summary>
         public BuildRequestEngineStatus Status => _status;
@@ -193,7 +203,7 @@ namespace Microsoft.Build.BackEnd
         /// Cleans up after a build but leaves the engine thread running.  Aborts
         /// any outstanding requests.  Blocks until the engine has cleaned up
         /// everything.  After this method is called, InitializeForBuild may be
-        /// called to start a new build, or the component may be shut down.        
+        /// called to start a new build, or the component may be shut down.
         /// </summary>
         /// <remarks>
         /// Called by the Node.  Non-overlapping with other calls from the Node.
@@ -272,6 +282,9 @@ namespace Microsoft.Build.BackEnd
                         TraceEngine("CFB: Rethrowing shutdown exceptions");
                         throw new AggregateException(deactivateExceptions);
                     }
+
+                    var buildCheckManager = (_componentHost.GetComponent(BuildComponentType.BuildCheckManagerProvider) as IBuildCheckManagerProvider)!.Instance;
+                    buildCheckManager.FinalizeProcessing(_nodeLoggingContext);
                 },
                 isLastTask: true);
 
@@ -338,13 +351,13 @@ namespace Microsoft.Build.BackEnd
 
                         TraceEngine("Request {0}({1}) (nr {2}) retrieved results for configuration {3} from node {4} for transfer.", request.GlobalRequestId, request.ConfigurationId, request.NodeRequestId, request.ConfigurationId, _componentHost.BuildParameters.NodeId);
 
-                        // If this is the inproc node, we've already set the configuration's ResultsNodeId to the correct value in 
-                        // HandleRequestBlockedOnResultsTransfer, and don't want to set it again, because we actually have less 
-                        // information available to us now.  
+                        // If this is the inproc node, we've already set the configuration's ResultsNodeId to the correct value in
+                        // HandleRequestBlockedOnResultsTransfer, and don't want to set it again, because we actually have less
+                        // information available to us now.
                         //
-                        // On the other hand, if this is not the inproc node, we want to make sure that our copy of this configuration 
-                        // knows that its results are no longer on this node.  Since we don't know enough here to know where the 
-                        // results are going, we satisfy ourselves with marking that they are simply "not here". 
+                        // On the other hand, if this is not the inproc node, we want to make sure that our copy of this configuration
+                        // knows that its results are no longer on this node.  Since we don't know enough here to know where the
+                        // results are going, we satisfy ourselves with marking that they are simply "not here".
                         if (_componentHost.BuildParameters.NodeId != Scheduler.InProcNodeId)
                         {
                             config.ResultsNodeId = Scheduler.ResultsTransferredId;
@@ -385,7 +398,7 @@ namespace Microsoft.Build.BackEnd
                     ErrorUtilities.VerifyThrow(_requestsByGlobalRequestId.ContainsKey(unblocker.BlockedRequestId), "Request {0} is not known to the engine.", unblocker.BlockedRequestId);
                     BuildRequestEntry entry = _requestsByGlobalRequestId[unblocker.BlockedRequestId];
 
-                    // Are we resuming execution or reporting results?  
+                    // Are we resuming execution or reporting results?
                     if (unblocker.Result == null)
                     {
                         // We are resuming execution.
@@ -405,7 +418,7 @@ namespace Microsoft.Build.BackEnd
                     }
                     else
                     {
-                        // We must be reporting results.                 
+                        // We must be reporting results.
                         BuildResult result = unblocker.Result;
 
                         if (result.NodeRequestId == BuildRequest.ResultsTransferNodeRequestId)
@@ -425,7 +438,7 @@ namespace Microsoft.Build.BackEnd
                             ((IBuildResults)result).SavedEnvironmentVariables = null;
                             ((IBuildResults)result).SavedCurrentDirectory = null;
 
-                            // Our results node is now this node, since we've just cached those results                        
+                            // Our results node is now this node, since we've just cached those results
                             resultsCache.AddResult(result);
                             config.ResultsNodeId = _componentHost.BuildParameters.NodeId;
 
@@ -450,6 +463,21 @@ namespace Microsoft.Build.BackEnd
                             entry.ReportResult(result);
                         }
                     }
+                },
+                isLastTask: false);
+        }
+
+        /// <summary>
+        /// Notifies the engine of a resource response granting the node resources.
+        /// </summary>
+        /// <param name="response">The resource response.</param>
+        public void GrantResources(ResourceResponse response)
+        {
+            QueueAction(
+                () =>
+                {
+                    BuildRequestEntry entry = _requestsByGlobalRequestId[response.GlobalRequestId];
+                    entry.Builder.ContinueRequestWithResources(response);
                 },
                 isLastTask: false);
         }
@@ -739,7 +767,7 @@ namespace Microsoft.Build.BackEnd
                 _requestsByGlobalRequestId.Remove(completedEntry.Request.GlobalRequestId);
             }
 
-            // If we completed a request, that means we may be able to unload the configuration if there is memory pressure.  Further we 
+            // If we completed a request, that means we may be able to unload the configuration if there is memory pressure.  Further we
             // will also cache any result items we can find since they are rarely used.
             if (completedEntries.Count > 0)
             {
@@ -766,13 +794,14 @@ namespace Microsoft.Build.BackEnd
             }
 
             // Finally, raise the completed events so they occur AFTER the state of the engine has changed,
-            // otherwise the client might observe the engine as being active after having received 
+            // otherwise the client might observe the engine as being active after having received
             // completed notifications for all requests, which would be odd.
             foreach (BuildRequestEntry completedEntry in completedEntries)
             {
                 // Shut it down because we already have enough in reserve.
                 completedEntry.Builder.OnNewBuildRequests -= Builder_OnNewBuildRequests;
                 completedEntry.Builder.OnBuildRequestBlocked -= Builder_OnBlockedRequest;
+                completedEntry.Builder.OnResourceRequest -= Builder_OnResourceRequest;
                 ((IBuildComponent)completedEntry.Builder).ShutdownComponent();
 
                 BuildRequestConfiguration configuration = _configCache[completedEntry.Request.ConfigurationId];
@@ -784,6 +813,7 @@ namespace Microsoft.Build.BackEnd
                     // own cache.
                     completedEntry.Result.DefaultTargets = configuration.ProjectDefaultTargets;
                     completedEntry.Result.InitialTargets = configuration.ProjectInitialTargets;
+                    completedEntry.Result.ProjectTargets = configuration.ProjectTargets;
                 }
 
                 TraceEngine("ERS: Request is now {0}({1}) (nr {2}) has had its builder cleaned up.", completedEntry.Request.GlobalRequestId, completedEntry.Request.ConfigurationId, completedEntry.Request.NodeRequestId);
@@ -890,12 +920,12 @@ namespace Microsoft.Build.BackEnd
                 // Set the request builder.
                 entry.Builder = GetRequestBuilder();
 
-                // Now call into the request builder to do the building            
+                // Now call into the request builder to do the building
                 entry.Builder.BuildRequest(_nodeLoggingContext, entry);
             }
             else
             {
-                // We are resuming the build request                
+                // We are resuming the build request
                 entry.Builder.ContinueRequest();
             }
 
@@ -914,6 +944,7 @@ namespace Microsoft.Build.BackEnd
             // state changes.
             builder.OnNewBuildRequests += Builder_OnNewBuildRequests;
             builder.OnBuildRequestBlocked += Builder_OnBlockedRequest;
+            builder.OnResourceRequest += Builder_OnResourceRequest;
 
             return builder;
         }
@@ -979,6 +1010,14 @@ namespace Microsoft.Build.BackEnd
                 isLastTask: false);
         }
 
+        /// <summary>
+        /// Called when the request builder needs to request resources.
+        /// </summary>
+        private void Builder_OnResourceRequest(ResourceRequest request)
+        {
+            OnResourceRequest?.Invoke(request);
+        }
+
         #endregion
 
         /// <summary>
@@ -988,7 +1027,7 @@ namespace Microsoft.Build.BackEnd
         {
             // We will only submit as many items as were in the queue at the time this method was called.
             // This prevents us from a) having to lock the queue for the whole loop or b) getting into
-            // an endless loop where another thread pushes requests into the queue as fast as we can 
+            // an endless loop where another thread pushes requests into the queue as fast as we can
             // discharge them.
             int countToSubmit = _unsubmittedRequests.Count;
             while (countToSubmit != 0)
@@ -1058,12 +1097,12 @@ namespace Microsoft.Build.BackEnd
         /// When we receive a build request, we first have to determine if we already have a configuration which matches the
         /// one used by the request.  We do this because everywhere we deal with requests and results beyond this function, we
         /// use configuration ids, which are assigned once by the Build Manager and are global to the system.  If we do
-        /// not have a global configuration id, we can't check to see if we already have build results for the request, so we 
+        /// not have a global configuration id, we can't check to see if we already have build results for the request, so we
         /// cannot send the request out.  Thus, first we determine the configuration id.
-        /// 
+        ///
         /// Assuming we don't have the global configuration id locally, we will send the configuration to the Build Manager.
         /// It will look up or assign the global configuration id and send it back to us.
-        /// 
+        ///
         /// Once we have the global configuration id, we can then look up results locally.  If we have enough results to fulfill
         /// the request, we give them back to the request, otherwise we have to forward the request to the Build Mangager
         /// for scheduling.
@@ -1087,7 +1126,7 @@ namespace Microsoft.Build.BackEnd
             lock (issuingEntry.GlobalLock)
             {
                 var existingResultsToReport = new List<BuildResult>();
-                var unresolvedConfigurationsAdded = new HashSet<NGen<int>>();
+                var unresolvedConfigurationsAdded = new HashSet<int>();
 
                 foreach (FullyQualifiedBuildRequest request in newRequests)
                 {
@@ -1160,7 +1199,7 @@ namespace Microsoft.Build.BackEnd
                             configurationId: matchingConfig.ConfigurationId,
                             escapedTargets: request.Targets,
                             hostServices: issuingEntry.Request.HostServices,
-                            parentBuildEventContext: issuingEntry.Request.BuildEventContext,
+                            parentBuildEventContext: issuingEntry.Request.CurrentTaskContext ?? issuingEntry.Request.BuildEventContext,
                             parentRequest: issuingEntry.Request,
                             buildRequestDataFlags: buildRequestDataFlags,
                             requestedProjectState: null,
@@ -1287,9 +1326,9 @@ namespace Microsoft.Build.BackEnd
         /// <param name="config">The configuration to be mapped.</param>
         private void IssueConfigurationRequest(BuildRequestConfiguration config)
         {
-            ErrorUtilities.VerifyThrowArgument(config.WasGeneratedByNode, "InvalidConfigurationId");
+            ErrorUtilities.VerifyThrow(config.WasGeneratedByNode, "InvalidConfigurationId");
             ErrorUtilities.VerifyThrowArgumentNull(config, nameof(config));
-            ErrorUtilities.VerifyThrowInvalidOperation(_unresolvedConfigurations.HasConfiguration(config.ConfigurationId), "NoUnresolvedConfiguration");
+            ErrorUtilities.VerifyThrow(_unresolvedConfigurations.HasConfiguration(config.ConfigurationId), "NoUnresolvedConfiguration");
             TraceEngine("Issuing configuration request for node config {0}", config.ConfigurationId);
             RaiseNewConfigurationRequest(config);
         }

@@ -1,5 +1,9 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
 
 using System;
 using System.IO;
@@ -20,7 +24,7 @@ namespace Microsoft.Build.BuildEngine
         /// <param name="targetName"></param>
         /// <param name="subTargetName"></param>
         /// <owner>RGoel</owner>
-        static private void AddVCBuildTarget
+        private static void AddVCBuildTarget
         (
             Project msbuildProject,
             string projectPath,
@@ -31,8 +35,8 @@ namespace Microsoft.Build.BuildEngine
             Target newTarget = msbuildProject.Targets.AddNewTarget(targetName);
             if (subTargetName == "Publish")
             {
-                // Well, hmmm.  The VCBuild doesn't support any kind of 
-                // a "Publish" operation.  The best we can really do is offer up a 
+                // Well, hmmm.  The VCBuild doesn't support any kind of
+                // a "Publish" operation.  The best we can really do is offer up a
                 // message saying so.
                 SolutionWrapperProject.AddErrorWarningMessageElement(newTarget, XMakeElements.error, true, "SolutionVCProjectNoPublish");
             }
@@ -55,7 +59,7 @@ namespace Microsoft.Build.BuildEngine
         /// <param name="platformName">The platform parameter to VCBuild</param>
         /// <param name="fullConfigurationName">Configuration property value</param>
         /// <returns></returns>
-        static internal BuildTask AddVCBuildTaskElement
+        internal static BuildTask AddVCBuildTaskElement
         (
             Project msbuildProject,
             Target target,
@@ -133,7 +137,7 @@ namespace Microsoft.Build.BuildEngine
         /// This method generates an XmlDocument representing an MSBuild project wrapper for a VC project
         /// </summary>
         /// <owner>LukaszG</owner>
-        static internal XmlDocument GenerateVCWrapperProject(Engine parentEngine, string vcProjectFilename, string toolsVersion)
+        internal static XmlDocument GenerateVCWrapperProject(Engine parentEngine, string vcProjectFilename, string toolsVersion)
         {
             string projectPath = Path.GetFullPath(vcProjectFilename);
             Project msbuildProject;
@@ -187,13 +191,13 @@ namespace Microsoft.Build.BuildEngine
         /// <summary>
         /// Hint to give the VCBuild task to help it find vcbuild.exe.
         /// </summary>
-        static private string path;
+        private static string path;
 
         /// <summary>
         /// Hint to give the VCBuild task to help it find vcbuild.exe.
         /// Directory in which vcbuild.exe is found.
         /// </summary>
-        static internal string VCBuildLocationHint
+        internal static string VCBuildLocationHint
         {
             get
             {
@@ -217,7 +221,7 @@ namespace Microsoft.Build.BuildEngine
         }
 
         // The code below is mostly copied from the VCBuild task that we shipped in 3.5.
-        // It is the logic it uses to find vcbuild.exe. That logic had a flaw - 
+        // It is the logic it uses to find vcbuild.exe. That logic had a flaw -
         // in 64 bit MSBuild, in a vanilla command window (like in Team Build) it would not
         // find vcbuild.exe. We use the logic below to predict whether VCBuild will find it,
         // and if it won't, we will pass the "hint" to use the 64 bit program files location.
@@ -227,7 +231,7 @@ namespace Microsoft.Build.BuildEngine
         /// </summary>
         // root registry key for VS9
         private const string vs9RegKey = @"SOFTWARE\Microsoft\VisualStudio\9.0";
-        // the name of the value containing disk install directory for the IDE components 
+        // the name of the value containing disk install directory for the IDE components
         // ("...\common7\ide" for layouts)
         private const string vs9InstallDirValueName = "InstallDir";
         // relative path from the above directory to vcbuild.exe on layouts
@@ -240,7 +244,7 @@ namespace Microsoft.Build.BuildEngine
         /// </summary>
         // root registry key for VC9
         private const string vc9RegKey = @"SOFTWARE\Microsoft\VCExpress\9.0";
-        // the name of the value containing disk install directory for the IDE components 
+        // the name of the value containing disk install directory for the IDE components
         // ("...\common7\ide" for layouts)
         private const string vc9InstallDirValueName = "InstallDir";
         // relative path from the above directory to vcbuild.exe on layouts

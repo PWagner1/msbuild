@@ -1,5 +1,9 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
 
 using System;
 using System.Diagnostics;
@@ -13,7 +17,7 @@ namespace Microsoft.Build.BuildEngine
 {
     /// <summary>
     /// This class is used to maintain a state of execution of a build request. Once a build request is
-    /// received it is wrapped in this class 
+    /// received it is wrapped in this class
     /// </summary>
     [DebuggerDisplay("ProjectBuildState (NameOfTargetInProgress={NameOfTargetInProgress}, NameOfBlockingTarget={NameOfBlockingTarget}, BuildResult={BuildResult}, BuildComplete={BuildComplete})")]
     internal sealed class ProjectBuildState
@@ -148,7 +152,7 @@ namespace Microsoft.Build.BuildEngine
         }
 
         /// <summary>
-        /// Remove the top blocking target 
+        /// Remove the top blocking target
         /// </summary>
         internal void RemoveBlockingTarget()
         {
@@ -157,7 +161,7 @@ namespace Microsoft.Build.BuildEngine
         }
 
         /// <summary>
-        /// Add another blocking target 
+        /// Add another blocking target
         /// </summary>
         internal void AddBlockingTarget(string targetName)
         {
@@ -207,14 +211,14 @@ namespace Microsoft.Build.BuildEngine
             }
             if (!containsCycle && requiredTargets?.Count > 0)
             {
-                containsCycle = 
+                containsCycle =
                     (String.Equals(name, (string)targetNamesToBuild[indexOfTargetInProgress], StringComparison.OrdinalIgnoreCase));
             }
             return containsCycle;
         }
 
         /// <summary>
-        /// This method return true if a given target name appears anywhere in the list of 
+        /// This method return true if a given target name appears anywhere in the list of
         /// blocking targets
         /// </summary>
         internal bool ContainsBlockingTarget(string name)
@@ -229,7 +233,7 @@ namespace Microsoft.Build.BuildEngine
 
         /// <summary>
         /// This method is used by the target cycle detector to find the parent target for
-        /// the given target. The parent only exists if there is at least 1 
+        /// the given target. The parent only exists if there is at least 1
         /// blocking target. If there is less than 1 blocking target the parent is determined
         /// by the orgin of the build request that caused this build context.
         /// </summary>
@@ -244,7 +248,7 @@ namespace Microsoft.Build.BuildEngine
                 {
                     string[] requiredTargetsArray = requiredTargets.ToArray();
 
-                    for (int i = requiredTargetsArray.Length-1; i >= 0; i--)
+                    for (int i = requiredTargetsArray.Length - 1; i >= 0; i--)
                     {
                         if (string.CompareOrdinal(requiredTargetsArray[i], name) != 0)
                         {
@@ -317,18 +321,23 @@ namespace Microsoft.Build.BuildEngine
 
         #region Data
         // Stack of targets which need to be completed before the in progress target can continue
-        Stack<string> requiredTargets;
+        private Stack<string> requiredTargets;
+
         // BuildEventContext for the build context
-        BuildEventContext projectBuildEventContext;
+        private BuildEventContext projectBuildEventContext;
+
         // Index of the currently in progress target
-        int indexOfTargetInProgress;
+        private int indexOfTargetInProgress;
+
         // List of targets that need to be completed in order to complete the context
         // UNDONE should do the right thing and fully unescape before generating this list
-        ArrayList targetNamesToBuild;
+        private ArrayList targetNamesToBuild;
+
         // Build request that caused the context to come into existance (either from the host or generated)
-        BuildRequest buildRequest;
+        private BuildRequest buildRequest;
+
         // Current state of the context
-        BuildContextState buildContextState;
+        private BuildContextState buildContextState;
         #endregion
     }
 }

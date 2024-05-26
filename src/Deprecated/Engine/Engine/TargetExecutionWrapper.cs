@@ -1,5 +1,9 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
 
 using System;
 using System.Xml;
@@ -36,10 +40,10 @@ namespace Microsoft.Build.BuildEngine
         )
         {
             // Initialize the data about the target XML that has been calculated in the target class
-            this.targetClass   = targetClass;
-            this.parentEngine  = targetClass.ParentEngine;
+            this.targetClass = targetClass;
+            this.parentEngine = targetClass.ParentEngine;
             this.parentProject = targetClass.ParentProject;
-            this.targetElement   = targetElement;
+            this.targetElement = targetElement;
             this.taskElementList = taskElementList;
             this.targetParameters = targetParameters;
             this.targetBuildEventContext = targetBuildEventContext;
@@ -85,7 +89,7 @@ namespace Microsoft.Build.BuildEngine
 
         private bool haveRunANonIntrinsicTask = false;
 
-        // Lookup containing project content used to 
+        // Lookup containing project content used to
         // initialize the target batches
         private Lookup projectContent;
         private LookupEntry placeholderForClonedProjectContent;
@@ -135,9 +139,9 @@ namespace Microsoft.Build.BuildEngine
 
             try
             {
-                // In the single threaded mode we want to avoid looping all the way back to the 
+                // In the single threaded mode we want to avoid looping all the way back to the
                 // engine because there is no need for to be interruptable to address
-                // other build requests. Instead we loop inside this function untill the target is 
+                // other build requests. Instead we loop inside this function untill the target is
                 // fully built.
                 do
                 {
@@ -162,7 +166,7 @@ namespace Microsoft.Build.BuildEngine
                         ContinueBuildingErrorClause(buildContext);
                     }
 
-                    // In the single threaded mode we need to pull up the outputs of the previous 
+                    // In the single threaded mode we need to pull up the outputs of the previous
                     // step
                     if (parentEngine.Router.SingleThreadedMode &&
                         inProgressBuildState == InProgressBuildState.RunningTasks)
@@ -209,7 +213,7 @@ namespace Microsoft.Build.BuildEngine
 
         #region Methods for building dependencies ( InProgressBuildState.BuildingDependencies )
 
-        private void ContinueBuildingDependencies (ProjectBuildState buildContext)
+        private void ContinueBuildingDependencies(ProjectBuildState buildContext)
         {
             // Verify that the target is in the right state
             ErrorUtilities.VerifyThrow(inProgressBuildState == InProgressBuildState.BuildingDependencies, "Wrong state");
@@ -243,7 +247,7 @@ namespace Microsoft.Build.BuildEngine
                 return;
             }
 
-            // Now that the previous dependent target has been build we need to move to the next dependent target if 
+            // Now that the previous dependent target has been build we need to move to the next dependent target if
             // there is one
             currentDependentTarget++;
 
@@ -262,7 +266,7 @@ namespace Microsoft.Build.BuildEngine
                 string nameDependentTarget = dependsOnTargetNames[currentDependentTarget];
                 Target targetToBuild = parentProject.Targets[nameDependentTarget];
 
-                // If we couldn't find the dependent Target object, we have a problem. 
+                // If we couldn't find the dependent Target object, we have a problem.
                 ProjectErrorUtilities.VerifyThrowInvalidProject(targetToBuild != null, targetClass.DependsOnTargetsAttribute,
                     "TargetDoesNotExist", nameDependentTarget);
 
@@ -280,7 +284,7 @@ namespace Microsoft.Build.BuildEngine
         #endregion
 
         #region Methods for build error targets ( InProgressBuildState.BuildingErrorClause )
-        private void ContinueBuildingErrorClause (ProjectBuildState buildContext)
+        private void ContinueBuildingErrorClause(ProjectBuildState buildContext)
         {
             // Verify that the target is in the right state
             ErrorUtilities.VerifyThrow(inProgressBuildState == InProgressBuildState.BuildingErrorClause, "Wrong state");
@@ -321,7 +325,7 @@ namespace Microsoft.Build.BuildEngine
                 string nameErrorTarget = onErrorTargets[currentErrorTarget];
                 Target targetToBuild = parentProject.Targets[nameErrorTarget];
 
-                // If we couldn't find the on error Target object, we have a problem. 
+                // If we couldn't find the on error Target object, we have a problem.
                 ProjectErrorUtilities.VerifyThrowInvalidProject(targetToBuild != null, targetElement,
                     "TargetDoesNotExist", nameErrorTarget);
 
@@ -430,7 +434,7 @@ namespace Microsoft.Build.BuildEngine
             bool exitDueToError = true;
             try
             {
-                // If this is the first task - initialize for running it 
+                // If this is the first task - initialize for running it
                 if (startingFirstTask)
                 {
                     InitializeForRunningTargetBatches();
@@ -460,7 +464,7 @@ namespace Microsoft.Build.BuildEngine
                         return;
                     }
 
-                    //Check if this was the last bucket 
+                    //Check if this was the last bucket
                     if (currentBucket == buckets.Count)
                     {
                         FinishRunningTargetBatches(buildContext);
@@ -565,7 +569,7 @@ namespace Microsoft.Build.BuildEngine
             if ((howToBuild != DependencyAnalysisResult.SkipNoInputs) &&
                 (howToBuild != DependencyAnalysisResult.SkipNoOutputs))
             {
-                // Within each target batch items are divided into lookup and execution; they must be 
+                // Within each target batch items are divided into lookup and execution; they must be
                 // kept separate: enforce this by cloning and entering scope
                 lookupForInference = bucket.Lookup;
                 lookupForExecution = bucket.Lookup.Clone();
@@ -687,7 +691,7 @@ namespace Microsoft.Build.BuildEngine
 
             ErrorUtilities.VerifyThrow(taskElementList.Count > (currentTask - skippedNodeCount),
                 "The TaskElementCollection in this target doesn't have the same number of BuildTask objects as the number of actual task elements.");
-            // Send the task for execution 
+            // Send the task for execution
             SubmitNonIntrinsicTask(
                 (XmlElement)targetChildNode,
                 ((BuildTask)taskElementList[currentTask - skippedNodeCount]).HostObject,
@@ -776,7 +780,7 @@ namespace Microsoft.Build.BuildEngine
 
             // A TaskExecutionMode of ExecuteTaskAndGatherOutputs should have its messages logged in the context of the task and therefore should have a valid taskID
             // A TaskExecutionMode of InferOutputs or Invalid should have its messages logged in the context of the target and therefore should have an invalid taskID
-            BuildEventContext buildEventContext = PrepareBuildEventContext(executionMode == TaskExecutionMode.ExecuteTaskAndGatherOutputs ? false: true);
+            BuildEventContext buildEventContext = PrepareBuildEventContext(executionMode == TaskExecutionMode.ExecuteTaskAndGatherOutputs ? false : true);
 
             // Create the task execution context
             int handleId = parentEngine.EngineCallback.CreateTaskContext(parentProject, targetClass, buildContext,
@@ -835,16 +839,20 @@ namespace Microsoft.Build.BuildEngine
                     }
                     // We need to disable the execution of the task if it was previously enabled,
                     // and if were only doing execution we can stop processing at the point the
-                    // error occurred. If the task fails (which implies that ContinueOnError != 'true'), then do 
-                    // not execute the remaining tasks because they may depend on the completion 
+                    // error occurred. If the task fails (which implies that ContinueOnError != 'true'), then do
+                    // not execute the remaining tasks because they may depend on the completion
                     // of this task.
                     ErrorUtilities.VerifyThrow(howToBuild == DependencyAnalysisResult.FullBuild ||
                                                 howToBuild == DependencyAnalysisResult.IncrementalBuild,
                                                 "We can only see a failure for an execution stage");
                     if (howToBuild != DependencyAnalysisResult.FullBuild)
+                    {
                         howToBuild = DependencyAnalysisResult.SkipUpToDate;
+                    }
                     else
+                    {
                         exitBatchDueToError = true;
+                    }
                 }
             }
 
@@ -902,7 +910,7 @@ namespace Microsoft.Build.BuildEngine
                 // used for dependency analysis, but we assume that's what the user intended
                 GatherTargetOutputs();
 
-                // Only contexts which are generated from an MSBuild task could need 
+                // Only contexts which are generated from an MSBuild task could need
                 // the outputs of the target, such contexts have a non-null evaluation
                 // request
                 if (buildContext.BuildRequest.OutputsByTarget != null &&
@@ -935,9 +943,9 @@ namespace Microsoft.Build.BuildEngine
 
             XmlAttribute targetOutputsAttribute = targetElement.Attributes[XMakeAttributes.outputs];
 
-            // Hack to help the 3.5 engine at least pretend to still be able to build on top of 
-            // the 4.0 targets.  In cases where there is no Outputs attribute, just a Returns attribute, 
-            // we can approximate the correct behaviour by making the Returns attribute our "outputs" attribute. 
+            // Hack to help the 3.5 engine at least pretend to still be able to build on top of
+            // the 4.0 targets.  In cases where there is no Outputs attribute, just a Returns attribute,
+            // we can approximate the correct behaviour by making the Returns attribute our "outputs" attribute.
             if (targetOutputsAttribute == null)
             {
                 targetOutputsAttribute = targetElement.Attributes[XMakeAttributes.returns];
@@ -1002,7 +1010,7 @@ namespace Microsoft.Build.BuildEngine
                 waitingTargets.RemoveAt(0);
 
                 //Don't report any messages within the context in which the error occurred. That context
-                //is addressed as the base of the stack 
+                //is addressed as the base of the stack
                 if (buildContext == errorContext ||
                     buildContext.CurrentBuildContextState == ProjectBuildState.BuildContextState.RequestFilled)
                 {

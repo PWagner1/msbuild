@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.IO;
 using System.Resources;
@@ -14,19 +18,19 @@ using Microsoft.Build.BuildEngine;
 namespace Microsoft.Build.UnitTests
 {
     /***************************************************************************
-     * 
+     *
      * Class:       MockEngine
      * Owner:       RGoel
-     * 
+     *
      * In order to execute tasks, we have to pass in an Engine object, so the
      * task can log events.  It doesn't have to be the real Engine object, just
      * something that implements the IBuildEngine2 interface.  So, we mock up
      * a fake engine object here, so we're able to execute tasks from the unit tests.
-     * 
+     *
      * The unit tests could have instantiated the real Engine object, but then
      * we would have had to take a reference onto the Microsoft.Build.Engine assembly, which
      * is somewhat of a no-no for task assemblies.
-     * 
+     *
      **************************************************************************/
     sealed internal class MockEngine : IBuildEngine2
     {
@@ -163,7 +167,7 @@ namespace Microsoft.Build.UnitTests
                 return 0;
             }
         }
-        
+
         public BuildPropertyGroup GlobalProperties
         {
             set { engineGlobalProperties = value; }
@@ -175,7 +179,7 @@ namespace Microsoft.Build.UnitTests
             set { log = value; }
             get { return log; }
         }
-        
+
         public bool IsRunningMultipleNodes
         {
             get { return isRunningMultipleNodes; }
@@ -184,9 +188,9 @@ namespace Microsoft.Build.UnitTests
 
         public bool BuildProjectFile
             (
-            string projectFileName, 
-            string[] targetNames, 
-            IDictionary globalPropertiesPassedIntoTask, 
+            string projectFileName,
+            string[] targetNames,
+            IDictionary globalPropertiesPassedIntoTask,
             IDictionary targetOutputs
             )
         {
@@ -216,7 +220,7 @@ namespace Microsoft.Build.UnitTests
 
             return engine.BuildProjectFile(projectFileName, targetNames, finalGlobalProperties, targetOutputs, BuildSettings.None, toolsVersion);
         }
-        
+
         public bool BuildProjectFilesInParallel
         (
             string[] projectFileNames,
@@ -234,7 +238,7 @@ namespace Microsoft.Build.UnitTests
             for (int i = 0; i < projectFileNames.Length; i++)
             {
 
-                BuildPropertyGroup finalGlobalProperties = null;  
+                BuildPropertyGroup finalGlobalProperties = null;
                 if (globalProperties[i] != null)
                 {
                     finalGlobalProperties = new BuildPropertyGroup();
@@ -261,7 +265,7 @@ namespace Microsoft.Build.UnitTests
 
         public bool BuildProjectFile
             (
-            string projectFileName, 
+            string projectFileName,
             string[] targetNames
             )
         {
@@ -271,7 +275,7 @@ namespace Microsoft.Build.UnitTests
 
         public bool BuildProjectFile
             (
-            string projectFileName, 
+            string projectFileName,
             string targetName
             )
         {
@@ -288,14 +292,14 @@ namespace Microsoft.Build.UnitTests
         {
             return engine.BuildProjectFile(projectFile, targetNames, globalProperties);
         }
-        
+
         public void UnregisterAllLoggers
             (
             )
         {
             engine.UnregisterAllLoggers();
         }
-        
+
         public void UnloadAllProjects
             (
             )
@@ -317,17 +321,17 @@ namespace Microsoft.Build.UnitTests
                 upperLog = log;
                 upperLog = upperLog.ToUpperInvariant();
             }
-            
+
             // If we do not contain this string than pass it to
             // MockLogger. Since MockLogger is also registered as
             // a logger it may have this string.
-            if(!upperLog.Contains
+            if (!upperLog.Contains
                 (
                     contains.ToUpperInvariant()
                 )
               )
             {
-               mockLogger.AssertLogContains(contains); 
+               mockLogger.AssertLogContains(contains);
             }
         }
 
@@ -352,7 +356,7 @@ namespace Microsoft.Build.UnitTests
                     contains.ToUpperInvariant()
                 )
             );
-            
+
             // If we do not contain this string than pass it to
             // MockLogger. Since MockLogger is also registered as
             // a logger it may have this string.

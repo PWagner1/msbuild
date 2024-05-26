@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using NUnit.Framework;
 using Microsoft.Build.Framework;
@@ -12,7 +16,7 @@ namespace Microsoft.Build.UnitTests
     /// <summary>
     /// These tests are repeated in the Utilities unit test assembly. We know that this isn't
     /// too useful, because both Engine and Utilities pull the code from the same Shared file. But it
-    /// gets a bunch of lines of extra coverage of Engine that we weren't otherwise getting, and 
+    /// gets a bunch of lines of extra coverage of Engine that we weren't otherwise getting, and
     /// in theory at least the implementation in Engine should be tested too.
     /// </summary>
     [TestFixture]

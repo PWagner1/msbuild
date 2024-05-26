@@ -1,8 +1,13 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
 using System;
 using System.Diagnostics;
 using Microsoft.Build.Exceptions;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
+
+#nullable disable
 
 namespace Microsoft.Build.BackEnd.Logging
 {
@@ -72,7 +77,7 @@ namespace Microsoft.Build.BackEnd.Logging
         /// <summary>
         /// Retrieves the build event context
         /// UNDONE: (Refactor) We eventually want to remove this because all logging should go
-        /// through a context object.  This exists only so we can make certain 
+        /// through a context object.  This exists only so we can make certain
         /// logging calls in code which has not yet been fully refactored.
         /// </summary>
         public BuildEventContext BuildEventContext
@@ -124,6 +129,36 @@ namespace Microsoft.Build.BackEnd.Logging
         }
 
         /// <summary>
+        ///  Helper method to create a message build event from a string resource and some parameters
+        /// </summary>
+        /// <param name="importance">Importance level of the message</param>
+        /// <param name="file">The file in which the event occurred</param>
+        /// <param name="messageResourceName">string within the resource which indicates the format string to use</param>
+        /// <param name="messageArgs">string resource arguments</param>
+        internal void LogComment(MessageImportance importance, BuildEventFileInfo file, string messageResourceName, params object[] messageArgs)
+        {
+            ErrorUtilities.VerifyThrow(_isValid, "must be valid");
+
+            _loggingService.LogBuildEvent(new BuildMessageEventArgs(
+                null,
+                null,
+                file.File,
+                file.Line,
+                file.Column,
+                file.EndLine,
+                file.EndColumn,
+                ResourceUtilities.GetResourceString(messageResourceName),
+                helpKeyword: null,
+                senderName: "MSBuild",
+                importance,
+                DateTime.UtcNow,
+                messageArgs)
+            {
+                BuildEventContext = _eventContext
+            });
+        }
+
+        /// <summary>
         /// Helper method to create a message build event from a string
         /// </summary>
         /// <param name="importance">Importance level of the message</param>
@@ -132,6 +167,18 @@ namespace Microsoft.Build.BackEnd.Logging
         {
             ErrorUtilities.VerifyThrow(_isValid, "must be valid");
             _loggingService.LogCommentFromText(_eventContext, importance, message);
+        }
+
+        /// <summary>
+        /// Helper method to create a message build event from a string
+        /// </summary>
+        /// <param name="importance">Importance level of the message</param>
+        /// <param name="message">Message to log</param>
+        /// <param name="messageArgs">Format string arguments</param>
+        internal void LogCommentFromText(MessageImportance importance, string message, params object[] messageArgs)
+        {
+            ErrorUtilities.VerifyThrow(_isValid, "must be valid");
+            _loggingService.LogCommentFromText(_eventContext, importance, message, messageArgs);
         }
 
         /// <summary>
@@ -201,6 +248,12 @@ namespace Microsoft.Build.BackEnd.Logging
             _hasLoggedErrors = true;
         }
 
+        internal void LogWarning(string messageResourceName, params object[] messageArgs)
+        {
+            ErrorUtilities.VerifyThrow(_isValid, "must be valid");
+            _loggingService.LogWarning(_eventContext, null, BuildEventFileInfo.Empty, messageResourceName, messageArgs);
+        }
+
         /// <summary>
         /// Log a warning
         /// </summary>
@@ -248,6 +301,16 @@ namespace Microsoft.Build.BackEnd.Logging
             ErrorUtilities.VerifyThrow(IsValid, "must be valid");
             LoggingService.LogFatalBuildError(BuildEventContext, exception, file);
             _hasLoggedErrors = true;
+        }
+
+        /// <summary>
+        /// Logs a file to be included in the binary logger
+        /// </summary>
+        /// <param name="filePath">Path to response file</param>
+        internal void LogIncludeFile(string filePath)
+        {
+            ErrorUtilities.VerifyThrow(IsValid, "must be valid");
+            _loggingService.LogIncludeFile(BuildEventContext, filePath);
         }
     }
 }

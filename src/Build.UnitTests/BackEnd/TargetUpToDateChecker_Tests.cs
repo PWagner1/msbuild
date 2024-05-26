@@ -1,21 +1,24 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Threading;
 using System.Xml;
-using System.Runtime.InteropServices;
 using Microsoft.Build.BackEnd;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Evaluation;
-using Microsoft.Win32.SafeHandles;
-using Xunit;
-using Xunit.Abstractions;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
+using Microsoft.Win32.SafeHandles;
+using Xunit;
+using Xunit.Abstractions;
+
+#nullable disable
 
 namespace Microsoft.Build.UnitTests.BackEnd
 {
@@ -120,11 +123,11 @@ namespace Microsoft.Build.UnitTests.BackEnd
 
         /// <summary>
         /// Tests this case:
-        /// 
+        ///
         /// <Target Name="x"
         ///         Inputs="@(Items);c.cs"
         ///         Outputs="@(Items->'%(Filename).dll')" />
-        /// 
+        ///
         /// If Items = [a.cs;b.cs], and only b.cs is out of date w/r/t its
         /// correlated output b.dll, then we should only build "b" incrementally.
         /// </summary>
@@ -157,11 +160,11 @@ namespace Microsoft.Build.UnitTests.BackEnd
 
         /// <summary>
         /// Tests this case:
-        /// 
+        ///
         /// <Target Name="x"
         ///         Inputs="@(Items)"
         ///         Outputs="@(Items->'%(Filename).dll');@(Items->'%(Filename).xml')" />
-        /// 
+        ///
         /// If Items = [a.cs;b.cs;c.cs], and only b.cs is out of date w/r/t its
         /// correlated outputs (dll or xml), then we should only build "b" incrementally.
         /// </summary>
@@ -200,11 +203,11 @@ namespace Microsoft.Build.UnitTests.BackEnd
 
         /// <summary>
         /// Tests this case:
-        /// 
+        ///
         /// <Target Name="x"
         ///         Inputs="@(Items);@(MoreItems)"
         ///         Outputs="@(Items->'%(Filename).dll');@(MoreItems->'%(Filename).xml')" />
-        /// 
+        ///
         /// If Items = [a.cs;b.cs;c.cs], and only b.cs is out of date w/r/t its
         /// correlated outputs (dll or xml), then we should only build "b" incrementally.
         /// </summary>
@@ -440,24 +443,24 @@ namespace Microsoft.Build.UnitTests.BackEnd
   </Target>
 
   <Target Name='Setup'>
-        <WriteLinesToFile 
+        <WriteLinesToFile
             File='A'
             Lines='A'
             Overwrite='true'/>
-            
-        <WriteLinesToFile 
+
+        <WriteLinesToFile
             File='B.out'
             Lines='B.out'
             Overwrite='true'/>
 
         <Exec Command='sleep.exe 1' />
 
-        <WriteLinesToFile 
+        <WriteLinesToFile
             File='B'
             Lines='B'
             Overwrite='true'/>
-            
-        <WriteLinesToFile 
+
+        <WriteLinesToFile
             File='A.out'
             Lines='A.out'
             Overwrite='true'/>
@@ -492,7 +495,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         private readonly DateTime _yesterday = DateTime.Today.AddTicks(-TimeSpan.TicksPerDay);
         private readonly DateTime _twoDaysAgo = DateTime.Today.AddTicks(-2 * TimeSpan.TicksPerDay);
 
-        private class FileWriteInfo
+        private sealed class FileWriteInfo
         {
             public string Path;
             public DateTime LastWriteTime;
@@ -509,28 +512,24 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// The setup required here suggests that the TargetDependencyAnalyzer
         /// class should be refactored.
         /// </summary>
-        private DependencyAnalysisResult PerformDependencyAnalysisTestHelper
-        (
+        private DependencyAnalysisResult PerformDependencyAnalysisTestHelper(
             FileWriteInfo[] filesToAnalyze,
             ItemDictionary<ProjectItemInstance> itemsByName,
             string inputs,
-            string outputs
-        )
+            string outputs)
         {
             ItemDictionary<ProjectItemInstance> h1 = new ItemDictionary<ProjectItemInstance>();
             ItemDictionary<ProjectItemInstance> h2 = new ItemDictionary<ProjectItemInstance>();
             return PerformDependencyAnalysisTestHelper(filesToAnalyze, itemsByName, inputs, outputs, out h1, out h2);
         }
 
-        private DependencyAnalysisResult PerformDependencyAnalysisTestHelper
-        (
+        private DependencyAnalysisResult PerformDependencyAnalysisTestHelper(
             FileWriteInfo[] filesToAnalyze,
             ItemDictionary<ProjectItemInstance> itemsByName,
             string inputs,
             string outputs,
             out ItemDictionary<ProjectItemInstance> changedTargetInputs,
-            out ItemDictionary<ProjectItemInstance> upToDateTargetInputs
-        )
+            out ItemDictionary<ProjectItemInstance> upToDateTargetInputs)
         {
             List<string> filesToDelete = new List<string>();
 
@@ -571,16 +570,20 @@ namespace Microsoft.Build.UnitTests.BackEnd
 
                 // now do the dependency analysis
                 ItemBucket itemBucket = new ItemBucket(null, null, new Lookup(itemsByName, new PropertyDictionary<ProjectPropertyInstance>()), 0);
+                itemBucket.Initialize(null);
                 TargetUpToDateChecker analyzer = new TargetUpToDateChecker(p, p.Targets["Build"], _mockHost, BuildEventContext.Invalid);
 
-                return analyzer.PerformDependencyAnalysis(itemBucket, out changedTargetInputs, out upToDateTargetInputs);
+                return analyzer.PerformDependencyAnalysis(itemBucket, false, out changedTargetInputs, out upToDateTargetInputs);
             }
             finally
             {
                 // finally clean up
                 foreach (string path in filesToDelete)
                 {
-                    if (File.Exists(path)) File.Delete(path);
+                    if (File.Exists(path))
+                    {
+                        File.Delete(path);
+                    }
                 }
 
                 ProjectCollection.GlobalProjectCollection.UnloadAllProjects();
@@ -593,14 +596,12 @@ namespace Microsoft.Build.UnitTests.BackEnd
         [Fact]
         public void TestIsAnyOutOfDate1()
         {
-            IsAnyOutOfDateTestHelper
-                (
+            IsAnyOutOfDateTestHelper(
                 new DateTime(2000, 1, 1), /* input1 */
                 new DateTime(2000, 1, 1), /* input2 */
                 new DateTime(2001, 1, 1), /* output1 */
                 new DateTime(2001, 1, 1), /* output2 */
-                false /* none out of date */
-                );
+                false); /* none out of date */
         }
 
         /// <summary>
@@ -609,14 +610,12 @@ namespace Microsoft.Build.UnitTests.BackEnd
         [Fact]
         public void TestIsAnyOutOfDate2()
         {
-            IsAnyOutOfDateTestHelper
-                (
+            IsAnyOutOfDateTestHelper(
                 new DateTime(2002, 1, 1), /* input1 */
                 new DateTime(2000, 1, 1), /* input2 */
                 new DateTime(2003, 1, 1), /* output1 */
                 new DateTime(2001, 1, 1), /* output2 */
-                true /* some out of date */
-                );
+                true); /* some out of date */
         }
 
         /// <summary>
@@ -625,14 +624,12 @@ namespace Microsoft.Build.UnitTests.BackEnd
         [Fact]
         public void TestIsAnyOutOfDate3()
         {
-            IsAnyOutOfDateTestHelper
-                (
+            IsAnyOutOfDateTestHelper(
                 new DateTime(2000, 1, 1), /* input1 */
                 new DateTime(2002, 1, 1), /* input2 */
                 new DateTime(2001, 1, 1), /* output1 */
                 new DateTime(2003, 1, 1), /* output2 */
-                true /* some out of date */
-                );
+                true); /* some out of date */
         }
 
         /// <summary>
@@ -641,14 +638,12 @@ namespace Microsoft.Build.UnitTests.BackEnd
         [Fact]
         public void TestIsAnyOutOfDate4()
         {
-            IsAnyOutOfDateTestHelper
-                (
+            IsAnyOutOfDateTestHelper(
                 new DateTime(2000, 1, 1), /* input1 */
                 new DateTime(2000, 1, 1), /* input2 */
                 new DateTime(2000, 1, 1), /* output1 */
                 new DateTime(2000, 1, 1), /* output2 */
-                false /* none out of date */
-                );
+                false); /* none out of date */
         }
 
         /// <summary>
@@ -657,14 +652,12 @@ namespace Microsoft.Build.UnitTests.BackEnd
         [Fact]
         public void TestIsAnyOutOfDate5()
         {
-            IsAnyOutOfDateTestHelper
-                (
+            IsAnyOutOfDateTestHelper(
                 null, /* input1 */
                 new DateTime(2000, 1, 1), /* input2 */
                 new DateTime(2002, 1, 1), /* output1 */
                 new DateTime(2002, 1, 1), /* output2 */
-                true /* some out of date */
-                );
+                true); /* some out of date */
         }
 
 
@@ -674,14 +667,12 @@ namespace Microsoft.Build.UnitTests.BackEnd
         [Fact]
         public void TestIsAnyOutOfDate6()
         {
-            IsAnyOutOfDateTestHelper
-                (
+            IsAnyOutOfDateTestHelper(
                 new DateTime(2000, 1, 1), /* input1 */
                 null, /* input2 */
                 new DateTime(2002, 1, 1), /* output1 */
                 new DateTime(2002, 1, 1), /* output2 */
-                true /* some out of date */
-                );
+                true); /* some out of date */
         }
 
         /// <summary>
@@ -690,14 +681,12 @@ namespace Microsoft.Build.UnitTests.BackEnd
         [Fact]
         public void TestIsAnyOutOfDate7()
         {
-            IsAnyOutOfDateTestHelper
-                (
+            IsAnyOutOfDateTestHelper(
                 new DateTime(2000, 1, 1), /* input1 */
                 new DateTime(2000, 1, 1), /* input2 */
                 new DateTime(2002, 1, 1), /* output1 */
                 null, /* output2 */
-                true /* some out of date */
-                );
+                true); /* some out of date */
         }
 
         /// <summary>
@@ -706,14 +695,12 @@ namespace Microsoft.Build.UnitTests.BackEnd
         [Fact]
         public void TestIsAnyOutOfDate8()
         {
-            IsAnyOutOfDateTestHelper
-                (
+            IsAnyOutOfDateTestHelper(
                 new DateTime(2000, 1, 1), /* input1 */
                 new DateTime(2000, 1, 1), /* input2 */
                 null, /* output1 */
                 new DateTime(2002, 1, 1), /* output2 */
-                true /* some out of date */
-                );
+                true); /* some out of date */
         }
 
         /// <summary>
@@ -722,14 +709,12 @@ namespace Microsoft.Build.UnitTests.BackEnd
         [Fact]
         public void TestIsAnyOutOfDate9()
         {
-            IsAnyOutOfDateTestHelper
-                (
+            IsAnyOutOfDateTestHelper(
                 null, /* input1 */
                 new DateTime(2000, 1, 1), /* input2 */
                 null, /* output1 */
                 new DateTime(2002, 1, 1), /* output2 */
-                true /* some out of date */
-                );
+                true); /* some out of date */
         }
 
         /// <summary>
@@ -738,8 +723,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         [Fact]
         public void TestIsAnyOutOfDate10()
         {
-            IsAnyOutOfDateTestHelper
-                (
+            IsAnyOutOfDateTestHelper(
                 new DateTime(2002, 1, 1), /* input1 */
                 null, /* input2 */
                 new DateTime(2000, 1, 1), /* output1 */
@@ -748,8 +732,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 true, /* include input1 */
                 false, /* do not include input2 */
                 true, /* include output1 */
-                true /* include output2 */
-                );
+                true); /* include output2 */
         }
 
         /// <summary>
@@ -758,8 +741,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         [Fact]
         public void TestIsAnyOutOfDate11()
         {
-            IsAnyOutOfDateTestHelper
-                (
+            IsAnyOutOfDateTestHelper(
                 new DateTime(2000, 1, 1), /* input1 */
                 null, /* input2 */
                 new DateTime(2002, 1, 1), /* output1 */
@@ -768,8 +750,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 true, /* include input1 */
                 false, /* do not include input2 */
                 true, /* include output1 */
-                true /* include output2 */
-                );
+                true); /* include output2 */
         }
 
         /// <summary>
@@ -778,8 +759,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         [Fact]
         public void TestIsAnyOutOfDate12()
         {
-            IsAnyOutOfDateTestHelper
-                (
+            IsAnyOutOfDateTestHelper(
                 new DateTime(2000, 1, 1), /* input1 */
                 new DateTime(2000, 1, 1), /* input2 */
                 new DateTime(2002, 1, 1), /* output1 */
@@ -788,8 +768,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 true, /* include input1 */
                 true, /* include input2 */
                 true, /* include output1 */
-                false /* do not include output2 */
-                );
+                false); /* do not include output2 */
         }
 
         /// <summary>
@@ -798,8 +777,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         [Fact]
         public void TestIsAnyOutOfDate13()
         {
-            IsAnyOutOfDateTestHelper
-                (
+            IsAnyOutOfDateTestHelper(
                 new DateTime(2000, 1, 1), /* input1 */
                 new DateTime(2003, 1, 1), /* input2 */
                 new DateTime(2002, 1, 1), /* output1 */
@@ -808,8 +786,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 true, /* include input1 */
                 true, /* include input2 */
                 true, /* include output1 */
-                false /* do not include output2 */
-                );
+                false); /* do not include output2 */
         }
 
         /// <summary>
@@ -822,14 +799,12 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// <param name="output1Time"></param>
         /// <param name="output2Time"></param>
         /// <param name="isUpToDate"></param>
-        private void IsAnyOutOfDateTestHelper
-            (
+        private void IsAnyOutOfDateTestHelper(
             DateTime? input1Time,
             DateTime? input2Time,
             DateTime? output1Time,
             DateTime? output2Time,
-            bool isUpToDate
-            )
+            bool isUpToDate)
         {
             IsAnyOutOfDateTestHelper(input1Time, input2Time, output1Time, output2Time, isUpToDate, true, true, true, true);
         }
@@ -844,8 +819,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// <param name="output1Time"></param>
         /// <param name="output2Time"></param>
         /// <param name="isUpToDate"></param>
-        private void IsAnyOutOfDateTestHelper
-            (
+        private void IsAnyOutOfDateTestHelper(
             DateTime? input1Time,
             DateTime? input2Time,
             DateTime? output1Time,
@@ -854,8 +828,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             bool includeInput1,
             bool includeInput2,
             bool includeOutput1,
-            bool includeOutput2
-            )
+            bool includeOutput2)
         {
             List<string> inputs = new List<string>();
             List<string> outputs = new List<string>();
@@ -869,46 +842,76 @@ namespace Microsoft.Build.UnitTests.BackEnd
             {
                 if (input1Time != null)
                 {
-                    input1 = FileUtilities.GetTemporaryFile();
+                    input1 = FileUtilities.GetTemporaryFileName();
                     File.WriteAllText(input1, String.Empty);
                     File.SetLastWriteTime(input1, (DateTime)input1Time);
                 }
 
                 if (input2Time != null)
                 {
-                    input2 = FileUtilities.GetTemporaryFile();
+                    input2 = FileUtilities.GetTemporaryFileName();
                     File.WriteAllText(input2, String.Empty);
                     File.SetLastWriteTime(input2, (DateTime)input2Time);
                 }
 
                 if (output1Time != null)
                 {
-                    output1 = FileUtilities.GetTemporaryFile();
+                    output1 = FileUtilities.GetTemporaryFileName();
                     File.WriteAllText(output1, String.Empty);
                     File.SetLastWriteTime(output1, (DateTime)output1Time);
                 }
 
                 if (output2Time != null)
                 {
-                    output2 = FileUtilities.GetTemporaryFile();
+                    output2 = FileUtilities.GetTemporaryFileName();
                     File.WriteAllText(output2, String.Empty);
                     File.SetLastWriteTime(output2, (DateTime)output2Time);
                 }
 
-                if (includeInput1) inputs.Add(input1);
-                if (includeInput2) inputs.Add(input2);
-                if (includeOutput1) outputs.Add(output1);
-                if (includeOutput2) outputs.Add(output2);
+                if (includeInput1)
+                {
+                    inputs.Add(input1);
+                }
+
+                if (includeInput2)
+                {
+                    inputs.Add(input2);
+                }
+
+                if (includeOutput1)
+                {
+                    outputs.Add(output1);
+                }
+
+                if (includeOutput2)
+                {
+                    outputs.Add(output2);
+                }
 
                 DependencyAnalysisLogDetail detail;
                 Assert.Equal(expectedAnyOutOfDate, TargetUpToDateChecker.IsAnyOutOfDate(out detail, Directory.GetCurrentDirectory(), inputs, outputs));
             }
             finally
             {
-                if (File.Exists(input1)) File.Delete(input1);
-                if (File.Exists(input2)) File.Delete(input2);
-                if (File.Exists(output1)) File.Delete(output1);
-                if (File.Exists(output2)) File.Delete(output2);
+                if (File.Exists(input1))
+                {
+                    File.Delete(input1);
+                }
+
+                if (File.Exists(input2))
+                {
+                    File.Delete(input2);
+                }
+
+                if (File.Exists(output1))
+                {
+                    File.Delete(output1);
+                }
+
+                if (File.Exists(output2))
+                {
+                    File.Delete(output2);
+                }
             }
         }
 
@@ -917,15 +920,19 @@ namespace Microsoft.Build.UnitTests.BackEnd
         private static readonly DateTime New = new DateTime(2002, 1, 1);
 
         [Fact(Skip = "Creating a symlink on Windows requires elevation.")]
+        [SkipOnPlatform(TestPlatforms.AnyUnix, "Windows-specific test")]
+        [SupportedOSPlatform("windows")]
         public void NewSymlinkOldDestinationIsUpToDate()
         {
             SimpleSymlinkInputCheck(symlinkWriteTime: New,
-                targetWriteTime: Old, 
+                targetWriteTime: Old,
                 outputWriteTime: Middle,
                 expectedOutOfDate: false);
         }
 
         [Fact(Skip = "Creating a symlink on Windows requires elevation.")]
+        [SkipOnPlatform(TestPlatforms.AnyUnix, "Windows-specific test")]
+        [SupportedOSPlatform("windows")]
         public void OldSymlinkOldDestinationIsUpToDate()
         {
             SimpleSymlinkInputCheck(symlinkWriteTime: Old,
@@ -935,6 +942,8 @@ namespace Microsoft.Build.UnitTests.BackEnd
         }
 
         [Fact(Skip = "Creating a symlink on Windows requires elevation.")]
+        [SkipOnPlatform(TestPlatforms.AnyUnix, "Windows-specific test")]
+        [SupportedOSPlatform("windows")]
         public void OldSymlinkNewDestinationIsNotUpToDate()
         {
             SimpleSymlinkInputCheck(symlinkWriteTime: Old,
@@ -944,6 +953,8 @@ namespace Microsoft.Build.UnitTests.BackEnd
         }
 
         [Fact(Skip = "Creating a symlink on Windows requires elevation.")]
+        [SkipOnPlatform(TestPlatforms.AnyUnix, "Windows-specific test")]
+        [SupportedOSPlatform("windows")]
         public void NewSymlinkNewDestinationIsNotUpToDate()
         {
             SimpleSymlinkInputCheck(symlinkWriteTime: Middle,
@@ -954,12 +965,15 @@ namespace Microsoft.Build.UnitTests.BackEnd
 
         [DllImport("kernel32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
-        static extern bool CreateSymbolicLink(string lpSymlinkFileName, string lpTargetFileName, UInt32 dwFlags);
+        [SupportedOSPlatform("windows")]
+        private static extern bool CreateSymbolicLink(string lpSymlinkFileName, string lpTargetFileName, UInt32 dwFlags);
 
         [DllImport("kernel32.dll", SetLastError = true)]
+        [SupportedOSPlatform("windows")]
         private static extern bool SetFileTime(SafeFileHandle hFile, ref long creationTime,
             ref long lastAccessTime, ref long lastWriteTime);
 
+        [SupportedOSPlatform("windows")]
         private void SimpleSymlinkInputCheck(DateTime symlinkWriteTime, DateTime targetWriteTime,
             DateTime outputWriteTime, bool expectedOutOfDate)
         {
@@ -976,7 +990,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 _testOutputHelper.WriteLine($"Created input file {inputTarget}");
                 File.SetLastWriteTime(inputTarget, targetWriteTime);
 
-                inputSymlink = FileUtilities.GetTemporaryFile(null, ".linkin", createFile: false);
+                inputSymlink = FileUtilities.GetTemporaryFile(null, null, ".linkin", createFile: false);
 
                 if (!CreateSymbolicLink(inputSymlink, inputTarget, 0))
                 {
@@ -1022,11 +1036,21 @@ namespace Microsoft.Build.UnitTests.BackEnd
             }
             finally
             {
-                if (File.Exists(inputTarget)) File.Delete(inputTarget);
-                if (File.Exists(inputSymlink)) File.Delete(inputSymlink);
-                if (File.Exists(outputTarget)) File.Delete(outputTarget);
+                if (File.Exists(inputTarget))
+                {
+                    File.Delete(inputTarget);
+                }
+
+                if (File.Exists(inputSymlink))
+                {
+                    File.Delete(inputSymlink);
+                }
+
+                if (File.Exists(outputTarget))
+                {
+                    File.Delete(outputTarget);
+                }
             }
         }
     }
 }
-

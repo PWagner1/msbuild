@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.Collections.Generic;
 using NUnit.Framework;
@@ -21,13 +25,13 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         /// <summary>
         /// Basic Project Contents with 1 Property Group
         /// </summary>
-        private string basicProjectContentsOnePropertyGroup = @" 
+        private string basicProjectContentsOnePropertyGroup = @"
                 <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
                     <PropertyGroup>
                         <n>v</n>
                     </PropertyGroup>
                 </Project>
-                "; 
+                ";
         #endregion
 
         #region Count Tests
@@ -37,7 +41,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         [Test]
         public void CountZero()
         {
-            string projectContents = @" 
+            string projectContents = @"
                 <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
                 </Project>
                 ";
@@ -66,7 +70,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         [Test]
         public void CountMany()
         {
-            string projectContents = @" 
+            string projectContents = @"
                 <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
                     <PropertyGroup>
                         <Optimize>true</Optimize>
@@ -236,7 +240,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
             BuildPropertyGroupCollection groups = p.PropertyGroups;
 
             Assertion.AssertEquals(false, groups.IsSynchronized);
-        } 
+        }
         #endregion
 
         #region Helper Methods
@@ -263,13 +267,13 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
 
         /// <summary>
         /// Helper Method to create a Main project that imports 1 other project.  Each project contains only one Build Property Group
-        ///     and each of those Build Property Groups contain a Build Property of a specific name (which is used as a flag/key) to 
+        ///     and each of those Build Property Groups contain a Build Property of a specific name (which is used as a flag/key) to
         ///     identify which Build Property Group we're working with.
         /// </summary>
         /// <returns>Project</returns>
         private static Project GetProjectWithOneImportProject()
         {
-            string importProjectContents = @" 
+            string importProjectContents = @"
                     <Project xmlns=`msbuildnamespace`>
                         <PropertyGroup>
                             <imported>v</imported>
@@ -277,7 +281,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
                     </Project>
                 ";
 
-            string projectContents = @" 
+            string projectContents = @"
                     <Project xmlns=`msbuildnamespace`>
                         <PropertyGroup>
                             <main>v</main>
@@ -296,14 +300,14 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
             Project p = ObjectModelHelpers.LoadProjectFileInTempProjectDirectory("main.proj", null);
             return p;
         }
-        
+
         /// <summary>
         /// Helper Method to create a Main project that imports 2 other projects, each with build property groups
         /// </summary>
         /// <returns>Project</returns>
         private static Project GetProjectWithTwoImportProjects()
         {
-            string subProjectContents = @" 
+            string subProjectContents = @"
                     <Project xmlns=`msbuildnamespace`>
                         <PropertyGroup>
                             <n1>v1</n1>
@@ -314,7 +318,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
                     </Project>
                 ";
 
-            string projectContents = @" 
+            string projectContents = @"
                     <Project xmlns=`msbuildnamespace`>
                         <PropertyGroup>
                             <n>v</n>

@@ -1,5 +1,5 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections.Generic;
@@ -7,30 +7,31 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Text;
+using System.Threading;
 using System.Xml;
-
+using Microsoft.Build.BackEnd;
+using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Collections;
+using Microsoft.Build.Engine.UnitTests;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
+using Microsoft.Build.Experimental.BuildCheck;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Shared.FileSystem;
 using Microsoft.Build.Utilities;
 using Microsoft.Win32;
-
-
-
+using Shouldly;
+using Xunit;
+using InvalidProjectFileException = Microsoft.Build.Exceptions.InvalidProjectFileException;
 using ProjectHelpers = Microsoft.Build.UnitTests.BackEnd.ProjectHelpers;
+using ProjectItemInstanceFactory = Microsoft.Build.Execution.ProjectItemInstance.TaskItem.ProjectItemInstanceFactory;
 using TaskItem = Microsoft.Build.Execution.ProjectItemInstance.TaskItem;
 
-using InvalidProjectFileException = Microsoft.Build.Exceptions.InvalidProjectFileException;
-using ProjectItemInstanceFactory = Microsoft.Build.Execution.ProjectItemInstance.TaskItem.ProjectItemInstanceFactory;
-
-using Xunit;
-using Microsoft.Build.BackEnd;
-using Microsoft.Build.Shared.FileSystem;
-using Shouldly;
+#nullable disable
 
 namespace Microsoft.Build.UnitTests.Evaluation
 {
@@ -38,6 +39,8 @@ namespace Microsoft.Build.UnitTests.Evaluation
     {
         private string _dateToParse = new DateTime(2010, 12, 25).ToString(CultureInfo.CurrentCulture);
         private static readonly string s_rootPathPrefix = NativeMethodsShared.IsWindows ? "C:\\" : Path.VolumeSeparatorChar.ToString();
+
+        private static bool IsIntrinsicFunctionOverloadsEnabled => ChangeWaves.AreFeaturesEnabled(ChangeWaves.Wave17_8);
 
         [Fact]
         public void ExpandAllIntoTaskItems0()
@@ -92,7 +95,11 @@ namespace Microsoft.Build.UnitTests.Evaluation
             itemsByType.ImportItems(ig);
             itemsByType.ImportItems(ig2);
 
-            Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, itemsByType, FileSystems.Default);
+            Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(
+                pg,
+                itemsByType,
+                FileSystems.Default,
+                new TestLoggingContext(null!, new BuildEventContext(1, 2, 3, 4)));
 
             IList<TaskItem> itemsOut = expander.ExpandIntoTaskItemsLeaveEscaped("foo;bar;@(compile);@(resource)", ExpanderOptions.ExpandPropertiesAndItems, MockElementLocation.Instance);
 
@@ -224,6 +231,18 @@ namespace Microsoft.Build.UnitTests.Evaluation
             Assert.Equal("false", itemsFalse[0].EvaluatedInclude);
         }
 
+        [Fact]
+        public void ExpandEmptyItemVectorFunctionWithAnyHaveMetadataValue()
+        {
+            ProjectInstance project = ProjectHelpers.CreateEmptyProjectInstance();
+            Expander<ProjectPropertyInstance, ProjectItemInstance> expander = CreateItemFunctionExpander();
+            ProjectItemInstanceFactory itemFactory = new ProjectItemInstanceFactory(project, "i");
+
+            IList<ProjectItemInstance> itemsEmpty = expander.ExpandIntoItemsLeaveEscaped("@(unsetItem->AnyHaveMetadataValue('Metadatum', 'value'))", itemFactory, ExpanderOptions.ExpandItems, MockElementLocation.Instance);
+            ProjectItemInstance pii = itemsEmpty.ShouldHaveSingleItem<ProjectItemInstance>();
+            pii.EvaluatedInclude.ShouldBe("false");
+        }
+
         /// <summary>
         /// Expand an item vector function Metadata()->DirectoryName()->Distinct()
         /// </summary>
@@ -256,7 +275,6 @@ namespace Microsoft.Build.UnitTests.Evaluation
         [Fact]
         [Trait("Category", "netcore-osx-failing")]
         [Trait("Category", "netcore-linux-failing")]
-        [Trait("Category", "mono-osx-failing")]
         public void ExpandItemVectorFunctionsItemSpecModifier()
         {
             ProjectInstance project = ProjectHelpers.CreateEmptyProjectInstance();
@@ -317,7 +335,6 @@ namespace Microsoft.Build.UnitTests.Evaluation
         [Fact]
         [Trait("Category", "netcore-osx-failing")]
         [Trait("Category", "netcore-linux-failing")]
-        [Trait("Category", "mono-osx-failing")]
         public void ExpandItemVectorFunctionsChained1()
         {
             ProjectHelpers.CreateEmptyProjectInstance();
@@ -334,7 +351,6 @@ namespace Microsoft.Build.UnitTests.Evaluation
         [Fact]
         [Trait("Category", "netcore-osx-failing")]
         [Trait("Category", "netcore-linux-failing")]
-        [Trait("Category", "mono-osx-failing")]
         public void ExpandItemVectorFunctionsChained2()
         {
             ProjectHelpers.CreateEmptyProjectInstance();
@@ -362,11 +378,10 @@ namespace Microsoft.Build.UnitTests.Evaluation
         [Fact]
         [Trait("Category", "netcore-osx-failing")]
         [Trait("Category", "netcore-linux-failing")]
-        [Trait("Category", "mono-osx-failing")]
         public void ExpandItemVectorFunctionsChainedProject1()
         {
             MockLogger logger = Helpers.BuildProjectWithNewOMExpectSuccess(@"
-<Project ToolsVersion=`msbuilddefaulttoolsversion` xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+<Project ToolsVersion=`msbuilddefaulttoolsversion`>
 
     <ItemGroup>
         <Compile Include=`a.cpp`>
@@ -391,7 +406,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
         </Compile>
     </ItemGroup>
 
-    <Target Name=`Build`>      
+    <Target Name=`Build`>
         <Message Text=`DirChain0: @(Compile->'%(SomeMeta)'->'%(Directory)'->Distinct())`/>
         <Message Text=`DirChain1: @(Compile->'%(SomeMeta)'->'%(Directory)'->Distinct(), '%(A)')`/>
         <Message Text=`DirChain2: @(Compile->'%(SomeMeta)'->'%(Directory)'->Distinct(), '%(A)%(B)')`/>
@@ -414,8 +429,8 @@ namespace Microsoft.Build.UnitTests.Evaluation
         public void ExpandItemVectorFunctionsCount1()
         {
             string content = @"
- <Project DefaultTargets=`t` xmlns=`http://schemas.microsoft.com/developer/msbuild/2003`>
- 
+ <Project DefaultTargets=`t`>
+
         <Target Name=`t`>
             <ItemGroup>
                 <I Include=`foo;bar`/>
@@ -436,8 +451,8 @@ namespace Microsoft.Build.UnitTests.Evaluation
         public void ExpandItemVectorFunctionsCount2()
         {
             string content = @"
- <Project DefaultTargets=`t` xmlns=`http://schemas.microsoft.com/developer/msbuild/2003`>
- 
+ <Project DefaultTargets=`t`>
+
         <Target Name=`t`>
             <ItemGroup>
                 <I Include=`foo;bar`/>
@@ -459,8 +474,8 @@ namespace Microsoft.Build.UnitTests.Evaluation
         public void ExpandItemVectorFunctionsCountOperatingOnEmptyResult1()
         {
             string content = @"
- <Project DefaultTargets=`t` xmlns=`http://schemas.microsoft.com/developer/msbuild/2003`>
- 
+ <Project DefaultTargets=`t`>
+
         <Target Name=`t`>
             <ItemGroup>
                 <I Include=`foo;bar`/>
@@ -481,8 +496,8 @@ namespace Microsoft.Build.UnitTests.Evaluation
         public void ExpandItemVectorFunctionsCountOperatingOnEmptyResult2()
         {
             string content = @"
- <Project DefaultTargets=`t` xmlns=`http://schemas.microsoft.com/developer/msbuild/2003`>
- 
+ <Project DefaultTargets=`t`>
+
         <Target Name=`t`>
             <ItemGroup>
                 <I Include=`foo;bar`/>
@@ -504,8 +519,8 @@ namespace Microsoft.Build.UnitTests.Evaluation
         public void ExpandItemVectorFunctionsBuiltIn1()
         {
             string content = @"
- <Project DefaultTargets=`t` xmlns=`http://schemas.microsoft.com/developer/msbuild/2003`>
- 
+ <Project DefaultTargets=`t`>
+
         <Target Name=`t`>
             <ItemGroup>
                 <I Include=`foo;bar`/>
@@ -526,8 +541,8 @@ namespace Microsoft.Build.UnitTests.Evaluation
         public void ExpandItemVectorFunctionsBuiltIn2()
         {
             string content = @"
- <Project DefaultTargets=`t` xmlns=`http://schemas.microsoft.com/developer/msbuild/2003`>
- 
+ <Project DefaultTargets=`t`>
+
         <Target Name=`t`>
             <ItemGroup>
                 <I Include=`foo;bar`/>
@@ -548,8 +563,8 @@ namespace Microsoft.Build.UnitTests.Evaluation
         public void ExpandItemVectorFunctionsBuiltIn3()
         {
             string content = @"
- <Project DefaultTargets=`t` xmlns=`http://schemas.microsoft.com/developer/msbuild/2003`>
- 
+ <Project DefaultTargets=`t`>
+
         <Target Name=`t`>
             <ItemGroup>
                 <I Include=`foo;bar;foo;bar;foo`/>
@@ -570,8 +585,8 @@ namespace Microsoft.Build.UnitTests.Evaluation
         public void ExpandItemVectorFunctionsBuiltIn4()
         {
             string content = @"
- <Project DefaultTargets=`t` xmlns=`http://schemas.microsoft.com/developer/msbuild/2003`>
- 
+ <Project DefaultTargets=`t`>
+
         <Target Name=`t`>
             <ItemGroup>
                 <I Include=`foo;bar;foo;bar;foo`/>
@@ -587,14 +602,12 @@ namespace Microsoft.Build.UnitTests.Evaluation
             log.AssertLogContains("[foo;bar]");
         }
 
-        [ConditionalFact(typeof(NativeMethodsShared), nameof(NativeMethodsShared.IsMaxPathLegacyWindows))]
-        [PlatformSpecific(TestPlatforms.Windows)]
-        [SkipOnTargetFramework(TargetFrameworkMonikers.Netcoreapp, "https://github.com/microsoft/msbuild/issues/4363")]
+        [LongPathSupportDisabledFact(fullFrameworkOnly: true, additionalMessage: "https://github.com/dotnet/msbuild/issues/4363")]
         public void ExpandItemVectorFunctionsBuiltIn_PathTooLongError()
         {
             string content = @"
- <Project DefaultTargets=`t` xmlns=`http://schemas.microsoft.com/developer/msbuild/2003`>
- 
+ <Project DefaultTargets=`t`>
+
         <Target Name=`t`>
             <ItemGroup>
                 <I Include=`fooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo`/>
@@ -609,18 +622,12 @@ namespace Microsoft.Build.UnitTests.Evaluation
             log.AssertLogContains("MSB4198");
         }
 
-        [Fact]
-        [SkipOnTargetFramework(TargetFrameworkMonikers.Netcoreapp, ".NET Core 2.1+ no longer validates paths: https://github.com/dotnet/corefx/issues/27779#issuecomment-371253486")]
+        [WindowsFullFrameworkOnlyFact(additionalMessage: ".NET Core 2.1+ no longer validates paths: https://github.com/dotnet/corefx/issues/27779#issuecomment-371253486. Cannot have invalid characters in file name on Unix.")]
         public void ExpandItemVectorFunctionsBuiltIn_InvalidCharsError()
         {
-            if (!NativeMethodsShared.IsWindows)
-            {
-                return; // "Cannot have invalid characters in file name on Unix"
-            }
-
             string content = @"
- <Project DefaultTargets=`t` xmlns=`http://schemas.microsoft.com/developer/msbuild/2003`>
- 
+ <Project DefaultTargets=`t`>
+
         <Target Name=`t`>
             <ItemGroup>
                 <I Include=`aaa|||bbb\ccc.txt`/>
@@ -641,7 +648,6 @@ namespace Microsoft.Build.UnitTests.Evaluation
         [Fact]
         [Trait("Category", "netcore-osx-failing")]
         [Trait("Category", "netcore-linux-failing")]
-        [Trait("Category", "mono-osx-failing")]
         public void ExpandItemVectorFunctionsItemSpecModifier2()
         {
             ProjectInstance project = ProjectHelpers.CreateEmptyProjectInstance();
@@ -800,7 +806,11 @@ namespace Microsoft.Build.UnitTests.Evaluation
             ig.Add(i0);
             ig.Add(i1);
 
-            Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, ig, FileSystems.Default);
+            Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(
+                pg,
+                ig,
+                FileSystems.Default,
+                new TestLoggingContext(null!, new BuildEventContext(1, 2, 3, 4)));
 
             return expander;
         }
@@ -814,7 +824,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
         public void ZeroItemsInProjectExpandsToEmpty()
         {
             MockLogger logger = Helpers.BuildProjectWithNewOMExpectSuccess(@"
-                <Project ToolsVersion=`msbuilddefaulttoolsversion` xmlns=""http://schemas.microsoft.com/developer/msbuild/2003"">
+                <Project ToolsVersion=`msbuilddefaulttoolsversion`>
 
                     <Target Name=`Build` Condition=`'@(foo)'!=''` >
                         <Message Text=`This target should NOT run.`/>
@@ -826,7 +836,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             logger.AssertLogDoesntContain("This target should NOT run.");
 
             logger = Helpers.BuildProjectWithNewOMExpectSuccess(@"
-                <Project ToolsVersion=`msbuilddefaulttoolsversion` xmlns=""http://schemas.microsoft.com/developer/msbuild/2003"">
+                <Project ToolsVersion=`msbuilddefaulttoolsversion`>
 
                     <ItemGroup>
                         <foo Include=`abc` Condition=` '@(foo)' == '' ` />
@@ -846,7 +856,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
         public void ItemIncludeContainsMultipleItemReferences()
         {
             MockLogger logger = Helpers.BuildProjectWithNewOMExpectSuccess(@"
-                <Project DefaultTarget=`ShowProps` ToolsVersion=`msbuilddefaulttoolsversion` xmlns=""http://schemas.microsoft.com/developer/msbuild/2003"" >
+                <Project DefaultTarget=`ShowProps` ToolsVersion=`msbuilddefaulttoolsversion` >
                     <PropertyGroup>
                         <OutputType>Library</OutputType>
                     </PropertyGroup>
@@ -873,12 +883,11 @@ namespace Microsoft.Build.UnitTests.Evaluation
         /// <summary>
         /// Bad path when getting metadata through ->Metadata function
         /// </summary>
-        [ConditionalFact(typeof(NativeMethodsShared), nameof(NativeMethodsShared.IsMaxPathLegacyWindows))]
-        [PlatformSpecific(TestPlatforms.Windows)]
+        [LongPathSupportDisabledFact]
         public void InvalidPathAndMetadataItemFunctionPathTooLong()
         {
             MockLogger logger = Helpers.BuildProjectWithNewOMExpectFailure(@"
-                <Project DefaultTargets='Build' xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                <Project DefaultTargets='Build'>
                     <ItemGroup>
                         <x Include='" + new string('x', 250) + @"'/>
                     </ItemGroup>
@@ -894,13 +903,11 @@ namespace Microsoft.Build.UnitTests.Evaluation
         /// <summary>
         /// Bad path with illegal windows chars when getting metadata through ->Metadata function
         /// </summary>
-        [Fact]
-        [PlatformSpecific(TestPlatforms.Windows)]
-        [SkipOnTargetFramework(TargetFrameworkMonikers.Netcoreapp, ".NET Core 2.1+ no longer validates paths: https://github.com/dotnet/corefx/issues/27779#issuecomment-371253486")]
+        [WindowsFullFrameworkOnlyFact(additionalMessage: ".NET Core 2.1+ no longer validates paths: https://github.com/dotnet/corefx/issues/27779#issuecomment-371253486.")]
         public void InvalidPathAndMetadataItemFunctionInvalidWindowsPathChars()
         {
             MockLogger logger = Helpers.BuildProjectWithNewOMExpectFailure(@"
-                <Project DefaultTargets='Build' xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                <Project DefaultTargets='Build'>
                     <ItemGroup>
                         <x Include='" + ":|?*" + @"'/>
                     </ItemGroup>
@@ -919,7 +926,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
         public void InvalidMetadataName()
         {
             MockLogger logger = Helpers.BuildProjectWithNewOMExpectFailure(@"
-                <Project DefaultTargets='Build' xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                <Project DefaultTargets='Build'>
                     <ItemGroup>
                         <x Include='x'/>
                     </ItemGroup>
@@ -935,12 +942,11 @@ namespace Microsoft.Build.UnitTests.Evaluation
         /// <summary>
         /// Bad path when getting metadata through ->WithMetadataValue function
         /// </summary>
-        [ConditionalFact(typeof(NativeMethodsShared), nameof(NativeMethodsShared.IsMaxPathLegacyWindows))]
-        [PlatformSpecific(TestPlatforms.Windows)]
+        [LongPathSupportDisabledFact]
         public void InvalidPathAndMetadataItemFunctionPathTooLong2()
         {
             MockLogger logger = Helpers.BuildProjectWithNewOMExpectFailure(@"
-                <Project DefaultTargets='Build' xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                <Project DefaultTargets='Build'>
                     <ItemGroup>
                         <x Include='" + new string('x', 250) + @"'/>
                     </ItemGroup>
@@ -956,13 +962,11 @@ namespace Microsoft.Build.UnitTests.Evaluation
         /// <summary>
         /// Bad path with illegal windows chars when getting metadata through ->WithMetadataValue function
         /// </summary>
-        [Fact]
-        [PlatformSpecific(TestPlatforms.Windows)]
-        [SkipOnTargetFramework(TargetFrameworkMonikers.Netcoreapp, ".NET Core 2.1+ no longer validates paths: https://github.com/dotnet/corefx/issues/27779#issuecomment-371253486")]
+        [WindowsFullFrameworkOnlyFact(additionalMessage: ".NET Core 2.1+ no longer validates paths: https://github.com/dotnet/corefx/issues/27779#issuecomment-371253486.")]
         public void InvalidPathAndMetadataItemFunctionInvalidWindowsPathChars2()
         {
             MockLogger logger = Helpers.BuildProjectWithNewOMExpectFailure(@"
-                <Project DefaultTargets='Build' xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                <Project DefaultTargets='Build'>
                     <ItemGroup>
                         <x Include='" + ":|?*" + @"'/>
                     </ItemGroup>
@@ -981,7 +985,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
         public void InvalidMetadataName2()
         {
             MockLogger logger = Helpers.BuildProjectWithNewOMExpectFailure(@"
-                <Project DefaultTargets='Build' xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                <Project DefaultTargets='Build'>
                     <ItemGroup>
                         <x Include='x'/>
                     </ItemGroup>
@@ -997,12 +1001,11 @@ namespace Microsoft.Build.UnitTests.Evaluation
         /// <summary>
         /// Bad path when getting metadata through ->AnyHaveMetadataValue function
         /// </summary>
-        [ConditionalFact(typeof(NativeMethodsShared), nameof(NativeMethodsShared.IsMaxPathLegacyWindows))]
-        [PlatformSpecific(TestPlatforms.Windows)]
+        [LongPathSupportDisabledFact]
         public void InvalidPathAndMetadataItemFunctionPathTooLong3()
         {
             MockLogger logger = Helpers.BuildProjectWithNewOMExpectFailure(@"
-                <Project DefaultTargets='Build' xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                <Project DefaultTargets='Build'>
                     <ItemGroup>
                         <x Include='" + new string('x', 250) + @"'/>
                     </ItemGroup>
@@ -1018,13 +1021,11 @@ namespace Microsoft.Build.UnitTests.Evaluation
         /// <summary>
         /// Bad path with illegal windows chars when getting metadata through ->AnyHaveMetadataValue function
         /// </summary>
-        [Fact]
-        [PlatformSpecific(TestPlatforms.Windows)]
-        [SkipOnTargetFramework(TargetFrameworkMonikers.Netcoreapp, ".NET Core 2.1+ no longer validates paths: https://github.com/dotnet/corefx/issues/27779#issuecomment-371253486")]
+        [WindowsFullFrameworkOnlyFact(additionalMessage: ".NET Core 2.1+ no longer validates paths: https://github.com/dotnet/corefx/issues/27779#issuecomment-371253486.")]
         public void InvalidPathAndMetadataItemInvalidWindowsPathChars3()
         {
             MockLogger logger = Helpers.BuildProjectWithNewOMExpectFailure(@"
-                <Project DefaultTargets='Build' xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                <Project DefaultTargets='Build'>
                     <ItemGroup>
                         <x Include='" + ":|?*" + @"'/>
                     </ItemGroup>
@@ -1036,13 +1037,11 @@ namespace Microsoft.Build.UnitTests.Evaluation
             logger.AssertLogContains("MSB4023");
         }
 
-        [Fact]
-        [PlatformSpecific(TestPlatforms.Windows)]
-        [SkipOnTargetFramework(TargetFrameworkMonikers.Netcoreapp, ".NET Core 2.1+ no longer validates paths: https://github.com/dotnet/corefx/issues/27779#issuecomment-371253486")]
+        [WindowsFullFrameworkOnlyFact(additionalMessage: ".NET Core 2.1+ no longer validates paths: https://github.com/dotnet/corefx/issues/27779#issuecomment-371253486.")]
         public void InvalidPathInDirectMetadata()
         {
             var logger = Helpers.BuildProjectContentUsingBuildManagerExpectResult(
-                @"<Project DefaultTargets='Build' xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                @"<Project DefaultTargets='Build'>
                     <ItemGroup>
                         <x Include=':|?*'>
                             <m>%(FullPath)</m>
@@ -1054,13 +1053,11 @@ namespace Microsoft.Build.UnitTests.Evaluation
             logger.AssertLogContains("MSB4248");
         }
 
-        [ConditionalFact(typeof(NativeMethodsShared), nameof(NativeMethodsShared.IsMaxPathLegacyWindows))]
-        [PlatformSpecific(TestPlatforms.Windows)]
-        [SkipOnTargetFramework(TargetFrameworkMonikers.Netcoreapp, "new enough dotnet.exe transparently opts into long paths")]
+        [LongPathSupportDisabledFact(fullFrameworkOnly: true, additionalMessage: "new enough dotnet.exe transparently opts into long paths")]
         public void PathTooLongInDirectMetadata()
         {
             var logger = Helpers.BuildProjectContentUsingBuildManagerExpectResult(
-                @"<Project DefaultTargets='Build' xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                @"<Project DefaultTargets='Build'>
                     <ItemGroup>
                         <x Include='" + new string('x', 250) + @"'>
                             <m>%(FullPath)</m>
@@ -1079,7 +1076,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
         public void InvalidMetadataName3()
         {
             MockLogger logger = Helpers.BuildProjectWithNewOMExpectFailure(@"
-                <Project DefaultTargets='Build' xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                <Project DefaultTargets='Build'>
                     <ItemGroup>
                         <x Include='x'/>
                     </ItemGroup>
@@ -1098,7 +1095,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
         public void HasMetadata()
         {
             MockLogger logger = Helpers.BuildProjectWithNewOMExpectSuccess(@"
-<Project ToolsVersion=""msbuilddefaulttoolsversion"" xmlns=""http://schemas.microsoft.com/developer/msbuild/2003"">
+<Project ToolsVersion=""msbuilddefaulttoolsversion"">
 
   <ItemGroup>
     <_Item Include=""One"">
@@ -1134,6 +1131,37 @@ namespace Microsoft.Build.UnitTests.Evaluation
             logger.AssertLogContains("[One|Three|Four]");
         }
 
+
+        /// <summary>
+        /// Filter items by WithoutMetadataValue function
+        /// </summary>
+        [Fact]
+        public void WithoutMetadataValue()
+        {
+            MockLogger logger = Helpers.BuildProjectWithNewOMExpectSuccess("""
+                <Project>
+                    <ItemGroup>
+                            <_Item Include="One">
+                                <A>true</A>
+                            </_Item>
+                            <_Item Include="Two">
+                                <A>false</A>
+                            </_Item>
+                            <_Item Include="Three">
+                                <A></A>
+                            </_Item>
+                            <_Item Include="Four">
+                                <B></B>
+                            </_Item>
+                    </ItemGroup>
+                    <Target Name="AfterBuild">
+                        <Message Text="[@(_Item->WithoutMetadataValue('a', 'true'),'|')]"/>
+                    </Target>
+                </Project>
+                """);
+
+            logger.AssertLogContains("[Two|Three|Four]");
+        }
         [Fact]
         public void DirectItemMetadataReferenceShouldBeCaseInsensitive()
         {
@@ -1147,7 +1175,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
                   <Target Name=`Build`>
                     <Message Importance=`high` Text=`QualifiedNotMatchCase %(Foo.FileName)=%(Foo.sensitive)`/>
                     <Message Importance=`high` Text=`QualifiedMatchCase %(Foo.FileName)=%(Foo.SENSITIVE)`/>
-                    
+
                     <Message Importance=`high` Text=`UnqualifiedNotMatchCase %(Foo.FileName)=%(sensitive)`/>
                     <Message Importance=`high` Text=`UnqualifiedMatchCase %(Foo.FileName)=%(SENSITIVE)`/>
                   </Target>
@@ -1176,7 +1204,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
                   <Target Name=`Build`>
                     <Message Importance=`high` Text=`QualifiedNotMatchCase %(Foo.FileName)=%(Foo.sensitive)`/>
                     <Message Importance=`high` Text=`QualifiedMatchCase %(Foo.FileName)=%(Foo.SENSITIVE)`/>
-                    
+
                     <Message Importance=`high` Text=`UnqualifiedNotMatchCase %(Foo.FileName)=%(sensitive)`/>
                     <Message Importance=`high` Text=`UnqualifiedMatchCase %(Foo.FileName)=%(SENSITIVE)`/>
                   </Target>
@@ -1200,7 +1228,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
                   <Target Name=`Build`>
                     <Message Importance=`high` Text=`QualifiedNotMatchCase %(Foo.Identity)=%(Foo.FILENAME)`/>
                     <Message Importance=`high` Text=`QualifiedMatchCase %(Foo.Identity)=%(Foo.FileName)`/>
-                    
+
                     <Message Importance=`high` Text=`UnqualifiedNotMatchCase %(Foo.Identity)=%(FILENAME)`/>
                     <Message Importance=`high` Text=`UnqualifiedMatchCase %(Foo.Identity)=%(FileName)`/>
                   </Target>
@@ -1222,7 +1250,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             try
             {
                 Helpers.BuildProjectWithNewOMExpectFailure(@"
-                <Project DefaultTargets='Build' xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                <Project DefaultTargets='Build'>
                     <PropertyGroup>
                         <Function>$([System.IO.Path]::Combine(null,''))</Function>
                     </PropertyGroup>
@@ -1249,7 +1277,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             try
             {
                 Helpers.BuildProjectWithNewOMExpectFailure(@"
-                <Project DefaultTargets='Build' xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
+                <Project DefaultTargets='Build'>
                     <PropertyGroup>
                         <Function>$(System.IO.Path::Combine('a','b'))</Function>
                     </PropertyGroup>
@@ -1275,11 +1303,9 @@ namespace Microsoft.Build.UnitTests.Evaluation
         /// <param name="primaryItemsByName"></param>
         /// <param name="secondaryItemsByName"></param>
         /// <param name="itemMetadata"></param>
-        private void CreateComplexPropertiesItemsMetadata
-            (
+        private void CreateComplexPropertiesItemsMetadata(
             out Lookup readOnlyLookup,
-            out StringMetadataTable itemMetadata
-            )
+            out StringMetadataTable itemMetadata)
         {
             ProjectInstance project = ProjectHelpers.CreateEmptyProjectInstance();
             Dictionary<string, string> itemMetadataTable = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -1513,7 +1539,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             }
             var lookup = new Lookup(projectItemGroups, pg);
             lookup.EnterScope("x");
-            lookup.PopulateWithItems("ManySpacesItem", new []
+            lookup.PopulateWithItems("ManySpacesItem", new[]
             {
                 new ProjectItemInstance (project, "ManySpacesItem", "Foo", project.FullPath),
                 new ProjectItemInstance (project, "ManySpacesItem", manySpaces, project.FullPath),
@@ -1548,74 +1574,6 @@ namespace Microsoft.Build.UnitTests.Evaluation
         }
 
         /// <summary>
-        /// Exercises ExpandIntoStringAndUnescape and ExpanderOptions.Truncate
-        /// </summary>
-        [Fact]
-        public void ExpandAllIntoStringNotTruncated()
-        {
-            using (TestEnvironment env = TestEnvironment.Create())
-            {
-                env.SetChangeWave(ChangeWaves.Wave16_8);
-                BuildEnvironmentHelper.ResetInstance_ForUnitTestsOnly();
-                ProjectInstance project = ProjectHelpers.CreateEmptyProjectInstance();
-                var manySpaces = "".PadLeft(2000);
-                var pg = new PropertyDictionary<ProjectPropertyInstance>();
-                pg.Set(ProjectPropertyInstance.Create("ManySpacesProperty", manySpaces));
-                var itemMetadataTable = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                {
-                    { "ManySpacesMetadata", manySpaces }
-                };
-                var itemMetadata = new StringMetadataTable(itemMetadataTable);
-                var projectItemGroups = new ItemDictionary<ProjectItemInstance>();
-                var itemGroup = new List<ProjectItemInstance>();
-                StringBuilder longFileName = new StringBuilder();
-                StringBuilder longMetadataName = new StringBuilder();
-                for (int i = 0; i < 50; i++)
-                {
-                    var item = new ProjectItemInstance(project, "ManyItems", $"ThisIsAFairlyLongFileName_{i}.bmp", project.FullPath);
-                    item.SetMetadata("Foo", $"ThisIsAFairlyLongMetadataValue_{i}");
-                    longFileName.Append($"ThisIsAFairlyLongFileName_{i}.bmp" + (i == 49 ? string.Empty : ";"));
-                    longMetadataName.Append($"ThisIsAFairlyLongMetadataValue_{i}" + (i == 49 ? string.Empty : ";"));
-                    itemGroup.Add(item);
-                }
-                var lookup = new Lookup(projectItemGroups, pg);
-                lookup.EnterScope("x");
-                lookup.PopulateWithItems("ManySpacesItem", new[]
-                {
-                    new ProjectItemInstance (project, "ManySpacesItem", "Foo", project.FullPath),
-                    new ProjectItemInstance (project, "ManySpacesItem", manySpaces, project.FullPath),
-                    new ProjectItemInstance (project, "ManySpacesItem", "Bar", project.FullPath),
-                });
-                lookup.PopulateWithItems("Exactly1024", new[]
-                {
-                    new ProjectItemInstance (project, "Exactly1024", "".PadLeft(1024), project.FullPath),
-                    new ProjectItemInstance (project, "Exactly1024", "Foo", project.FullPath),
-                });
-                lookup.PopulateWithItems("ManyItems", itemGroup);
-
-                Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(lookup, lookup, itemMetadata, FileSystems.Default);
-
-                XmlAttribute xmlattribute = (new XmlDocument()).CreateAttribute("dummy");
-                xmlattribute.Value = "'%(ManySpacesMetadata)' != '' and '$(ManySpacesProperty)' != '' and '@(ManySpacesItem)' != '' and '@(Exactly1024)' != '' and '@(ManyItems)' != '' and '@(ManyItems->'%(Foo)')' != '' and '@(ManyItems->'%(Nonexistent)')' != ''";
-
-                var expected =
-                    $"'{"",2000}' != '' and " +
-                    $"'{"",2000}' != '' and " +
-                    $"'Foo;{"",2000};Bar' != '' and " +
-                    $"'{"",1024};Foo' != '' and " +
-                    $"'{longFileName}' != '' and " +
-                    $"'{longMetadataName}' != '' and " +
-                    "';;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;' != ''";
-                var actual = expander.ExpandIntoStringAndUnescape(xmlattribute.Value, ExpanderOptions.ExpandAll | ExpanderOptions.Truncate, MockElementLocation.Instance);
-                // NOTE: semicolons in the last part are *weird* because they don't actually mean anything and you get logging like
-                //     Target "Build" skipped, due to false condition; ( '@(I->'%(nonexistent)')' == '' ) was evaluated as ( ';' == '' ).
-                // but that goes back to MSBuild 4.something so I'm codifying it in this test. If you're here because you cleaned it up
-                // and want to fix the test my current opinion is that's fine.
-                actual.ShouldBe(expected);
-            }
-        }
-
-        /// <summary>
         /// Exercises ExpandAllIntoString with a string that does not need expanding.
         /// In this case the expanded string should be reference identical to the passed in string.
         /// </summary>
@@ -1637,11 +1595,9 @@ namespace Microsoft.Build.UnitTests.Evaluation
             xmlattribute.Value = "abc123" + new Random().Next();
             string expandedString = expander.ExpandIntoStringLeaveEscaped(xmlattribute.Value, ExpanderOptions.ExpandAll, MockElementLocation.Instance);
 
-#if FEATURE_STRING_INTERN
             // Verify neither string got interned, so that this test is meaningful
             Assert.Null(string.IsInterned(xmlattribute.Value));
             Assert.Null(string.IsInterned(expandedString));
-#endif
 
             // Finally verify Expander indeed didn't create a new string.
             Assert.True(Object.ReferenceEquals(xmlattribute.Value, expandedString));
@@ -1759,8 +1715,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
                 Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
 
                 expander.ExpandIntoStringLeaveEscaped(@"$(HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\9.0\VSTSDB@XXXXDBDirectory)", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
-            }
-           );
+            });
         }
         /// <summary>
         /// In the general case, we should still error for properties that incorrectly miss the Registry: prefix, like
@@ -1777,11 +1732,11 @@ namespace Microsoft.Build.UnitTests.Evaluation
                 Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
 
                 expander.ExpandIntoStringLeaveEscaped(@"$(HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\9.0\VSTSDB@VSTSDBDirectoryX)", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
-            }
-           );
+            });
         }
-#if FEATURE_WIN32_REGISTRY
-        [Fact]
+
+        [WindowsOnlyFact]
+        [SupportedOSPlatform("windows")]
         public void RegistryPropertyString()
         {
             try
@@ -1802,7 +1757,8 @@ namespace Microsoft.Build.UnitTests.Evaluation
             }
         }
 
-        [Fact]
+        [WindowsOnlyFact]
+        [SupportedOSPlatform("windows")]
         public void RegistryPropertyBinary()
         {
             try
@@ -1826,7 +1782,8 @@ namespace Microsoft.Build.UnitTests.Evaluation
             }
         }
 
-        [Fact]
+        [WindowsOnlyFact]
+        [SupportedOSPlatform("windows")]
         public void RegistryPropertyDWord()
         {
             try
@@ -1847,7 +1804,8 @@ namespace Microsoft.Build.UnitTests.Evaluation
             }
         }
 
-        [Fact]
+        [WindowsOnlyFact]
+        [SupportedOSPlatform("windows")]
         public void RegistryPropertyExpandString()
         {
             try
@@ -1869,7 +1827,8 @@ namespace Microsoft.Build.UnitTests.Evaluation
             }
         }
 
-        [Fact]
+        [WindowsOnlyFact]
+        [SupportedOSPlatform("windows")]
         public void RegistryPropertyQWord()
         {
             try
@@ -1890,7 +1849,8 @@ namespace Microsoft.Build.UnitTests.Evaluation
             }
         }
 
-        [Fact]
+        [WindowsOnlyFact]
+        [SupportedOSPlatform("windows")]
         public void RegistryPropertyMultiString()
         {
             try
@@ -1910,13 +1870,12 @@ namespace Microsoft.Build.UnitTests.Evaluation
                 Registry.CurrentUser.DeleteSubKey(@"Software\Microsoft\MSBuild_test");
             }
         }
-#endif
 
         [Fact]
         public void TestItemSpecModiferEscaping()
         {
             string content = @"
- <Project DefaultTargets=""Build"" xmlns=""http://schemas.microsoft.com/developer/msbuild/2003"">
+ <Project DefaultTargets=""Build"">
 
         <Target Name=""Build"">
             <WriteLinesToFile Overwrite=""true"" File=""unittest.%28msbuild%29.file"" Lines=""Nothing much here""/>
@@ -1939,22 +1898,21 @@ namespace Microsoft.Build.UnitTests.Evaluation
         }
 
         [Fact]
-        [Trait("Category", "mono-osx-failing")]
         public void TestGetPathToReferenceAssembliesAsFunction()
         {
-            if (ToolLocationHelper.GetPathToDotNetFrameworkReferenceAssemblies(TargetDotNetFrameworkVersion.Version45) == null)
+            if (ToolLocationHelper.GetPathToDotNetFrameworkReferenceAssemblies(TargetDotNetFrameworkVersion.Version48) == null)
             {
                 // if there aren't any reference assemblies installed on the machine in the first place, of course
                 // we're not going to find them. :)
                 return;
             }
 
-            string content = @"
-                <Project ToolsVersion=""msbuilddefaulttoolsversion"" xmlns=""http://schemas.microsoft.com/developer/msbuild/2003"">
+            string content = $@"
+                <Project ToolsVersion=""msbuilddefaulttoolsversion"">
 
                     <PropertyGroup>
                         <TargetFrameworkIdentifier>.NETFramework</TargetFrameworkIdentifier>
-                        <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+                        <TargetFrameworkVersion>{MSBuildConstants.StandardTestTargetFrameworkVersion}</TargetFrameworkVersion>
                         <TargetFrameworkProfile></TargetFrameworkProfile>
                         <TargetFrameworkMoniker>$(TargetFrameworkIdentifier),Version=$(TargetFrameworkVersion)</TargetFrameworkMoniker>
                     </PropertyGroup>
@@ -1996,7 +1954,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
 
             Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
 
-            string result = expander.ExpandIntoStringLeaveEscaped("$([System.Convert]::ChangeType('null',$(SomeStuff.GetType())))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
+            string result = expander.ExpandIntoStringLeaveEscaped("$([System.Convert]::ChangeType('null',$(SomeStuff.GetTypeCode())))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
 
             Assert.Equal("null", result);
         }
@@ -2008,13 +1966,16 @@ namespace Microsoft.Build.UnitTests.Evaluation
         public void PropertyFunctionNullReturn()
         {
             PropertyDictionary<ProjectPropertyInstance> pg = new PropertyDictionary<ProjectPropertyInstance>();
-            pg.Set(ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff"));
 
             Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
 
-            string result = expander.ExpandIntoStringLeaveEscaped("$([System.Convert]::ChangeType(,$(SomeStuff.GetType())))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
-
+            // The null-returning function is the only thing in the expression.
+            string result = expander.ExpandIntoStringLeaveEscaped("$([System.Environment]::GetEnvironmentVariable(`_NonExistentVar`))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
             Assert.Equal("", result);
+
+            // The result of the null-returning function is concatenated with a non-empty string.
+            result = expander.ExpandIntoStringLeaveEscaped("prefix_$([System.Environment]::GetEnvironmentVariable(`_NonExistentVar`))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
+            Assert.Equal("prefix_", result);
         }
 
         /// <summary>
@@ -2269,7 +2230,6 @@ namespace Microsoft.Build.UnitTests.Evaluation
         [Fact]
         [Trait("Category", "netcore-osx-failing")]
         [Trait("Category", "netcore-linux-failing")]
-        [Trait("Category", "mono-osx-failing")]
         public void PropertyFunctionDictionaryReturn()
         {
             PropertyDictionary<ProjectPropertyInstance> pg = new PropertyDictionary<ProjectPropertyInstance>();
@@ -2319,9 +2279,8 @@ namespace Microsoft.Build.UnitTests.Evaluation
                     ExpanderOptions.ExpandProperties,
                     Directory.GetCurrentDirectory(),
                     MockElementLocation.Instance,
-                    null,
-                    new BuildEventContext(1, 2, 3, 4),
-                    FileSystems.Default));
+                    FileSystems.Default,
+                    new TestLoggingContext(null!, new BuildEventContext(1, 2, 3, 4))));
             Assert.True(
                 ConditionEvaluator.EvaluateCondition(
                     @"'$(PathRoot.EndsWith(" + Path.DirectorySeparatorChar + "))' == 'false'",
@@ -2330,9 +2289,8 @@ namespace Microsoft.Build.UnitTests.Evaluation
                     ExpanderOptions.ExpandProperties,
                     Directory.GetCurrentDirectory(),
                     MockElementLocation.Instance,
-                    null,
-                    new BuildEventContext(1, 2, 3, 4),
-                    FileSystems.Default));
+                    FileSystems.Default,
+                    new TestLoggingContext(null!, new BuildEventContext(1, 2, 3, 4))));
         }
 
         /// <summary>
@@ -2350,8 +2308,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
                 Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
 
                 expander.ExpandIntoStringLeaveEscaped("[$(SomeStuff($(Value)))]", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
-            }
-           );
+            });
         }
 
         /// <summary>
@@ -2369,8 +2326,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
                 Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
 
                 expander.ExpandIntoStringLeaveEscaped("[$(SomeStuff.Lgg)]", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
-            }
-           );
+            });
         }
         /// <summary>
         /// Expand property function - invalid since properties don't have properties and don't support '.' in them
@@ -2387,8 +2343,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
                 Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
 
                 expander.ExpandIntoStringLeaveEscaped("$(SomeStuff.ToUpperInvariant().Foo)", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
-            }
-           );
+            });
         }
         /// <summary>
         /// Expand property function - properties don't take arguments
@@ -2405,8 +2360,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
                 Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
 
                 expander.ExpandIntoStringLeaveEscaped("[$(SomeStuff($(System.DateTime.Now)))]", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
-            }
-           );
+            });
         }
 
         /// <summary>
@@ -2423,8 +2377,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
                 Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
 
                 expander.ExpandIntoStringLeaveEscaped("$(SomeStuff.ToLowerInvariant()_goop)", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
-            }
-           );
+            });
         }
         /// <summary>
         /// Expand property function - functions with invalid arguments
@@ -2440,8 +2393,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
                 Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
 
                 expander.ExpandIntoStringLeaveEscaped("[$(SomeStuff.Substring(HELLO!))]", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
-            }
-           );
+            });
         }
         /// <summary>
         /// Expand property function - functions with invalid arguments
@@ -2457,8 +2409,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
                 Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
 
                 expander.ExpandIntoStringLeaveEscaped("[$(SomeStuff.Substring(-10))]", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
-            }
-           );
+            });
         }
         /// <summary>
         /// Expand property function that calls a static method with quoted arguments
@@ -2473,8 +2424,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
                 Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
 
                 expander.ExpandIntoStringLeaveEscaped("$(([System.DateTime]::Now).ToString(\"MM.dd.yyyy\"))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
-            }
-           );
+            });
         }
         /// <summary>
         /// Expand property function - we don't handle metadata functions
@@ -2586,8 +2536,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
         /// <summary>
         /// Expand property function that is only available when MSBUILDENABLEALLPROPERTYFUNCTIONS=1
         /// </summary>
-        [Fact]
-        [SkipOnTargetFramework(TargetFrameworkMonikers.Netcoreapp, "https://github.com/dotnet/coreclr/issues/15662")]
+        [WindowsFullFrameworkOnlyFact(additionalMessage: "https://github.com/dotnet/coreclr/issues/15662")]
         public void PropertyStaticFunctionAllEnabled()
         {
             using (var env = TestEnvironment.Create())
@@ -2701,7 +2650,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
 
             string result = expander.ExpandIntoStringLeaveEscaped(@"$([System.IO.Path]::Combine(`" +
-                Path.Combine(s_rootPathPrefix, "foo goo")  + "`, `$(File)`))",
+                Path.Combine(s_rootPathPrefix, "foo goo") + "`, `$(File)`))",
                 ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
 
             Assert.Equal(Path.Combine(s_rootPathPrefix, "foo goo", "foo goo", "file.txt"), result);
@@ -2868,20 +2817,16 @@ namespace Microsoft.Build.UnitTests.Evaluation
         [Theory]
         [InlineData(
             "$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Create($([System.Runtime.InteropServices.OSPlatform]::$$platform$$.ToString())))))",
-            "True"
-        )]
+            "True")]
         [InlineData(
             @"$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::$$platform$$)))",
-            "True"
-        )]
+            "True")]
         [InlineData(
             "$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)",
-            "$$architecture$$"
-        )]
+            "$$architecture$$")]
         [InlineData(
             "$([MSBuild]::IsOSPlatform($$platform$$))",
-            "True"
-        )]
+            "True")]
         public void PropertyFunctionRuntimeInformation(string propertyFunction, string expectedExpansion)
         {
             Func<string, string, string, string> formatString = (aString, platform, architecture) => aString
@@ -2904,6 +2849,290 @@ namespace Microsoft.Build.UnitTests.Evaluation
         }
 
         [Theory]
+        [InlineData("windows")]
+        [InlineData("linux")]
+        [InlineData("macos")]
+        [InlineData("osx")]
+        public void IsOSPlatform(string platform)
+        {
+            string propertyFunction = $"$([System.OperatingSystem]::IsOSPlatform('{platform}'))";
+            bool result = false;
+#if NET5_0_OR_GREATER
+            result = OperatingSystem.IsOSPlatform(platform);
+#else
+            result = Microsoft.Build.Framework.OperatingSystem.IsOSPlatform(platform);
+#endif
+            string expected = result ? "True" : "False";
+            var pg = new PropertyDictionary<ProjectPropertyInstance>();
+            var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
+            expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance).ShouldBe(expected);
+        }
+
+        [Theory]
+        [InlineData("windows", 4, 0, 0, 0)]
+        [InlineData("windows", 999, 0, 0, 0)]
+        [InlineData("linux", 0, 0, 0, 0)]
+        [InlineData("macos", 10, 15, 0, 0)]
+        [InlineData("macos", 999, 0, 0, 0)]
+        [InlineData("osx", 0, 0, 0, 0)]
+        public void IsOSPlatformVersionAtLeast(string platform, int major, int minor, int build, int revision)
+        {
+            string propertyFunction = $"$([System.OperatingSystem]::IsOSPlatformVersionAtLeast('{platform}', {major}, {minor}, {build}, {revision}))";
+            bool result = false;
+#if NET5_0_OR_GREATER
+            result = OperatingSystem.IsOSPlatformVersionAtLeast(platform, major, minor, build, revision);
+#else
+            result = Microsoft.Build.Framework.OperatingSystem.IsOSPlatformVersionAtLeast(platform, major, minor, build, revision);
+#endif
+            string expected = result ? "True" : "False";
+            var pg = new PropertyDictionary<ProjectPropertyInstance>();
+            var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
+            expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance).ShouldBe(expected);
+        }
+
+        [Fact]
+        public void IsLinux()
+        {
+            const string propertyFunction = "$([System.OperatingSystem]::IsLinux())";
+            bool result = false;
+#if NET5_0_OR_GREATER
+            result = OperatingSystem.IsLinux();
+#else
+            result = Microsoft.Build.Framework.OperatingSystem.IsLinux();
+#endif
+            string expected = result ? "True" : "False";
+            var pg = new PropertyDictionary<ProjectPropertyInstance>();
+            var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
+            expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance).ShouldBe(expected);
+        }
+
+        [Fact]
+        public void IsFreeBSD()
+        {
+            const string propertyFunction = "$([System.OperatingSystem]::IsFreeBSD())";
+            bool result = false;
+#if NET5_0_OR_GREATER
+            result = System.OperatingSystem.IsFreeBSD();
+#else
+            result = Microsoft.Build.Framework.OperatingSystem.IsFreeBSD();
+#endif
+            string expected = result ? "True" : "False";
+            var pg = new PropertyDictionary<ProjectPropertyInstance>();
+            var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
+            expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance).ShouldBe(expected);
+        }
+
+        [Theory]
+        [InlineData(0, 0, 0, 0)]
+        [InlineData(999, 0, 0, 0)]
+        public void IsFreeBSDVersionAtLeast(int major, int minor, int build, int revision)
+        {
+            string propertyFunction = $"$([System.OperatingSystem]::IsFreeBSDVersionAtLeast({major}, {minor}, {build}, {revision}))";
+            bool result = false;
+#if NET5_0_OR_GREATER
+            result = OperatingSystem.IsFreeBSDVersionAtLeast(major, minor, build, revision);
+#else
+            result = Microsoft.Build.Framework.OperatingSystem.IsFreeBSDVersionAtLeast(major, minor, build, revision);
+#endif
+            string expected = result ? "True" : "False";
+            var pg = new PropertyDictionary<ProjectPropertyInstance>();
+            var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
+            expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance).ShouldBe(expected);
+        }
+
+        [Fact]
+        public void IsMacOS()
+        {
+            const string propertyFunction = "$([System.OperatingSystem]::IsMacOS())";
+            bool result = false;
+#if NET5_0_OR_GREATER
+            result = OperatingSystem.IsMacOS();
+#else
+            result = Microsoft.Build.Framework.OperatingSystem.IsMacOS();
+#endif
+            string expected = result ? "True" : "False";
+            var pg = new PropertyDictionary<ProjectPropertyInstance>();
+            var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
+            expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance).ShouldBe(expected);
+        }
+
+        [Theory]
+        [InlineData(0, 0, 0)]
+        [InlineData(10, 15, 0)]
+        [InlineData(999, 0, 0)]
+        public void IsMacOSVersionAtLeast(int major, int minor, int build)
+        {
+            string propertyFunction = $"$([System.OperatingSystem]::IsMacOSVersionAtLeast({major}, {minor}, {build}))";
+            bool result = false;
+#if NET5_0_OR_GREATER
+            result = OperatingSystem.IsMacOSVersionAtLeast(major, minor, build);
+#else
+            result = Microsoft.Build.Framework.OperatingSystem.IsMacOSVersionAtLeast(major, minor, build);
+#endif
+            string expected = result ? "True" : "False";
+            var pg = new PropertyDictionary<ProjectPropertyInstance>();
+            var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
+            expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance).ShouldBe(expected);
+        }
+
+        [Fact]
+        public void IsWindows()
+        {
+            const string propertyFunction = "$([System.OperatingSystem]::IsWindows())";
+            bool result = false;
+#if NET5_0_OR_GREATER
+            result = OperatingSystem.IsWindows();
+#else
+            result = Microsoft.Build.Framework.OperatingSystem.IsWindows();
+#endif
+            string expected = result ? "True" : "False";
+            var pg = new PropertyDictionary<ProjectPropertyInstance>();
+            var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
+            expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance).ShouldBe(expected);
+        }
+
+        [Theory]
+        [InlineData(0, 0, 0, 0)]
+        [InlineData(4, 0, 0, 0)]
+        [InlineData(999, 0, 0, 0)]
+        public void IsWindowsVersionAtLeast(int major, int minor, int build, int revision)
+        {
+            string propertyFunction = $"$([System.OperatingSystem]::IsWindowsVersionAtLeast({major}, {minor}, {build}, {revision}))";
+            bool result = false;
+#if NET5_0_OR_GREATER
+            result = OperatingSystem.IsWindowsVersionAtLeast(major, minor, build, revision);
+#else
+            result = Microsoft.Build.Framework.OperatingSystem.IsWindowsVersionAtLeast(major, minor, build, revision);
+#endif
+            string expected = result ? "True" : "False";
+            var pg = new PropertyDictionary<ProjectPropertyInstance>();
+            var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
+            expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance).ShouldBe(expected);
+        }
+
+#if NET5_0_OR_GREATER
+
+        [Fact]
+        public void IsAndroid()
+        {
+            const string propertyFunction = "$([System.OperatingSystem]::IsAndroid())";
+
+            string expected = OperatingSystem.IsAndroid() ? "True" : "False";
+            var pg = new PropertyDictionary<ProjectPropertyInstance>();
+            var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
+            expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance).ShouldBe(expected);
+        }
+
+        [Theory]
+        [InlineData(0, 0, 0, 0)]
+        [InlineData(999, 0, 0, 0)]
+        public void IsAndroidVersionAtLeast(int major, int minor, int build, int revision)
+        {
+            string propertyFunction = $"$([System.OperatingSystem]::IsAndroidVersionAtLeast({major}, {minor}, {build}, {revision}))";
+            string expected = OperatingSystem.IsAndroidVersionAtLeast(major, minor, build, revision) ? "True" : "False";
+            var pg = new PropertyDictionary<ProjectPropertyInstance>();
+            var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
+            expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance).ShouldBe(expected);
+        }
+
+        [Fact]
+        public void IsIOS()
+        {
+            const string propertyFunction = "$([System.OperatingSystem]::IsIOS())";
+
+            string expected = OperatingSystem.IsIOS() ? "True" : "False";
+            var pg = new PropertyDictionary<ProjectPropertyInstance>();
+            var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
+            expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance).ShouldBe(expected);
+        }
+
+        [Theory]
+        [InlineData(0, 0, 0)]
+        [InlineData(16, 5, 1)]
+        [InlineData(999, 0, 0)]
+        public void IsIOSVersionAtLeast(int major, int minor, int build)
+        {
+            string propertyFunction = $"$([System.OperatingSystem]::IsIOSVersionAtLeast({major}, {minor}, {build}))";
+            string expected = OperatingSystem.IsIOSVersionAtLeast(major, minor, build) ? "True" : "False";
+            var pg = new PropertyDictionary<ProjectPropertyInstance>();
+            var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
+            expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance).ShouldBe(expected);
+        }
+
+        [Fact]
+        public void IsMacCatalyst()
+        {
+            const string propertyFunction = "$([System.OperatingSystem]::IsMacCatalyst())";
+
+            string expected = OperatingSystem.IsMacCatalyst() ? "True" : "False";
+            var pg = new PropertyDictionary<ProjectPropertyInstance>();
+            var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
+            expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance).ShouldBe(expected);
+        }
+
+        [Theory]
+        [InlineData(0, 0, 0)]
+        [InlineData(999, 0, 0)]
+        public void IsMacCatalystVersionAtLeast(int major, int minor, int build)
+        {
+            string propertyFunction = $"$([System.OperatingSystem]::IsMacCatalystVersionAtLeast({major}, {minor}, {build}))";
+            string expected = OperatingSystem.IsMacCatalystVersionAtLeast(major, minor, build) ? "True" : "False";
+            var pg = new PropertyDictionary<ProjectPropertyInstance>();
+            var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
+            expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance).ShouldBe(expected);
+        }
+
+        [Fact]
+        public void IsTvOS()
+        {
+            const string propertyFunction = "$([System.OperatingSystem]::IsTvOS())";
+
+            string expected = OperatingSystem.IsTvOS() ? "True" : "False";
+            var pg = new PropertyDictionary<ProjectPropertyInstance>();
+            var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
+            expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance).ShouldBe(expected);
+        }
+
+        [Theory]
+        [InlineData(0, 0, 0)]
+        [InlineData(16, 5, 0)]
+        [InlineData(999, 0, 0)]
+        public void IsTvOSVersionAtLeast(int major, int minor, int build)
+        {
+            string propertyFunction = $"$([System.OperatingSystem]::IsTvOSVersionAtLeast({major}, {minor}, {build}))";
+            string expected = OperatingSystem.IsTvOSVersionAtLeast(major, minor, build) ? "True" : "False";
+            var pg = new PropertyDictionary<ProjectPropertyInstance>();
+            var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
+            expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance).ShouldBe(expected);
+        }
+
+        [Fact]
+        public void IsWatchOS()
+        {
+            const string propertyFunction = "$([System.OperatingSystem]::IsWatchOS())";
+
+            string expected = OperatingSystem.IsWatchOS() ? "True" : "False";
+            var pg = new PropertyDictionary<ProjectPropertyInstance>();
+            var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
+            expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance).ShouldBe(expected);
+        }
+
+        [Theory]
+        [InlineData(0, 0, 0)]
+        [InlineData(9, 5, 2)]
+        [InlineData(999, 0, 0)]
+        public void IsWatchOSVersionAtLeast(int major, int minor, int build)
+        {
+            string propertyFunction = $"$([System.OperatingSystem]::IsWatchOSVersionAtLeast({major}, {minor}, {build}))";
+            string expected = OperatingSystem.IsWatchOSVersionAtLeast(major, minor, build) ? "True" : "False";
+            var pg = new PropertyDictionary<ProjectPropertyInstance>();
+            var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
+            expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance).ShouldBe(expected);
+        }
+
+#endif
+
+        [Theory]
         [InlineData("AString", "x12x456789x11", "$(AString.IndexOf('x', 1))", "3")]
         [InlineData("AString", "x12x456789x11", "$(AString.IndexOf('x45', 1))", "3")]
         [InlineData("AString", "x12x456789x11", "$(AString.IndexOf('x', 1, 4))", "3")]
@@ -2917,7 +3146,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
         public void StringIndexOfTests(string propertyName, string properyValue, string propertyFunction, string expectedExpansion)
         {
             var pg = new PropertyDictionary<ProjectPropertyInstance>
-                {[propertyName] = ProjectPropertyInstance.Create(propertyName, properyValue)};
+            { [propertyName] = ProjectPropertyInstance.Create(propertyName, properyValue) };
 
             var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
 
@@ -2979,9 +3208,9 @@ namespace Microsoft.Build.UnitTests.Evaluation
             var pg = new PropertyDictionary<ProjectPropertyInstance>();
             var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
 
-            AssertSuccess(expander, expectedSign >  0, $"$([MSBuild]::VersionGreaterThan('{a}', '{b}'))");
+            AssertSuccess(expander, expectedSign > 0, $"$([MSBuild]::VersionGreaterThan('{a}', '{b}'))");
             AssertSuccess(expander, expectedSign >= 0, $"$([MSBuild]::VersionGreaterThanOrEquals('{a}', '{b}'))");
-            AssertSuccess(expander, expectedSign <  0, $"$([MSBuild]::VersionLessThan('{a}', '{b}'))");
+            AssertSuccess(expander, expectedSign < 0, $"$([MSBuild]::VersionLessThan('{a}', '{b}'))");
             AssertSuccess(expander, expectedSign <= 0, $"$([MSBuild]::VersionLessThanOrEquals('{a}', '{b}'))");
             AssertSuccess(expander, expectedSign == 0, $"$([MSBuild]::VersionEquals('{a}', '{b}'))");
             AssertSuccess(expander, expectedSign != 0, $"$([MSBuild]::VersionNotEquals('{a}', '{b}'))");
@@ -3105,7 +3334,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
         [Fact]
         public void PropertyFunctionStaticMethodDirectoryNameOfFileAbove()
         {
-            string tempPath = Path.GetTempPath();
+            string tempPath = FileUtilities.TempFileDirectory;
             string tempFile = Path.GetFileName(FileUtilities.GetTemporaryFile());
 
             try
@@ -3143,7 +3372,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             //
             MockElementLocation mockElementLocation = new MockElementLocation(Path.Combine(ObjectModelHelpers.TempProjectDir, "one", "two", "three", "four", "five", Path.GetRandomFileName()));
 
-            string fileToFind = FileUtilities.GetTemporaryFile(ObjectModelHelpers.TempProjectDir, ".tmp");
+            string fileToFind = FileUtilities.GetTemporaryFile(ObjectModelHelpers.TempProjectDir, null, ".tmp");
 
             try
             {
@@ -3277,17 +3506,17 @@ namespace Microsoft.Build.UnitTests.Evaluation
         {
             PropertyDictionary<ProjectPropertyInstance> pg = new PropertyDictionary<ProjectPropertyInstance>();
 
-            pg["BonkersTargetsPath"] = ProjectPropertyInstance.Create("BonkersTargetsPath", "Bonkers");
+            pg["DifferentTargetsPath"] = ProjectPropertyInstance.Create("DifferentTargetsPath", "Different");
 
             Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
 
-            string result = expander.ExpandIntoStringLeaveEscaped(@"$([MSBuild]::ValueOrDefault('$(BonkersTargetsPath)', '42'))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
+            string result = expander.ExpandIntoStringLeaveEscaped(@"$([MSBuild]::ValueOrDefault('$(DifferentTargetsPath)', '42'))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
 
-            Assert.Equal("Bonkers", result);
+            Assert.Equal("Different", result);
 
-            pg["BonkersTargetsPath"] = ProjectPropertyInstance.Create("BonkersTargetsPath", String.Empty);
+            pg["DifferentTargetsPath"] = ProjectPropertyInstance.Create("DifferentTargetsPath", String.Empty);
 
-            result = expander.ExpandIntoStringLeaveEscaped(@"$([MSBuild]::ValueOrDefault('$(BonkersTargetsPath)', '43'))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
+            result = expander.ExpandIntoStringLeaveEscaped(@"$([MSBuild]::ValueOrDefault('$(DifferentTargetsPath)', '43'))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
 
             Assert.Equal("43", result);
         }
@@ -3297,7 +3526,6 @@ namespace Microsoft.Build.UnitTests.Evaluation
         /// Expand property function that tests for existence of the task host
         /// </summary>
         [Fact]
-        [Trait("Category", "mono-osx-failing")]
         public void PropertyFunctionDoesTaskHostExist()
         {
             PropertyDictionary<ProjectPropertyInstance> pg = new PropertyDictionary<ProjectPropertyInstance>();
@@ -3314,7 +3542,6 @@ namespace Microsoft.Build.UnitTests.Evaluation
         /// Expand property function that tests for existence of the task host
         /// </summary>
         [Fact]
-        [Trait("Category", "mono-osx-failing")]
         public void PropertyFunctionDoesTaskHostExist_Whitespace()
         {
             PropertyDictionary<ProjectPropertyInstance> pg = new PropertyDictionary<ProjectPropertyInstance>();
@@ -3362,8 +3589,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
 
                 // We should have failed before now
                 Assert.True(false);
-            }
-           );
+            });
         }
 
 #if FEATURE_APPDOMAIN
@@ -3371,7 +3597,6 @@ namespace Microsoft.Build.UnitTests.Evaluation
         /// Expand property function that tests for existence of the task host
         /// </summary>
         [Fact]
-        [Trait("Category", "mono-osx-failing")]
         public void PropertyFunctionDoesTaskHostExist_Evaluated()
         {
             PropertyDictionary<ProjectPropertyInstance> pg = new PropertyDictionary<ProjectPropertyInstance>();
@@ -3424,7 +3649,6 @@ namespace Microsoft.Build.UnitTests.Evaluation
         [Fact]
         [Trait("Category", "netcore-osx-failing")]
         [Trait("Category", "netcore-linux-failing")]
-        [Trait("Category", "mono-osx-failing")]
         public void PropertyFunctionStaticMethodFileAttributes()
         {
             PropertyDictionary<ProjectPropertyInstance> pg = new PropertyDictionary<ProjectPropertyInstance>();
@@ -3496,28 +3720,25 @@ namespace Microsoft.Build.UnitTests.Evaluation
             result = expander.ExpandIntoStringLeaveEscaped(@"$([MSBuild]::Modulo(2345.5, 43))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
 
             Assert.Equal((2345.5 % 43).ToString(), result);
+        }
 
-            // test for overflow wrapping
-            result = expander.ExpandIntoStringLeaveEscaped(@"$([MSBuild]::Add(9223372036854775807, 20))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
+        /// <summary>
+        /// Expand intrinsic property functions that call a bit operator
+        /// </summary>
+        [Fact]
+        public void PropertyFunctionStaticMethodIntrinsicBitOperations()
+        {
+            PropertyDictionary<ProjectPropertyInstance> pg = new PropertyDictionary<ProjectPropertyInstance>();
 
-            double expectedResult = 9223372036854775807D + 20D;
-            Assert.Equal(expectedResult.ToString(), result);
+            Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
 
-            result = expander.ExpandIntoStringLeaveEscaped(@"$([MSBuild]::BitwiseOr(40, 2))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
-
-            Assert.Equal((40 | 2).ToString(), result);
-
-            result = expander.ExpandIntoStringLeaveEscaped(@"$([MSBuild]::BitwiseAnd(42, 2))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
-
-            Assert.Equal((42 & 2).ToString(), result);
-
-            result = expander.ExpandIntoStringLeaveEscaped(@"$([MSBuild]::BitwiseXor(213, 255))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
-
-            Assert.Equal((213 ^ 255).ToString(), result);
-
-            result = expander.ExpandIntoStringLeaveEscaped(@"$([MSBuild]::BitwiseNot(-43))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
-
-            Assert.Equal((~-43).ToString(), result);
+            expander.ExpandIntoStringLeaveEscaped(@"$([MSBuild]::BitwiseOr(40, 2))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance).ShouldBe((40 | 2).ToString());
+            expander.ExpandIntoStringLeaveEscaped(@"$([MSBuild]::BitwiseAnd(42, 2))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance).ShouldBe((42 & 2).ToString());
+            expander.ExpandIntoStringLeaveEscaped(@"$([MSBuild]::BitwiseXor(213, 255))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance).ShouldBe((213 ^ 255).ToString());
+            expander.ExpandIntoStringLeaveEscaped(@"$([MSBuild]::BitwiseNot(-43))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance).ShouldBe((~-43).ToString());
+            expander.ExpandIntoStringLeaveEscaped(@"$([MSBuild]::LeftShift(1, 2))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance).ShouldBe((1 << 2).ToString());
+            expander.ExpandIntoStringLeaveEscaped(@"$([MSBuild]::RightShift(-8, 2))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance).ShouldBe((-8 >> 2).ToString());
+            expander.ExpandIntoStringLeaveEscaped(@"$([MSBuild]::RightShiftUnsigned(-8, 2))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance).ShouldBe((-8 >>> 2).ToString());
         }
 
         /// <summary>
@@ -3536,8 +3757,8 @@ namespace Microsoft.Build.UnitTests.Evaluation
             Assert.Equal(String.Empty, result);
         }
 
-#if FEATURE_WIN32_REGISTRY
-        [Fact]
+        [WindowsOnlyFact]
+        [SupportedOSPlatform("windows")]
         public void PropertyFunctionGetRegitryValue()
         {
             try
@@ -3560,7 +3781,8 @@ namespace Microsoft.Build.UnitTests.Evaluation
             }
         }
 
-        [Fact]
+        [WindowsOnlyFact]
+        [SupportedOSPlatform("windows")]
         public void PropertyFunctionGetRegitryValueDefault()
         {
             try
@@ -3583,7 +3805,8 @@ namespace Microsoft.Build.UnitTests.Evaluation
             }
         }
 
-        [Fact]
+        [WindowsOnlyFact]
+        [SupportedOSPlatform("windows")]
         public void PropertyFunctionGetRegistryValueFromView1()
         {
             try
@@ -3606,7 +3829,8 @@ namespace Microsoft.Build.UnitTests.Evaluation
             }
         }
 
-        [Fact]
+        [WindowsOnlyFact]
+        [SupportedOSPlatform("windows")]
         public void PropertyFunctionGetRegistryValueFromView2()
         {
             try
@@ -3628,7 +3852,6 @@ namespace Microsoft.Build.UnitTests.Evaluation
                 Registry.CurrentUser.DeleteSubKey(@"Software\Microsoft\MSBuild_test");
             }
         }
-#endif
 
         /// <summary>
         /// Expand a property function that references item metadata
@@ -3676,8 +3899,14 @@ namespace Microsoft.Build.UnitTests.Evaluation
             result.ShouldBe(metadatumValue);
         }
 
-        [Fact]
-        public void PropertyFunctionHashCodeSameOnlyIfStringSame()
+        public static IEnumerable<object[]> GetHashAlgoTypes()
+            => Enum.GetNames(typeof(IntrinsicFunctions.StringHashingAlgorithm))
+                .Append(null)
+                .Select(t => new object[] { t });
+
+        [Theory]
+        [MemberData(nameof(GetHashAlgoTypes))]
+        public void PropertyFunctionHashCodeSameOnlyIfStringSame(string hashType)
         {
             PropertyDictionary<ProjectPropertyInstance> pg = new PropertyDictionary<ProjectPropertyInstance>();
             Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
@@ -3692,9 +3921,10 @@ namespace Microsoft.Build.UnitTests.Evaluation
                 "cat12s",
                 "cat1s"
             };
-            int[] hashes = stringsToHash.Select(toHash =>
-                (int)expander.ExpandPropertiesLeaveTypedAndEscaped($"$([MSBuild]::StableStringHash('{toHash}'))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance)
-                ).ToArray();
+            string hashTypeString = hashType == null ? "" : $", '{hashType}'";
+            object[] hashes = stringsToHash.Select(toHash =>
+                expander.ExpandPropertiesLeaveTypedAndEscaped($"$([MSBuild]::StableStringHash('{toHash}'{hashTypeString}))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance))
+                .ToArray();
             for (int a = 0; a < hashes.Length; a++)
             {
                 for (int b = a; b < hashes.Length; b++)
@@ -3709,6 +3939,71 @@ namespace Microsoft.Build.UnitTests.Evaluation
                     }
                 }
             }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetHashAlgoTypes))]
+        public void PropertyFunctionHashCodeReturnsExpectedType(string hashType)
+        {
+            PropertyDictionary<ProjectPropertyInstance> pg = new PropertyDictionary<ProjectPropertyInstance>();
+            Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
+            Type expectedType;
+
+            expectedType = hashType switch
+            {
+                null => typeof(int),
+                "Legacy" => typeof(int),
+                "Fnv1a32bit" => typeof(int),
+                "Fnv1a32bitFast" => typeof(int),
+                "Fnv1a64bit" => typeof(long),
+                "Fnv1a64bitFast" => typeof(long),
+                "Sha256" => typeof(string),
+                _ => throw new ArgumentOutOfRangeException(nameof(hashType))
+            };
+
+
+            string hashTypeString = hashType == null ? "" : $", '{hashType}'";
+            object hashValue = expander.ExpandPropertiesLeaveTypedAndEscaped($"$([MSBuild]::StableStringHash('FooBar'{hashTypeString}))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
+
+            hashValue.ShouldBeOfType(expectedType);
+        }
+
+        [Theory]
+        [InlineData("easycase")]
+        [InlineData("")]
+        [InlineData("\"\n()\tsdfIR$%#*;==")]
+        public void TestBase64Conversion(string testCase)
+        {
+            PropertyDictionary<ProjectPropertyInstance> pg = new();
+            Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(pg, FileSystems.Default);
+            string intermediate = expander.ExpandPropertiesLeaveTypedAndEscaped($"$([MSBuild]::ConvertToBase64('{testCase}'))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance) as string;
+            intermediate.Trim('=').All(c => char.IsLetterOrDigit(c) || c == '+' || c == '/').ShouldBeTrue();
+            string original = expander.ExpandPropertiesLeaveTypedAndEscaped($"$([MSBuild]::ConvertFromBase64('{intermediate}'))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance) as string;
+            original.ShouldBe(testCase);
+        }
+
+        [Theory]
+        [InlineData("easycase", "ZWFzeWNhc2U=")]
+        [InlineData("", "")]
+        [InlineData("\"\n()\tsdfIR$%#*;==", "IgooKQlzZGZJUiQlIyo7PT0=")]
+        public void TestExplicitToBase64Conversion(string plaintext, string base64)
+        {
+            PropertyDictionary<ProjectPropertyInstance> pg = new();
+            Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(pg, FileSystems.Default);
+            string intermediate = expander.ExpandPropertiesLeaveTypedAndEscaped($"$([MSBuild]::ConvertToBase64('{plaintext}'))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance) as string;
+            intermediate.ShouldBe(base64);
+        }
+
+        [Theory]
+        [InlineData("easycase", "ZWFzeWNhc2U=")]
+        [InlineData("", "")]
+        [InlineData("\"\n()\tsdfIR$%#*;==", "IgooKQlzZGZJUiQlIyo7PT0=")]
+        public void TestExplicitFromBase64Conversion(string plaintext, string base64)
+        {
+            PropertyDictionary<ProjectPropertyInstance> pg = new();
+            Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(pg, FileSystems.Default);
+            string original = expander.ExpandPropertiesLeaveTypedAndEscaped($"$([MSBuild]::ConvertFromBase64('{base64}'))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance) as string;
+            original.ShouldBe(plaintext);
         }
 
         /// <summary>
@@ -3752,13 +4047,21 @@ namespace Microsoft.Build.UnitTests.Evaluation
                 new string[] {"$([MSBuild]::Add(1,2).CompareTo(3))", "0"},
                 new string[] {"$([MSBuild]::Add(1,2).CompareTo(3))", "0"},
                 new string[] {"$([MSBuild]::Add(1,2).CompareTo(3.0))", "0"},
+                new string[] {"$([MSBuild]::Add(1,2.0).CompareTo(3.0))", "0"},
+                new string[] {"$([System.Convert]::ToDouble($([MSBuild]::Add(1,2))).CompareTo(3.0))", "0"},
                 new string[] {"$([MSBuild]::Add(1,2).CompareTo('3'))", "0"},
                 new string[] {"$([MSBuild]::Add(1,2).CompareTo(3.1))", "-1"},
+                new string[] {"$([MSBuild]::Add(1,2.0).CompareTo(3.1))", "-1"},
+                new string[] {"$([System.Convert]::ToDouble($([MSBuild]::Add(1,2))).CompareTo(3.1))", "-1"},
                 new string[] {"$([MSBuild]::Add(1,2).CompareTo(2))", "1"},
                 new string[] {"$([MSBuild]::Add(1,2).Equals(3))", "True"},
                 new string[] {"$([MSBuild]::Add(1,2).Equals(3.0))", "True"},
+                new string[] {"$([MSBuild]::Add(1,2.0).Equals(3.0))", "True"},
+                new string[] {"$([System.Convert]::ToDouble($([MSBuild]::Add(1,2))).Equals(3.0))", "True"},
                 new string[] {"$([MSBuild]::Add(1,2).Equals('3'))", "True"},
                 new string[] {"$([MSBuild]::Add(1,2).Equals(3.1))", "False"},
+                new string[] {"$([MSBuild]::Add(1,2.0).Equals(3.1))", "False"},
+                new string[] {"$([System.Convert]::ToDouble($([MSBuild]::Add(1,2))).Equals(3.1))", "False"},
                 new string[] {"$(a.Insert(0,'%28'))", "%28no"},
                 new string[] {"$(a.Insert(0,'\"'))", "\"no"},
                 new string[] {"$(a.Insert(0,'(('))", "%28%28no"},
@@ -3781,7 +4084,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
                 new string[] {"$([MSBuild]::Escape(';'))", "%3b"},
                 new string[] {"$([MSBuild]::UnEscape('%3b'))", ";"},
                 new string[] {"$(e.Substring($(e.Length)))", ""},
-                new string[] {"$([System.Int32]::MaxValue)", System.Int32.MaxValue.ToString()},
+                new string[] {"$([System.Int32]::MaxValue)", System.Int32.MaxValue.ToString() },
                 new string[] {"x$()", "x"},
                 new string[] {"A$(Reg:A)A", "AA"},
                 new string[] {"A$(Reg:AA)", "A"},
@@ -3790,7 +4093,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
                 new string[] {"$(Reg:AAA)", ""}
                                    };
 
-            var errorTests = new List<string>{
+            var errorTests = new List<string> {
             "$(input[)",
             "$(input.ToString()])",
             "$(input.ToString()[)",
@@ -3803,25 +4106,25 @@ namespace Microsoft.Build.UnitTests.Evaluation
             "$(listofthings.Split(';')[-1])",
             "$([]::())",
                                                       @"
- 
+
 $(
- 
+
 $(
- 
+
 [System.IO]::Path.GetDirectory('c:\foo\bar\baz.txt')
- 
+
 ).Substring(
- 
+
 '$([System.IO]::Path.GetPathRoot(
- 
+
 '$([System.IO]::Path.GetDirectory('c:\foo\bar\baz.txt'))'
- 
+
 ).Length)'
- 
- 
- 
+
+
+
 )
- 
+
 ",
                 "$([Microsoft.VisualBasic.FileIO.FileSystem]::CurrentDirectory)", // not allowed
                 "$(e.Length..ToString())",
@@ -3928,18 +4231,16 @@ $(
             }
 #endif
 
-#if FEATURE_WIN32_REGISTRY
             if (NativeMethodsShared.IsWindows)
             {
                 errorTests.Add("$(Registry:X)");
             }
-#endif
 
             if (!NativeMethodsShared.IsWindows)
             {
                 // If no registry or not running on windows, this gets expanded to the empty string
                 // example: xplat build running on OSX
-                validTests.Add(new string[]{"$(Registry:X)", ""});
+                validTests.Add(new string[] { "$(Registry:X)", "" });
             }
 
             string result;
@@ -3983,8 +4284,7 @@ $(
                 }
                 Assert.True(
                         !success || caughtException,
-                        "FAILURE: Expected '" + errorTests[i] + "' to not parse or not be evaluated but it evaluated to '" + result + "'"
-                    );
+                        "FAILURE: Expected '" + errorTests[i] + "' to not parse or not be evaluated but it evaluated to '" + result + "'");
             }
         }
 
@@ -4045,6 +4345,12 @@ $(
         }
 
         [Fact]
+        public void PropertyFunctionStringLastIndexOfAny()
+        {
+            TestPropertyFunction("$(prop.LastIndexOfAny('xy'))", "prop", "x-x-y-y-y-z", "8");
+        }
+
+        [Fact]
         public void PropertyFunctionStringCopy()
         {
             string propertyFunction = @"$([System.String]::Copy($(X)).LastIndexOf(
@@ -4068,6 +4374,30 @@ $(
             string result = expander.ExpandIntoStringLeaveEscaped("$([System.Guid]::NewGuid())", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
 
             Assert.True(Guid.TryParse(result, out Guid guid));
+        }
+
+        [Theory]
+        [InlineData("NonExistingFeature", "Undefined")]
+        [InlineData("EvaluationContext_SharedSDKCachePolicy", "Available")]
+        public void PropertyFunctionCheckFeatureAvailability(string featureName, string availability)
+        {
+            var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(new PropertyDictionary<ProjectPropertyInstance>(), FileSystems.Default);
+
+            var result = expander.ExpandIntoStringLeaveEscaped($"$([MSBuild]::CheckFeatureAvailability({featureName}))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
+
+            Assert.Equal(availability, result);
+        }
+
+        [Theory]
+        [InlineData("\u0074\u0068\u0069\u0073\u002a\u3407\ud840\udc60\ud86a\ude30\ud86e\udc0a\ud86e\udda0\ud879\udeae\u2fd5\u0023", 2, 10, "is________")]
+        [InlineData("\ud83d\udc68\u200d\ud83d\udc68\u200d\ud83d\udc66\u200d\ud83d\udc66\ud83d\udc68\u200d\ud83d\udc68\u200d\ud83d\udc66\u200d\ud83d\udc66\u002e\u0070\u0072\u006f\u006a", 0, 8, "________")]
+        public void SubstringByAsciiChars(string featureName, int start, int length, string expected)
+        {
+            var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(new PropertyDictionary<ProjectPropertyInstance>(), FileSystems.Default);
+
+            var result = expander.ExpandIntoStringLeaveEscaped($"$([MSBuild]::SubstringByAsciiChars({featureName}, {start}, {length}))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
+
+            Assert.Equal(expected, result);
         }
 
         [Fact]
@@ -4209,7 +4539,7 @@ $(
             TestPropertyFunction("$(prop.TrimEnd('a'))", "prop", "netaa", "net");
         }
 
-        // https://github.com/Microsoft/msbuild/issues/2882
+        // https://github.com/dotnet/msbuild/issues/2882
         [Fact]
         public void PropertyFunctionMathMaxOverflow()
         {
@@ -4232,9 +4562,32 @@ $(
         }
 
         [Fact]
-        public void PropertyFunctionMSBuildAdd()
+        public void PropertyFunctionMSBuildAddIntegerLiteral()
         {
             TestPropertyFunction("$([MSBuild]::Add($(X), 5))", "X", "7", "12");
+        }
+
+        [Fact]
+        public void PropertyFunctionMSBuildAddRealLiteral()
+        {
+            TestPropertyFunction("$([MSBuild]::Add($(X), 0.5))", "X", "7", "7.5");
+        }
+
+        [Fact]
+        public void PropertyFunctionMSBuildAddIntegerOverflow()
+        {
+            // Overflow wrapping - result exceeds size of long
+            string expected = IsIntrinsicFunctionOverloadsEnabled ? "-9223372036854775808" : (long.MaxValue + 1.0).ToString();
+            TestPropertyFunction("$([MSBuild]::Add($(X), 1))", "X", long.MaxValue.ToString(), expected);
+        }
+
+        [Fact]
+        public void PropertyFunctionMSBuildAddRealArgument()
+        {
+            // string argument is an integer that exceeds the size of long.
+            double value = long.MaxValue + 1.0;
+            double expected = value + 1.0;
+            TestPropertyFunction("$([MSBuild]::Add($(X), 1))", "X", value.ToString(), expected.ToString());
         }
 
         [Fact]
@@ -4244,15 +4597,43 @@ $(
         }
 
         [Fact]
-        public void PropertyFunctionMSBuildSubtract()
+        public void PropertyFunctionMSBuildSubtractIntegerLiteral()
         {
             TestPropertyFunction("$([MSBuild]::Subtract($(X), 20100000))", "X", "20100042", "42");
         }
 
         [Fact]
-        public void PropertyFunctionMSBuildMultiply()
+        public void PropertyFunctionMSBuildSubtractRealLiteral()
+        {
+            TestPropertyFunction("$([MSBuild]::Subtract($(X), 20100000.0))", "X", "20100042", "42");
+        }
+
+        [Fact]
+        public void PropertyFunctionMSBuildSubtractIntegerMaxValue()
+        {
+            // If the double overload is used, there will be a rounding error.
+            string expected = IsIntrinsicFunctionOverloadsEnabled ? "1" : "0";
+            TestPropertyFunction("$([MSBuild]::Subtract($(X), 9223372036854775806))", "X", long.MaxValue.ToString(), expected);
+        }
+
+        [Fact]
+        public void PropertyFunctionMSBuildMultiplyIntegerLiteral()
         {
             TestPropertyFunction("$([MSBuild]::Multiply($(X), 8800))", "X", "2", "17600");
+        }
+
+        [Fact]
+        public void PropertyFunctionMSBuildMultiplyRealLiteral()
+        {
+            TestPropertyFunction("$([MSBuild]::Multiply($(X), 1.5))", "X", "2", "3");
+        }
+
+        [Fact]
+        public void PropertyFunctionMSBuildMultiplyIntegerOverflow()
+        {
+            // Overflow - result exceeds size of long
+            string expected = IsIntrinsicFunctionOverloadsEnabled ? "-2" : (long.MaxValue * 2.0).ToString();
+            TestPropertyFunction("$([MSBuild]::Multiply($(X), 2))", "X", long.MaxValue.ToString(), expected);
         }
 
         [Fact]
@@ -4262,9 +4643,28 @@ $(
         }
 
         [Fact]
-        public void PropertyFunctionMSBuildDivide()
+        public void PropertyFunctionMSBuildDivideIntegerLiteral()
         {
-            TestPropertyFunction("$([MSBuild]::Divide($(X), 10000))", "X", "65536", "6.5536");
+            string expected = IsIntrinsicFunctionOverloadsEnabled ? "6" : "6.5536";
+            TestPropertyFunction("$([MSBuild]::Divide($(X), 10000))", "X", "65536", expected);
+        }
+
+        [Fact]
+        public void PropertyFunctionMSBuildDivideRealLiteral()
+        {
+            TestPropertyFunction("$([MSBuild]::Divide($(X), 10000.0))", "X", "65536", "6.5536");
+        }
+
+        [Fact]
+        public void PropertyFunctionMSBuildModuloIntegerLiteral()
+        {
+            TestPropertyFunction("$([MSBuild]::Modulo($(X), 3))", "X", "10", "1");
+        }
+
+        [Fact]
+        public void PropertyFunctionMSBuildModuloRealLiteral()
+        {
+            TestPropertyFunction("$([MSBuild]::Modulo($(X), 3.0))", "X", "10", "1");
         }
 
         [Fact]
@@ -4298,6 +4698,19 @@ $(
             var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
             string result = expander.ExpandIntoStringLeaveEscaped(expression, ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
             result.ShouldBe(expected);
+        }
+
+        [Theory]
+        [InlineData("net6.0", "netstandard2.0", "")]
+        [InlineData("net6.0-windows", "netstandard2.0", "")]
+        [InlineData("net6.0-windows", "net6.0", "net6.0-windows")]
+        [InlineData("netstandard2.0;net6.0", "net6.0", "net6.0")]
+        [InlineData("netstandard2.0;net6.0-windows", "net6.0", "net6.0-windows")]
+        [InlineData("netstandard2.0;net6.0-windows", "net6.0;netstandard2.0;net472", "netstandard2.0%3bnet6.0-windows")]
+        [InlineData("netstandard2.0;net472", "net6.0;netstandard2.0;net472", "netstandard2.0%3bnet472")]
+        public void PropertyFunctionFilterTargetFrameworks(string incoming, string filter, string expected)
+        {
+            TestPropertyFunction($"$([MSBuild]::FilterTargetFrameworks('{incoming}', '{filter}'))", "_", "_", expected);
         }
 
         [Fact]
@@ -4499,6 +4912,189 @@ $(
                 var alphaBetaPath = Path.Combine("alpha", "beta");
                 var alphaDeltaPath = Path.Combine("alpha", "delta");
                 squiggleItems.Select(i => i.EvaluatedInclude).ShouldBe(new[] { alphaBetaPath, alphaDeltaPath }, Case.Insensitive);
+            }
+        }
+
+        [Fact]
+        public void ExpandItem_ConvertToStringUsingInvariantCultureForNumberData()
+        {
+            var currentThread = Thread.CurrentThread;
+            var originalCulture = currentThread.CurrentCulture;
+            var originalUICulture = currentThread.CurrentUICulture;
+
+            try
+            {
+                var svSECultureInfo = new CultureInfo("sv-SE");
+                using (var env = TestEnvironment.Create())
+                {
+                    currentThread.CurrentCulture = svSECultureInfo;
+                    currentThread.CurrentUICulture = svSECultureInfo;
+                    var root = env.CreateFolder();
+
+                    var projectFile = env.CreateFile(root, ".proj",
+                        @"<Project>
+
+  <PropertyGroup>
+    <_value>$([MSBuild]::Subtract(0, 1))</_value>
+    <_otherValue Condition=""'$(_value)' &gt;= -1"">test-value</_otherValue>
+  </PropertyGroup>
+  <Target Name=""Build"" />
+</Project>");
+                    ProjectInstance projectInstance = new ProjectInstance(projectFile.Path);
+                    projectInstance.GetPropertyValue("_value").ShouldBe("-1");
+                    projectInstance.GetPropertyValue("_otherValue").ShouldBe("test-value");
+                }
+            }
+            finally
+            {
+                currentThread.CurrentCulture = originalCulture;
+                currentThread.CurrentUICulture = originalUICulture;
+            }
+        }
+
+        [Fact]
+        public void ExpandItem_ConvertToStringUsingInvariantCultureForNumberData_RespectingChangeWave()
+        {
+            // Note: Skipping the test since it is not a valid scenario when ICU mode is not used.
+            if (!ICUModeAvailable())
+            {
+                return;
+            }
+
+            var currentThread = Thread.CurrentThread;
+            var originalCulture = currentThread.CurrentCulture;
+            var originalUICulture = currentThread.CurrentUICulture;
+
+            try
+            {
+                var svSECultureInfo = new CultureInfo("sv-SE");
+                using (var env = TestEnvironment.Create())
+                {
+                    env.SetEnvironmentVariable("MSBUILDDISABLEFEATURESFROMVERSION", ChangeWaves.Wave17_12.ToString());
+                    currentThread.CurrentCulture = svSECultureInfo;
+                    currentThread.CurrentUICulture = svSECultureInfo;
+                    var root = env.CreateFolder();
+
+                    var projectFile = env.CreateFile(root, ".proj",
+                        @"<Project>
+
+  <PropertyGroup>
+    <_value>$([MSBuild]::Subtract(0, 1))</_value>
+    <_otherValue Condition=""'$(_value)' &gt;= -1"">test-value</_otherValue>
+  </PropertyGroup>
+  <Target Name=""Build"" />
+</Project>");
+                    var exception = Should.Throw<InvalidProjectFileException>(() =>
+                    {
+                        new ProjectInstance(projectFile.Path);
+                    });
+                    exception.BaseMessage.ShouldContain("A numeric comparison was attempted on \"$(_value)\"");
+                }
+            }
+            finally
+            {
+                currentThread.CurrentCulture = originalCulture;
+                currentThread.CurrentUICulture = originalUICulture;
+            }
+        }
+
+        [Theory]
+        [InlineData("getType")]
+        [InlineData("GetType")]
+        [InlineData("gettype")]
+        public void GetTypeMethod_ShouldNotBeAllowed(string methodName)
+        {
+            var currentThread = Thread.CurrentThread;
+            var originalCulture = currentThread.CurrentCulture;
+            var originalUICulture = currentThread.CurrentUICulture;
+            var enCultureInfo = new CultureInfo("en");
+
+            try
+            {
+                currentThread.CurrentCulture = enCultureInfo;
+                currentThread.CurrentUICulture = enCultureInfo;
+
+                using (var env = TestEnvironment.Create())
+                {
+                    var root = env.CreateFolder();
+
+                    var projectFile = env.CreateFile(root, ".proj",
+                        @$"<Project>
+            <PropertyGroup>
+                <foo>aa</foo>
+                <typeval>$(foo.{methodName}().FullName)</typeval>
+            </PropertyGroup>
+        </Project>");
+                    var exception = Should.Throw<InvalidProjectFileException>(() =>
+                    {
+                        new ProjectInstance(projectFile.Path);
+                    });
+                    exception.BaseMessage.ShouldContain($"The function \"{methodName}\" on type \"System.String\" is not available for execution as an MSBuild property function.");
+                }
+            }
+            finally
+            {
+                currentThread.CurrentCulture = originalCulture;
+                currentThread.CurrentUICulture = originalUICulture;
+            }
+        }
+
+        [Theory]
+        [InlineData("getType")]
+        [InlineData("GetType")]
+        [InlineData("gettype")]
+        public void GetTypeMethod_ShouldBeAllowed_EnabledByEnvVariable(string methodName)
+        {
+            using (var env = TestEnvironment.Create())
+            {
+                env.SetEnvironmentVariable("MSBUILDENABLEALLPROPERTYFUNCTIONS", "1");
+                var root = env.CreateFolder();
+
+                var projectFile = env.CreateFile(root, ".proj",
+                    @$"<Project>
+    <PropertyGroup>
+        <foo>aa</foo>
+        <typeval>$(foo.{methodName}().FullName)</typeval>
+    </PropertyGroup>
+</Project>");
+                Should.NotThrow(() =>
+                {
+                    new ProjectInstance(projectFile.Path);
+                });
+            }
+        }
+
+        /// <summary>
+        /// Determines if ICU mode is enabled.
+        /// Copied from: https://learn.microsoft.com/en-us/dotnet/core/extensions/globalization-icu#determine-if-your-app-is-using-icu
+        /// </summary>
+        private static bool ICUModeAvailable()
+        {
+            SortVersion sortVersion = CultureInfo.InvariantCulture.CompareInfo.Version;
+            byte[] bytes = sortVersion.SortId.ToByteArray();
+            int version = bytes[3] << 24 | bytes[2] << 16 | bytes[1] << 8 | bytes[0];
+            return version != 0 && version == sortVersion.FullVersion;
+        }
+
+        [Fact]
+        public void PropertyFunctionRegisterBuildCheck()
+        {
+            using (var env = TestEnvironment.Create())
+            {
+                var logger = new MockLogger();
+                ILoggingService loggingService = LoggingService.CreateLoggingService(LoggerMode.Synchronous, 1);
+                loggingService.RegisterLogger(logger);
+                var loggingContext = new MockLoggingContext(
+                    loggingService,
+                    new BuildEventContext(0, 0, BuildEventContext.InvalidProjectContextId, 0, 0));
+                var dummyAssemblyFile = env.CreateFile(env.CreateFolder(), "test.dll");
+
+                var result = new Expander<ProjectPropertyInstance, ProjectItemInstance>(new PropertyDictionary<ProjectPropertyInstance>(), FileSystems.Default, loggingContext)
+                    .ExpandIntoStringLeaveEscaped($"$([MSBuild]::RegisterBuildCheck({dummyAssemblyFile.Path}))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
+
+                result.ShouldBe(Boolean.TrueString);
+                _ = logger.AllBuildEvents.Select(be => be.ShouldBeOfType<BuildCheckAcquisitionEventArgs>());
+                logger.AllBuildEvents.Count.ShouldBe(1);
             }
         }
     }

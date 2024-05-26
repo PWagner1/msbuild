@@ -1,9 +1,11 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Globalization;
 using Microsoft.Build.Execution;
+
+#nullable disable
 
 namespace Microsoft.Build.BackEnd
 {
@@ -23,7 +25,7 @@ namespace Microsoft.Build.BackEnd
         Schedule,
 
         /// <summary>
-        /// The response indicates that the request should be send to the specified node, 
+        /// The response indicates that the request should be send to the specified node,
         /// along with the configuration for the request.
         /// </summary>
         ScheduleWithConfiguration,

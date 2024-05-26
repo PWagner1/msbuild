@@ -1,8 +1,11 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using Microsoft.Build.Shared;
+using Microsoft.Build.BackEnd.Logging;
+using Microsoft.Build.Collections;
+
+#nullable disable
 
 namespace Microsoft.Build.Evaluation
 {
@@ -11,48 +14,23 @@ namespace Microsoft.Build.Evaluation
     /// </summary>
     internal abstract class OperatorExpressionNode : GenericExpressionNode
     {
-        /// <summary>
-        /// Numeric evaluation is never allowed for operators
-        /// </summary>
-        internal override double NumericEvaluate(ConditionEvaluator.IConditionEvaluationState state)
+        internal override bool TryBoolEvaluate(ConditionEvaluator.IConditionEvaluationState state, out bool result)
         {
-            // Should be unreachable: all calls check CanNumericEvaluate() first
-            ErrorUtilities.VerifyThrow(false, "Cannot numeric evaluate an operator");
-            return 0.0D;
-        }
-
-        /// <summary>
-        /// Version evaluation is never allowed for operators
-        /// </summary>
-        internal override Version VersionEvaluate(ConditionEvaluator.IConditionEvaluationState state)
-        {
-            ErrorUtilities.VerifyThrow(false, "Cannot version evaluate an operator");
-            return null;
-        }
-
-        /// <summary>
-        /// Whether boolean evaluation is allowed: always allowed for operators
-        /// </summary>
-        internal override bool CanBoolEvaluate(ConditionEvaluator.IConditionEvaluationState state)
-        {
+            result = BoolEvaluate(state);
             return true;
         }
 
-        /// <summary>
-        /// Whether the node can be evaluated as a numeric: by default,
-        /// this is not allowed
-        /// </summary>
-        internal override bool CanNumericEvaluate(ConditionEvaluator.IConditionEvaluationState state)
+        internal abstract bool BoolEvaluate(ConditionEvaluator.IConditionEvaluationState state);
+
+        internal override bool TryNumericEvaluate(ConditionEvaluator.IConditionEvaluationState state, out double result)
         {
+            result = default;
             return false;
         }
 
-        /// <summary>
-        /// Whether the node can be evaluated as a version: by default,
-        /// this is not allowed
-        /// </summary>
-        internal override bool CanVersionEvaluate(ConditionEvaluator.IConditionEvaluationState state)
+        internal override bool TryVersionEvaluate(ConditionEvaluator.IConditionEvaluationState state, out Version result)
         {
+            result = default;
             return false;
         }
 
@@ -65,6 +43,10 @@ namespace Microsoft.Build.Evaluation
             return null;
         }
 
+        /// <inheritdoc cref="GenericExpressionNode"/>
+        internal override bool IsUnexpandedValueEmpty()
+            => (LeftChild?.IsUnexpandedValueEmpty() ?? true) && (RightChild?.IsUnexpandedValueEmpty() ?? true);
+
         /// <summary>
         /// Value before any item and property expressions are expanded
         /// </summary>
@@ -75,7 +57,7 @@ namespace Microsoft.Build.Evaluation
         }
 
         /// <summary>
-        /// If any expression nodes cache any state for the duration of evaluation, 
+        /// If any expression nodes cache any state for the duration of evaluation,
         /// now's the time to clean it up
         /// </summary>
         internal override void ResetState()

@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.IO;
 using System.Resources;
@@ -78,7 +82,7 @@ namespace Microsoft.Build.UnitTests.TargetDependencyAnalyzer_Tests
             ml.AssertLogDoesntContain("Running Build target");
             ml.AssertLogContains("MSB4168");
 
-            // Clear the mock logger object out so it is not reused            
+            // Clear the mock logger object out so it is not reused
             ml = null;
 
             ml = ObjectModelHelpers.BuildProjectExpectFailure(@"
@@ -111,11 +115,11 @@ namespace Microsoft.Build.UnitTests.TargetDependencyAnalyzer_Tests
 
         /// <summary>
         /// Tests this case:
-        /// 
+        ///
         /// <Target Name="x"
         ///         Inputs="@(Items);c.cs"
         ///         Outputs="@(Items->'%(Filename).dll')" />
-        /// 
+        ///
         /// If Items = [a.cs;b.cs], and only b.cs is out of date w/r/t its
         /// correlated output b.dll, then we should only build "b" incrementally.
         /// </summary>
@@ -124,8 +128,8 @@ namespace Microsoft.Build.UnitTests.TargetDependencyAnalyzer_Tests
         {
             string inputs = "@(Items);c.cs";
             string outputs = "@(Items->'%(Filename).dll')";
-            FileWriteInfo[] filesToAnalyze = new FileWriteInfo[] 
-                                             { 
+            FileWriteInfo[] filesToAnalyze = new FileWriteInfo[]
+                                             {
                                                  new FileWriteInfo("a.cs", yesterday),
                                                  new FileWriteInfo("a.dll", today),
                                                  new FileWriteInfo("b.cs", today),
@@ -147,11 +151,11 @@ namespace Microsoft.Build.UnitTests.TargetDependencyAnalyzer_Tests
 
         /// <summary>
         /// Tests this case:
-        /// 
+        ///
         /// <Target Name="x"
         ///         Inputs="@(Items)"
         ///         Outputs="@(Items->'%(Filename).dll');@(Items->'%(Filename).xml')" />
-        /// 
+        ///
         /// If Items = [a.cs;b.cs;c.cs], and only b.cs is out of date w/r/t its
         /// correlated outputs (dll or xml), then we should only build "b" incrementally.
         /// </summary>
@@ -161,8 +165,8 @@ namespace Microsoft.Build.UnitTests.TargetDependencyAnalyzer_Tests
             string inputs = "@(Items)";
             string outputs = "@(Items->'%(Filename).dll');@(Items->'%(Filename).xml')";
 
-            FileWriteInfo[] filesToAnalyze = new FileWriteInfo[] 
-                                             { 
+            FileWriteInfo[] filesToAnalyze = new FileWriteInfo[]
+                                             {
                                                  new FileWriteInfo("a.cs", yesterday),
                                                  new FileWriteInfo("a.dll", today),
                                                  new FileWriteInfo("a.xml", today),
@@ -178,7 +182,7 @@ namespace Microsoft.Build.UnitTests.TargetDependencyAnalyzer_Tests
             items.AddNewItem("Items", "a.cs");
             items.AddNewItem("Items", "b.cs");
             items.AddNewItem("Items", "c.cs");
-            
+
             Hashtable itemsByName = new Hashtable(StringComparer.OrdinalIgnoreCase);
             itemsByName.Add("Items", items);
 
@@ -260,7 +264,7 @@ namespace Microsoft.Build.UnitTests.TargetDependencyAnalyzer_Tests
                 // now do the dependency analysis
                 ItemBucket itemBucket = new ItemBucket(null, null, LookupHelpers.CreateLookup(itemsByName), 0);
                 TargetDependencyAnalyzer analyzer = new TargetDependencyAnalyzer(ObjectModelHelpers.TempProjectDir, p.Targets["Build"], p.ParentEngine.LoggingServices, (BuildEventContext)null);
-                
+
                 return analyzer.PerformDependencyAnalysis(itemBucket, out changedTargetInputs, out upToDateTargetInputs);
             }
             finally
@@ -283,7 +287,7 @@ namespace Microsoft.Build.UnitTests.TargetDependencyAnalyzer_Tests
             IsAnyOutOfDateTestHelper
                 (
                 new DateTime(2000, 1, 1), /* input1 */
-                new DateTime(2000, 1, 1), /* input2 */ 
+                new DateTime(2000, 1, 1), /* input2 */
                 new DateTime(2001, 1, 1), /* output1 */
                 new DateTime(2001, 1, 1), /* output2 */
                 false /* none out of date */
@@ -545,7 +549,7 @@ namespace Microsoft.Build.UnitTests.TargetDependencyAnalyzer_Tests
         /// <param name="isUpToDate"></param>
         private void IsAnyOutOfDateTestHelper
             (
-            DateTime? input1Time, 
+            DateTime? input1Time,
             DateTime? input2Time,
             DateTime? output1Time,
             DateTime? output2Time,

@@ -1,5 +1,9 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
 
 using System;
 using System.Xml;
@@ -127,7 +131,7 @@ namespace Microsoft.Build.BuildEngine
         /// <returns>Given string, with embedded item vectors expanded.</returns>
         internal static string ExpandEmbeddedItemVectors(string s, XmlNode parentNode, ReadOnlyLookup readOnlyLookup)
         {
-            // Before we do the expensive RegEx stuff, at least make sure there's 
+            // Before we do the expensive RegEx stuff, at least make sure there's
             // an @ sign in the expression somewhere.  If not, skip all the hard work.
             if (s.IndexOf('@') != -1)
             {
@@ -163,9 +167,9 @@ namespace Microsoft.Build.BuildEngine
         }
 
         /// <summary>
-        /// Attempts to extract the items in the given item vector expression. Item vectors embedded in strings, 
-        /// and item vectors with separator specifications are considered invalid, because it is not clear 
-        /// if those item vectors are meant to be lists or strings -- if the latter, the ExpandEmbeddedItemVectors() 
+        /// Attempts to extract the items in the given item vector expression. Item vectors embedded in strings,
+        /// and item vectors with separator specifications are considered invalid, because it is not clear
+        /// if those item vectors are meant to be lists or strings -- if the latter, the ExpandEmbeddedItemVectors()
         /// method should be used instead.
         /// </summary>
         /// <param name="itemVectorExpression"></param>
@@ -220,7 +224,7 @@ namespace Microsoft.Build.BuildEngine
 
                 ErrorUtilities.VerifyThrow(items != null, "ItemizeItemVector shouldn't give us null.");
             }
-            
+
             return items;
         }
 
@@ -235,7 +239,7 @@ namespace Microsoft.Build.BuildEngine
             {
                 return true;
             }
-            
+
             return false;
         }
 
@@ -246,14 +250,14 @@ namespace Microsoft.Build.BuildEngine
         {
             Match itemVectorMatch = null;
 
-            // Before we do the expensive RegEx stuff, at least make sure there's 
+            // Before we do the expensive RegEx stuff, at least make sure there's
             // an @ sign in the expression somewhere.  If not, skip all the hard work.
             if (expression.IndexOf('@') != -1)
             {
                 itemVectorMatch = itemVectorPattern.Match(expression);
             }
 
-            return itemVectorMatch; 
+            return itemVectorMatch;
         }
 
         /// <summary>
@@ -300,15 +304,15 @@ namespace Microsoft.Build.BuildEngine
 
         /// <summary>
         /// Expands a single item vector.
-        /// 
+        ///
         /// Item vectors are composed of a name, a transform, and a separator i.e.
-        /// 
+        ///
         ///     @(&lt;name&gt;->'&lt;transform&gt;','&lt;separator&gt;')
-        /// 
+        ///
         /// If a separator is not specified it defaults to a semi-colon. The transform expression is also optional, but if
         /// specified, it allows each item in the vector to have its item-spec converted to a different form. The transform
         /// expression can reference any custom metadata defined on the item, as well as the pre-defined item-spec modifiers.
-        /// 
+        ///
         /// NOTE:
         /// 1) white space between &lt;name&gt;, &lt;transform&gt; and &lt;separator&gt; is ignored
         ///    i.e. @(&lt;name&gt;, '&lt;separator&gt;') is valid
@@ -320,19 +324,19 @@ namespace Microsoft.Build.BuildEngine
         /// <remarks>This is the MatchEvaluator delegate passed to Regex.Replace().</remarks>
         /// <example>
         /// if @(files) is a vector for the files a.txt and b.txt, then:
-        /// 
+        ///
         ///     "my list: @(files)"                                 expands to      "my list: a.txt;b.txt"
-        /// 
+        ///
         ///     "my list: @(files,' ')"                             expands to      "my list: a.txt b.txt"
-        /// 
+        ///
         ///     "my list: @(files, '')"                             expands to      "my list: a.txtb.txt"
-        /// 
+        ///
         ///     "my list: @(files, '; ')"                           expands to      "my list: a.txt; b.txt"
-        /// 
+        ///
         ///     "my list: @(files->'%(Filename)')"                  expands to      "my list: a;b"
-        /// 
+        ///
         ///     "my list: @(files -> 'temp\%(Filename).xml', ' ')   expands to      "my list: temp\a.xml temp\b.xml"
-        /// 
+        ///
         ///     "my list: @(files->'')                              expands to      "my list: ;"
         /// </example>
         /// <owner>SumedhK</owner>
@@ -343,7 +347,7 @@ namespace Microsoft.Build.BuildEngine
         {
             ErrorUtilities.VerifyThrow(itemVector.Success, "Need a valid item vector.");
 
-            string separator = (itemVector.Groups["SEPARATOR_SPECIFICATION"].Length != 0) 
+            string separator = (itemVector.Groups["SEPARATOR_SPECIFICATION"].Length != 0)
                 ? itemVector.Groups["SEPARATOR"].Value
                 : ";";
 

@@ -1,5 +1,5 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections.Generic;
@@ -12,6 +12,9 @@ using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
 using Microsoft.Build.UnitTests.BackEnd;
 using Xunit;
+using Xunit.NetCore.Extensions;
+
+#nullable disable
 
 namespace Microsoft.Build.UnitTests.Definition
 {
@@ -23,8 +26,7 @@ namespace Microsoft.Build.UnitTests.Definition
             Assert.Throws<ArgumentNullException>(() =>
             {
                 Toolset t = new Toolset(null, "x", new ProjectCollection(), null);
-            }
-           );
+            });
         }
 
         [Fact]
@@ -33,8 +35,7 @@ namespace Microsoft.Build.UnitTests.Definition
             Assert.Throws<ArgumentNullException>(() =>
             {
                 Toolset t = new Toolset("x", null, new ProjectCollection(), null);
-            }
-           );
+            });
         }
 
         [Fact]
@@ -43,8 +44,7 @@ namespace Microsoft.Build.UnitTests.Definition
             Assert.Throws<ArgumentException>(() =>
             {
                 Toolset t = new Toolset(String.Empty, "x", new ProjectCollection(), null);
-            }
-           );
+            });
         }
 
         [Fact]
@@ -117,7 +117,7 @@ namespace Microsoft.Build.UnitTests.Definition
             Toolset t = new Toolset("4.0", "c:\\bar", buildProperties, environmentProperties, globalProperties,
                 subToolsets, "c:\\foo", "4.0", new Dictionary<string, ProjectImportPathMatch>
                 {
-                    ["MSBuildExtensionsPath"] = new ProjectImportPathMatch("MSBuildExtensionsPath", new List<string> {@"c:\foo"})
+                    ["MSBuildExtensionsPath"] = new ProjectImportPathMatch("MSBuildExtensionsPath", new List<string> { @"c:\foo" })
                 });
 
             ((ITranslatable)t).Translate(TranslationHelpers.GetWriteTranslator());
@@ -174,8 +174,7 @@ namespace Microsoft.Build.UnitTests.Definition
             Assert.Equal("v13.0", t.DefaultSubToolsetVersion);
         }
 
-        [Fact(Skip = "https://github.com/microsoft/msbuild/issues/4363")]
-        [PlatformSpecific(TestPlatforms.Windows)]
+        [WindowsOnlyFact(Skip = "https://github.com/dotnet/msbuild/issues/4363")]
         public void TestDefaultSubToolsetFor40()
         {
             Toolset t = ProjectCollection.GlobalProjectCollection.GetToolset("4.0");
@@ -189,14 +188,14 @@ namespace Microsoft.Build.UnitTests.Definition
                 }
                 else
                 {
-                    // Otherwise, it's the highest one numerically.  Since by definition if Dev10 isn't 
-                    // installed and subtoolsets exists we must be at least Dev11, it should be "11.0" 
+                    // Otherwise, it's the highest one numerically.  Since by definition if Dev10 isn't
+                    // installed and subtoolsets exists we must be at least Dev11, it should be "11.0"
                     Assert.Equal("11.0", t.DefaultSubToolsetVersion);
                 }
             }
         }
 
-        [Fact(Skip = "https://github.com/microsoft/msbuild/issues/4363")]
+        [Fact(Skip = "https://github.com/dotnet/msbuild/issues/4363")]
         public void TestDefaultWhenNoSubToolset()
         {
             string originalVisualStudioVersion = Environment.GetEnvironmentVariable("VisualStudioVersion");
@@ -225,7 +224,7 @@ namespace Microsoft.Build.UnitTests.Definition
             }
         }
 
-        [Fact(Skip = "https://github.com/microsoft/msbuild/issues/4363")]
+        [Fact(Skip = "https://github.com/dotnet/msbuild/issues/4363")]
         public void TestGenerateSubToolsetVersionWhenNoSubToolset()
         {
             if (NativeMethodsShared.IsUnixLike)
@@ -439,8 +438,8 @@ namespace Microsoft.Build.UnitTests.Definition
                 Assert.Equal("12.0", t.GenerateSubToolsetVersion(null, 13));
                 Assert.Equal("v13.0", t.GenerateSubToolsetVersion(null, 14));
 
-                // however, if there is no matching solution version, we just fall back to the 
-                // default sub-toolset. 
+                // however, if there is no matching solution version, we just fall back to the
+                // default sub-toolset.
                 Assert.Equal(t.DefaultSubToolsetVersion, t.GenerateSubToolsetVersion(null, 55));
             }
             finally
@@ -489,27 +488,27 @@ namespace Microsoft.Build.UnitTests.Definition
         }
 
         /// <summary>
-        /// Creates a standard ProjectCollection and adds a fake toolset with the following contents to it:  
-        /// 
+        /// Creates a standard ProjectCollection and adds a fake toolset with the following contents to it:
+        ///
         /// ToolsVersion = Fake
-        /// Base Properties: 
+        /// Base Properties:
         /// a = a1
         /// b = b1
-        /// 
-        /// SubToolset "12.0": 
+        ///
+        /// SubToolset "12.0":
         /// d = d4
         /// e = e5
-        /// 
-        /// SubToolset "v11.0": 
+        ///
+        /// SubToolset "v11.0":
         /// b = b2
         /// c = c2
-        /// 
+        ///
         /// SubToolset "FakeSubToolset":
         /// a = a3
         /// c = c3
-        /// 
+        ///
         /// SubToolset "v13.0":
-        /// f = f6 
+        /// f = f6
         /// g = g7
         /// </summary>
         private Toolset GetFakeToolset(IDictionary<string, string> globalPropertiesForProjectCollection)

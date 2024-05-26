@@ -1,13 +1,17 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections.Concurrent;
+#if !FEATURE_THREAD_CULTURE
+using System.Globalization;
+#endif
 using System.Threading;
 using Microsoft.Build.Shared;
 
 using BuildParameters = Microsoft.Build.Execution.BuildParameters;
-using System.Globalization;
+
+#nullable disable
 
 namespace Microsoft.Build.BackEnd
 {
@@ -61,7 +65,7 @@ namespace Microsoft.Build.BackEnd
 
         /// <summary>
         /// Set when a packet is available in the packet queue
-        /// </summary>      
+        /// </summary>
         private AutoResetEvent _packetAvailable;
 
         /// <summary>
@@ -80,7 +84,7 @@ namespace Microsoft.Build.BackEnd
         private bool _peerConnected;
 
         /// <summary>
-        /// The asynchronous packet queue.  
+        /// The asynchronous packet queue.
         /// </summary>
         /// <remarks>
         /// Operations on this queue must be synchronized since it is accessible by multiple threads.
@@ -171,7 +175,7 @@ namespace Microsoft.Build.BackEnd
         }
 
         /// <summary>
-        /// Causes this node to connect to the matched endpoint.  
+        /// Causes this node to connect to the matched endpoint.
         /// </summary>
         /// <param name="factory">Unused</param>
         public void Connect(INodePacketFactory factory)
@@ -217,6 +221,12 @@ namespace Microsoft.Build.BackEnd
                 EnqueuePacket(packet);
             }
         }
+
+        public void ClientWillDisconnect()
+        {
+            // We do not need to do anything here for InProc node.
+        }
+
         #endregion
 
         #region Internal Methods
@@ -256,7 +266,7 @@ namespace Microsoft.Build.BackEnd
             }
         }
 
-        #endregion 
+        #endregion
 
         #region Private Methods
 
@@ -345,7 +355,7 @@ namespace Microsoft.Build.BackEnd
 #if FEATURE_THREAD_CULTURE
                 _packetPump = new Thread(PacketPumpProc);
 #else
-                //  In .NET Core, we need to set the current culture from inside the new thread
+                // In .NET Core, we need to set the current culture from inside the new thread
                 CultureInfo culture = _componentHost.BuildParameters.Culture;
                 CultureInfo uiCulture = _componentHost.BuildParameters.UICulture;
                 _packetPump = new Thread(() =>
@@ -406,7 +416,7 @@ namespace Microsoft.Build.BackEnd
         {
             try
             {
-                // Ordering of the wait handles is important.  The first signalled wait handle in the array 
+                // Ordering of the wait handles is important.  The first signalled wait handle in the array
                 // will be returned by WaitAny if multiple wait handles are signalled.  We prefer to have the
                 // terminate event triggered so that we cannot get into a situation where packets are being
                 // spammed to the endpoint and it never gets an opportunity to shutdown.

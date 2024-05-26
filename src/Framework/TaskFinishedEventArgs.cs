@@ -1,23 +1,23 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.IO;
 using Microsoft.Build.Shared;
+
+#nullable disable
 
 namespace Microsoft.Build.Framework
 {
     /// <summary>
     /// Arguments for task finished events
     /// </summary>
-    /// <remarks>
-    /// WARNING: marking a type [Serializable] without implementing
-    /// ISerializable imposes a serialization contract -- it is a
-    /// promise to never change the type's fields i.e. the type is
-    /// immutable; adding new fields in the next version of the type
-    /// without following certain special FX guidelines, can break both
-    /// forward and backward compatibility
-    /// </remarks>
+    // WARNING: marking a type [Serializable] without implementing
+    // ISerializable imposes a serialization contract -- it is a
+    // promise to never change the type's fields i.e. the type is
+    // immutable; adding new fields in the next version of the type
+    // without following certain special FX guidelines, can break both
+    // forward and backward compatibility
     [Serializable]
     public class TaskFinishedEventArgs : BuildStatusEventArgs
     {
@@ -38,17 +38,15 @@ namespace Microsoft.Build.Framework
         /// <param name="helpKeyword">help keyword </param>
         /// <param name="projectFile">project file</param>
         /// <param name="taskFile">file in which the task is defined</param>
-        /// <param name="taskName">task name</param> 
+        /// <param name="taskName">task name</param>
         /// <param name="succeeded">true indicates task succeed</param>
-        public TaskFinishedEventArgs
-        (
+        public TaskFinishedEventArgs(
             string message,
             string helpKeyword,
             string projectFile,
             string taskFile,
             string taskName,
-            bool succeeded
-        )
+            bool succeeded)
             : this(message, helpKeyword, projectFile, taskFile, taskName, succeeded, DateTime.UtcNow)
         {
         }
@@ -61,19 +59,17 @@ namespace Microsoft.Build.Framework
         /// <param name="helpKeyword">help keyword </param>
         /// <param name="projectFile">project file</param>
         /// <param name="taskFile">file in which the task is defined</param>
-        /// <param name="taskName">task name</param> 
+        /// <param name="taskName">task name</param>
         /// <param name="succeeded">true indicates task succeed</param>
         /// <param name="eventTimestamp">Timestamp when event was created</param>
-        public TaskFinishedEventArgs
-        (
+        public TaskFinishedEventArgs(
             string message,
             string helpKeyword,
             string projectFile,
             string taskFile,
             string taskName,
             bool succeeded,
-            DateTime eventTimestamp
-        )
+            DateTime eventTimestamp)
             : base(message, helpKeyword, "MSBuild", eventTimestamp)
         {
             this.taskName = taskName;
@@ -131,13 +127,26 @@ namespace Microsoft.Build.Framework
         public bool Succeeded => succeeded;
 
         /// <summary>
-        /// Project file associated with event.   
+        /// Project file associated with event.
         /// </summary>
         public string ProjectFile => projectFile;
 
         /// <summary>
-        /// MSBuild file where this task was defined.   
+        /// MSBuild file where this task was defined.
         /// </summary>
         public string TaskFile => taskFile;
+
+        public override string Message
+        {
+            get
+            {
+                if (RawMessage == null)
+                {
+                    RawMessage = FormatResourceStringIgnoreCodeAndKeyword(Succeeded ? "TaskFinishedSuccess" : "TaskFinishedFailure", TaskName);
+                }
+
+                return RawMessage;
+            }
+        }
     }
 }

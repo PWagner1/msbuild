@@ -1,5 +1,5 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Generic;
 using Microsoft.Build.Evaluation;
@@ -9,6 +9,8 @@ using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
 using ReservedPropertyNames = Microsoft.Build.Internal.ReservedPropertyNames;
 using TargetLoggingContext = Microsoft.Build.BackEnd.Logging.TargetLoggingContext;
+
+#nullable disable
 
 namespace Microsoft.Build.BackEnd
 {
@@ -50,36 +52,37 @@ namespace Microsoft.Build.BackEnd
                     // Find all the metadata references in order to create buckets
                     List<string> parameterValues = new List<string>();
                     GetBatchableValuesFromProperty(parameterValues, property);
-                    buckets = BatchingEngine.PrepareBatchingBuckets(parameterValues, lookup, property.Location);
+                    buckets = BatchingEngine.PrepareBatchingBuckets(parameterValues, lookup, property.Location, LoggingContext);
 
                     // "Execute" each bucket
                     foreach (ItemBucket bucket in buckets)
                     {
-                        bool condition = ConditionEvaluator.EvaluateCondition
-                            (
+                        bool condition = ConditionEvaluator.EvaluateCondition(
                             property.Condition,
                             ParserOptions.AllowAll,
                             bucket.Expander,
                             ExpanderOptions.ExpandAll,
                             Project.Directory,
                             property.ConditionLocation,
-                            LoggingContext.LoggingService,
-                            LoggingContext.BuildEventContext,
-                            FileSystems.Default);
+                            FileSystems.Default,
+                            LoggingContext);
 
                         if (condition)
                         {
                             // Check for a reserved name now, so it fails right here instead of later when the property eventually reaches
                             // the outer scope.
-                            ProjectErrorUtilities.VerifyThrowInvalidProject
-                                (
+                            ProjectErrorUtilities.VerifyThrowInvalidProject(
                                 !ReservedPropertyNames.IsReservedProperty(property.Name),
                                 property.Location,
                                 "CannotModifyReservedProperty",
-                                property.Name
-                                );
+                                property.Name);
+
+                            bucket.Expander.PropertiesUseTracker.CurrentlyEvaluatingPropertyElementName = property.Name;
+                            bucket.Expander.PropertiesUseTracker.PropertyReadContext =
+                                PropertyReadContext.PropertyEvaluation;
 
                             string evaluatedValue = bucket.Expander.ExpandIntoStringLeaveEscaped(property.Value, ExpanderOptions.ExpandAll, property.Location);
+                            bucket.Expander.PropertiesUseTracker.CheckPreexistingUndefinedUsage(property, evaluatedValue, LoggingContext);
 
                             if (LogTaskInputs && !LoggingContext.LoggingService.OnlyLogCriticalEvents)
                             {
@@ -98,6 +101,8 @@ namespace Microsoft.Build.BackEnd
                         foreach (ItemBucket bucket in buckets)
                         {
                             bucket.LeaveScope();
+                            // We are now done processing this property - so no need to pop its previous context.
+                            bucket.Expander.PropertiesUseTracker.ResetPropertyReadContext(pop: false);
                         }
                     }
                 }

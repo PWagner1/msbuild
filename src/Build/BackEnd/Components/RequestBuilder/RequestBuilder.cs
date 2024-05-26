@@ -1,16 +1,6 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.Build.BackEnd.Logging;
-using Microsoft.Build.BackEnd.SdkResolution;
-using Microsoft.Build.Collections;
-using Microsoft.Build.Evaluation;
-using Microsoft.Build.Eventing;
-using Microsoft.Build.Exceptions;
-using Microsoft.Build.Execution;
-using Microsoft.Build.Framework;
-using Microsoft.Build.Internal;
-using Microsoft.Build.Shared;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -19,8 +9,21 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Build.BackEnd.Logging;
+using Microsoft.Build.Experimental.BuildCheck.Infrastructure;
+using Microsoft.Build.Collections;
+using Microsoft.Build.Evaluation;
+using Microsoft.Build.Eventing;
+using Microsoft.Build.Exceptions;
+using Microsoft.Build.Execution;
+using Microsoft.Build.Experimental.BuildCheck;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Internal;
+using Microsoft.Build.Shared;
 using NodeLoggingContext = Microsoft.Build.BackEnd.Logging.NodeLoggingContext;
 using ProjectLoggingContext = Microsoft.Build.BackEnd.Logging.ProjectLoggingContext;
+
+#nullable disable
 
 namespace Microsoft.Build.BackEnd
 {
@@ -48,6 +51,11 @@ namespace Microsoft.Build.BackEnd
         /// The results used when a build request entry continues.
         /// </summary>
         private IDictionary<int, BuildResult> _continueResults;
+
+        /// <summary>
+        /// Queue of actions to call when a resource request is responded to.
+        /// </summary>
+        private ConcurrentQueue<Action<ResourceResponse>> _pendingResourceRequests;
 
         /// <summary>
         /// The task representing the currently-executing build request.
@@ -106,6 +114,7 @@ namespace Microsoft.Build.BackEnd
         {
             _terminateEvent = new ManualResetEvent(false);
             _continueEvent = new AutoResetEvent(false);
+            _pendingResourceRequests = new ConcurrentQueue<Action<ResourceResponse>>();
         }
 
         /// <summary>
@@ -122,6 +131,11 @@ namespace Microsoft.Build.BackEnd
         /// The event raised when the build request has completed.
         /// </summary>
         public event BuildRequestBlockedDelegate OnBuildRequestBlocked;
+
+        /// <summary>
+        /// The event raised when resources are requested.
+        /// </summary>
+        public event ResourceRequestDelegate OnResourceRequest;
 
         /// <summary>
         /// The current block type
@@ -220,6 +234,19 @@ namespace Microsoft.Build.BackEnd
         }
 
         /// <summary>
+        /// Continues a build request after receiving a resource response.
+        /// </summary>
+        public void ContinueRequestWithResources(ResourceResponse response)
+        {
+            ErrorUtilities.VerifyThrow(HasActiveBuildRequest, "Request not building");
+            ErrorUtilities.VerifyThrow(!_terminateEvent.WaitOne(0), "Request already terminated");
+            ErrorUtilities.VerifyThrow(_pendingResourceRequests.Any(), "No pending resource requests");
+            VerifyEntryInActiveOrWaitingState();
+
+            _pendingResourceRequests.Dequeue()(response);
+        }
+
+        /// <summary>
         /// Terminates the build request
         /// </summary>
         /// <remarks>
@@ -265,19 +292,10 @@ namespace Microsoft.Build.BackEnd
                 {
                     taskCleanedUp = _requestTask.Wait(BuildParameters.RequestBuilderShutdownTimeout);
                 }
-                catch (AggregateException e)
+                catch (AggregateException e) when (InnerExceptionsAreAllCancelledExceptions(e))
                 {
-                    AggregateException flattenedException = e.Flatten();
-
-                    if (flattenedException.InnerExceptions.All(ex => (ex is TaskCanceledException || ex is OperationCanceledException)))
-                    {
-                        // ignore -- just indicates that the task finished cancelling before we got a chance to wait on it.  
-                        taskCleanedUp = true;
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    // ignore -- just indicates that the task finished cancelling before we got a chance to wait on it.
+                    taskCleanedUp = true;
                 }
 
                 if (!taskCleanedUp)
@@ -289,6 +307,11 @@ namespace Microsoft.Build.BackEnd
             }
 
             _isZombie = true;
+        }
+
+        private bool InnerExceptionsAreAllCancelledExceptions(AggregateException e)
+        {
+            return e.Flatten().InnerExceptions.All(ex => ex is TaskCanceledException || ex is OperationCanceledException);
         }
 
         #region IRequestBuilderCallback Members
@@ -341,12 +364,14 @@ namespace Microsoft.Build.BackEnd
                 BuildRequestData data = new BuildRequestData(projectFiles[i], properties[i].ToDictionary(), explicitToolsVersion, targets, null);
 
                 BuildRequestConfiguration config = new BuildRequestConfiguration(data, _componentHost.BuildParameters.DefaultToolsVersion);
-
+                ProjectIsolationMode isolateProjects = _componentHost.BuildParameters.ProjectIsolationMode;
+                bool skipStaticGraphIsolationConstraints = (isolateProjects != ProjectIsolationMode.False && _requestEntry.RequestConfiguration.ShouldSkipIsolationConstraintsForReference(config.ProjectFullPath))
+                    || isolateProjects == ProjectIsolationMode.MessageUponIsolationViolation;
                 requests[i] = new FullyQualifiedBuildRequest(
                     config: config,
                     targets: targets,
                     resultsNeeded: waitForResults,
-                    skipStaticGraphIsolationConstraints: _componentHost.BuildParameters.IsolateProjects && _requestEntry.RequestConfiguration.ShouldSkipIsolationConstraintsForReference(config.ProjectFullPath),
+                    skipStaticGraphIsolationConstraints: skipStaticGraphIsolationConstraints,
                     flags: skipNonexistentTargets
                         ? BuildRequestDataFlags.SkipNonexistentTargets
                         : BuildRequestDataFlags.None);
@@ -459,6 +484,61 @@ namespace Microsoft.Build.BackEnd
             _inMSBuildCallback = false;
         }
 
+        /// <summary>
+        /// Requests CPU resources from the scheduler.
+        /// </summary>
+        public int RequestCores(object monitorLockObject, int requestedCores, bool waitForCores)
+        {
+            ErrorUtilities.VerifyThrow(Monitor.IsEntered(monitorLockObject), "Not running under the given lock");
+            VerifyIsNotZombie();
+
+            // The task may be calling RequestCores from multiple threads and the call may be blocking, so in general, we have to maintain
+            // a queue of pending requests.
+            ResourceResponse responseObject = null;
+            using AutoResetEvent responseEvent = new AutoResetEvent(false);
+            _pendingResourceRequests.Enqueue((ResourceResponse response) =>
+            {
+                responseObject = response;
+                responseEvent.Set();
+            });
+
+            RaiseResourceRequest(ResourceRequest.CreateAcquireRequest(_requestEntry.Request.GlobalRequestId, requestedCores, waitForCores));
+
+            // Wait for one of two events to be signaled: 1) The build was canceled, 2) The response to our request was received.
+            WaitHandle[] waitHandles = new WaitHandle[] { _terminateEvent, responseEvent };
+            int waitResult;
+
+            // Drop the lock so that the same task can call ReleaseCores from other threads to unblock itself.
+            Monitor.Exit(monitorLockObject);
+            try
+            {
+                waitResult = WaitHandle.WaitAny(waitHandles);
+            }
+            finally
+            {
+                // Now re-take the lock before continuing.
+                Monitor.Enter(monitorLockObject);
+            }
+
+            if (waitResult == 0)
+            {
+                // We've been aborted.
+                throw new BuildAbortedException();
+            }
+
+            VerifyEntryInActiveOrWaitingState();
+            return responseObject.NumCores;
+        }
+
+        /// <summary>
+        /// Returns CPU resources to the scheduler.
+        /// </summary>
+        public void ReleaseCores(int coresToRelease)
+        {
+            VerifyIsNotZombie();
+            RaiseResourceRequest(ResourceRequest.CreateReleaseRequest(_requestEntry.Request.GlobalRequestId, coresToRelease));
+        }
+
         #endregion
 
         #region IBuildComponent Members
@@ -530,7 +610,7 @@ namespace Microsoft.Build.BackEnd
                 }
                 finally
                 {
-                    // If this was the top level submission doing the waiting, we are done with this submission and it's 
+                    // If this was the top level submission doing the waiting, we are done with this submission and it's
                     // main thread building context
                     if (!recursive)
                     {
@@ -560,10 +640,10 @@ namespace Microsoft.Build.BackEnd
             _cancellationTokenSource = new CancellationTokenSource();
 
             // IMPLEMENTATION NOTE: It may look strange that we are creating new tasks here which immediately turn around and create
-            // more tasks that look async.  The reason for this is that while these methods are technically async, they really only 
+            // more tasks that look async.  The reason for this is that while these methods are technically async, they really only
             // unwind at very specific times according to the needs of MSBuild, in particular when we are waiting for results from
             // another project or when we are Yielding the Build Engine while running certain tasks.  Essentially, the Request Builder
-            // and related components form a giant state machine and the tasks are used to implement one very deep co-routine.  
+            // and related components form a giant state machine and the tasks are used to implement one very deep co-routine.
             if (IsBuilderUsingLegacyThreadingSemantics(_componentHost, _requestEntry))
             {
                 // Create a task which completes when the legacy threading task thread is finished.
@@ -572,13 +652,13 @@ namespace Microsoft.Build.BackEnd
                 _requestTask = Task.Factory.StartNew(
                     () =>
                     {
-                        // If this is a very quick-running request, it is possible that the request will have built and completed in 
+                        // If this is a very quick-running request, it is possible that the request will have built and completed in
                         // the time between when StartBuilderThread is called, and when the threadpool gets around to actually servicing
-                        // this request.  If that's the case, it's also possible that ShutdownComponent() could have already been called, 
-                        // in which case the componentHost will be null.  
+                        // this request.  If that's the case, it's also possible that ShutdownComponent() could have already been called,
+                        // in which case the componentHost will be null.
 
-                        // In that circumstance, by definition we don't have anyone who will want to wait on the LegacyThreadInactiveEvent 
-                        // task, so we can safely just return. Take a snapshot so that we don't fall victim to componentHost being set 
+                        // In that circumstance, by definition we don't have anyone who will want to wait on the LegacyThreadInactiveEvent
+                        // task, so we can safely just return. Take a snapshot so that we don't fall victim to componentHost being set
                         // to null between the null check and asking the LegacyThreadingData for the Task.
                         IBuildComponentHost componentHostSnapshot = _componentHost;
 
@@ -600,9 +680,9 @@ namespace Microsoft.Build.BackEnd
                 ErrorUtilities.VerifyThrow(_componentHost.LegacyThreadingData.MainThreadSubmissionId != _requestEntry.Request.SubmissionId, "Can't start builder thread when we are using legacy threading semantics for this request.");
 
                 // We do not run in STA by default.  Most code does not
-                // require the STA apartment and the .Net default is to 
+                // require the STA apartment and the .Net default is to
                 // create threads with MTA semantics.  We provide this
-                // switch so that those few tasks which may require it 
+                // switch so that those few tasks which may require it
                 // can be made to work.
                 if (Environment.GetEnvironmentVariable("MSBUILDFORCESTA") == "1")
                 {
@@ -638,9 +718,7 @@ namespace Microsoft.Build.BackEnd
             CultureInfo.CurrentCulture = _componentHost.BuildParameters.Culture;
             CultureInfo.CurrentUICulture = _componentHost.BuildParameters.UICulture;
 
-#if FEATURE_THREAD_PRIORITY
             Thread.CurrentThread.Priority = _componentHost.BuildParameters.BuildThreadPriority;
-#endif
             Thread.CurrentThread.IsBackground = true;
 
             // NOTE: This is safe to do because we have specified long-running so we get our own new thread.
@@ -676,10 +754,23 @@ namespace Microsoft.Build.BackEnd
         }
 
         /// <summary>
+        /// Asserts that the entry is in the active or waiting state.
+        /// </summary>
+        private void VerifyEntryInActiveOrWaitingState()
+        {
+            ErrorUtilities.VerifyThrow(_requestEntry.State == BuildRequestEntryState.Active || _requestEntry.State == BuildRequestEntryState.Waiting,
+                "Entry is not in the Active or Waiting state, it is in the {0} state.", _requestEntry.State);
+        }
+
+        /// <summary>
         /// The entry point for the request builder thread.
+        /// Launch the project and gather the results, reporting them back to the BuildRequestEngine.
         /// </summary>
         private async Task RequestThreadProc(bool setThreadParameters)
         {
+            Exception thrownException = null;
+            BuildResult result = null;
+
             try
             {
                 if (setThreadParameters)
@@ -687,42 +778,9 @@ namespace Microsoft.Build.BackEnd
                     SetCommonWorkerThreadParameters();
                 }
                 MSBuildEventSource.Log.RequestThreadProcStart();
-                await BuildAndReport();
-                MSBuildEventSource.Log.RequestThreadProcStop();
-            }
-            catch (ThreadAbortException)
-            {
-                // Do nothing.  This will happen when the thread is forcibly terminated because we are shutting down, for example
-                // when the unit test framework terminates.
-                throw;
-            }
-            catch (Exception e)
-            {
-                // Dump all engine exceptions to a temp file
-                // so that we have something to go on in the
-                // event of a failure
-                ExceptionHandling.DumpExceptionToFile(e);
-
-                // This is fatal: process will terminate: make sure the
-                // debugger launches
-                ErrorUtilities.ThrowInternalError(e.Message, e);
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// Launch the project and gather the results, reporting them back to the BuildRequestEngine.
-        /// </summary>
-        private async Task BuildAndReport()
-        {
-            Exception thrownException = null;
-            BuildResult result = null;
-            VerifyEntryInActiveState();
-
-            // Start the build request            
-            try
-            {
+                VerifyEntryInActiveState();
                 result = await BuildProject();
+                MSBuildEventSource.Log.RequestThreadProcStop();
             }
             catch (InvalidProjectFileException ex)
             {
@@ -737,26 +795,63 @@ namespace Microsoft.Build.BackEnd
 
                 thrownException = ex;
             }
-            catch (LoggerException ex)
+            // This is a workaround for https://github.com/dotnet/msbuild/issues/2064. It catches the exception case and turns it into a more understandable warning.
+            catch (UnbuildableProjectTypeException ex)
             {
-                // Polite logger failure
                 thrownException = ex;
-            }
-            catch (InternalLoggerException ex)
-            {
-                // Logger threw arbitrary exception
-                thrownException = ex;
+                if (_projectLoggingContext is null)
+                {
+                    _nodeLoggingContext.LogWarning("SolutionParseUnknownProjectType", ex.Message);
+                }
+                else
+                {
+                    _projectLoggingContext.LogWarning("SolutionParseUnknownProjectType", ex.Message);
+                }
             }
             catch (Exception ex)
             {
                 thrownException = ex;
+                if (ex is BuildAbortedException)
+                {
+                    // The build was likely cancelled. We do not need to log an error in this case.
+                }
+                else if (ex is InternalLoggerException)
+                {
+                    string realMessage = TaskLoggingHelper.GetInnerExceptionMessageString(ex);
+                    LoggingContext loggingContext = ((LoggingContext)_projectLoggingContext) ?? _nodeLoggingContext;
+                    loggingContext.LogError(
+                        BuildEventFileInfo.Empty,
+                        "FatalErrorWhileLoggingWithInnerException",
+                        realMessage);
+
+                    loggingContext.LogCommentFromText(MessageImportance.Low, ex.ToString());
+                }
+                else if (ex is ThreadAbortException)
+                {
+                    // Do nothing.  This will happen when the thread is forcibly terminated because we are shutting down, for example
+                    // when the unit test framework terminates.
+                    throw;
+                }
+                else if (ex is not CriticalTaskException)
+                {
+                    (((LoggingContext)_projectLoggingContext) ?? _nodeLoggingContext).LogError(BuildEventFileInfo.Empty, "UnhandledMSBuildError", ex.ToString());
+                }
 
                 if (ExceptionHandling.IsCriticalException(ex))
                 {
+                    // Dump all engine exceptions to a temp file
+                    // so that we have something to go on in the
+                    // event of a failure
+                    ExceptionHandling.DumpExceptionToFile(ex);
+
                     // This includes InternalErrorException, which we definitely want a callstack for.
                     // Fortunately the default console UnhandledExceptionHandler will log the callstack even
                     // for unhandled exceptions thrown from threads other than the main thread, like here.
                     // Less fortunately NUnit doesn't.
+
+                    // This is fatal: process will terminate: make sure the
+                    // debugger launches
+                    ErrorUtilities.ThrowInternalError(ex.Message, ex);
                     throw;
                 }
             }
@@ -772,8 +867,6 @@ namespace Microsoft.Build.BackEnd
 
                 ReportResultAndCleanUp(result);
             }
-
-            return;
         }
 
         /// <summary>
@@ -787,13 +880,8 @@ namespace Microsoft.Build.BackEnd
                 {
                     _projectLoggingContext.LogProjectFinished(result.OverallResult == BuildResultCode.Success);
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (!ExceptionHandling.IsCriticalException(ex))
                 {
-                    if (ExceptionHandling.IsCriticalException(ex))
-                    {
-                        throw;
-                    }
-
                     if (result.Exception == null)
                     {
                         result.Exception = ex;
@@ -801,7 +889,7 @@ namespace Microsoft.Build.BackEnd
                 }
             }
 
-            // Clear out our state now in case any of these callbacks cause the engine to try and immediately 
+            // Clear out our state now in case any of these callbacks cause the engine to try and immediately
             // reuse this builder.
             BuildRequestEntry entryToComplete = _requestEntry;
             _nodeLoggingContext = null;
@@ -851,13 +939,13 @@ namespace Microsoft.Build.BackEnd
                 SaveOperatingEnvironment();
             }
 
-            // Issue the requests to the engine            
+            // Issue the requests to the engine
             RaiseOnNewBuildRequests(requests);
 
             // TODO: OPTIMIZATION: By returning null here, we commit to having to unwind the stack all the
             // way back to RequestThreadProc and then shutting down the thread before we can receive the
             // results and continue with them.  It is not always the case that this will be desirable, however,
-            // particularly if the results we need are immediately available.  In those cases, it would be 
+            // particularly if the results we need are immediately available.  In those cases, it would be
             // useful to wait here for a short period in case those results become available - one second
             // might be enough.  This means we may occasionally get more than one builder thread lying around
             // waiting for something to happen, but that would be short lived.  At the same time it would
@@ -986,6 +1074,15 @@ namespace Microsoft.Build.BackEnd
         }
 
         /// <summary>
+        /// Invokes the OnResourceRequest event
+        /// </summary>
+        /// <param name="request"></param>
+        private void RaiseResourceRequest(ResourceRequest request)
+        {
+            OnResourceRequest?.Invoke(request);
+        }
+
+        /// <summary>
         /// This method is called to reset the current directory to the one appropriate for this project.  It should be called any time
         /// the project is resumed.
         /// If the directory does not exist, does nothing.
@@ -1007,8 +1104,13 @@ namespace Microsoft.Build.BackEnd
         {
             ErrorUtilities.VerifyThrow(_targetBuilder != null, "Target builder is null");
 
-            // Make sure it is null before loading the configuration into the request, because if there is a problem 
-            // we do not wand to have an invalid projectLoggingContext floating around. Also if this is null the error will be 
+            // We consider this the entrypoint for the project build for purposes of BuildCheck processing 
+
+            var buildCheckManager = (_componentHost.GetComponent(BuildComponentType.BuildCheckManagerProvider) as IBuildCheckManagerProvider)!.Instance;
+            buildCheckManager.SetDataSource(BuildCheckDataSource.BuildExecution);
+
+            // Make sure it is null before loading the configuration into the request, because if there is a problem
+            // we do not wand to have an invalid projectLoggingContext floating around. Also if this is null the error will be
             // logged with the node logging context
             _projectLoggingContext = null;
 
@@ -1019,136 +1121,141 @@ namespace Microsoft.Build.BackEnd
                 // Load the project
                 if (!_requestEntry.RequestConfiguration.IsLoaded)
                 {
-                    LoadProjectIntoConfiguration();
+                    buildCheckManager.StartProjectEvaluation(
+                        BuildCheckDataSource.BuildExecution,
+                        _requestEntry.Request.ParentBuildEventContext,
+                        _requestEntry.RequestConfiguration.ProjectFullPath);
+
+                    _requestEntry.RequestConfiguration.LoadProjectIntoConfiguration(
+                        _componentHost,
+                        RequestEntry.Request.BuildRequestDataFlags,
+                        RequestEntry.Request.SubmissionId,
+                        _nodeLoggingContext.BuildEventContext.NodeId);
                 }
             }
             catch
             {
                 // make sure that any errors thrown by a child project are logged in the context of their parent project: create a temporary projectLoggingContext
-                _projectLoggingContext = new ProjectLoggingContext
-                    (
+                _projectLoggingContext = new ProjectLoggingContext(
                     _nodeLoggingContext,
                     _requestEntry.Request,
                     _requestEntry.RequestConfiguration.ProjectFullPath,
-                    _requestEntry.RequestConfiguration.ToolsVersion,
-                    _requestEntry.Request.ParentBuildEventContext
-                    );
+                    _requestEntry.RequestConfiguration.ToolsVersion);
 
                 throw;
             }
+            finally
+            {
+                buildCheckManager.EndProjectEvaluation(
+                    BuildCheckDataSource.BuildExecution,
+                    _requestEntry.Request.ParentBuildEventContext);
+            }
 
             _projectLoggingContext = _nodeLoggingContext.LogProjectStarted(_requestEntry);
+            buildCheckManager.StartProjectRequest(
+                BuildCheckDataSource.BuildExecution,
+                _requestEntry.Request.ParentBuildEventContext);
 
-            // Now that the project has started, parse a few known properties which indicate warning codes to treat as errors or messages
-            //
-            ConfigureWarningsAsErrorsAndMessages();
-
-            // See comment on Microsoft.Build.Internal.Utilities.GenerateToolsVersionToUse
-            _requestEntry.RequestConfiguration.RetrieveFromCache();
-            if (_requestEntry.RequestConfiguration.Project.UsingDifferentToolsVersionFromProjectFile)
+            try
             {
-                _projectLoggingContext.LogComment(MessageImportance.Low, "UsingDifferentToolsVersionFromProjectFile", _requestEntry.RequestConfiguration.Project.OriginalProjectToolsVersion, _requestEntry.RequestConfiguration.Project.ToolsVersion);
-            }
+                // Now that the project has started, parse a few known properties which indicate warning codes to treat as errors or messages
+                ConfigureWarningsAsErrorsAndMessages();
 
-            _requestEntry.Request.BuildEventContext = _projectLoggingContext.BuildEventContext;
+                // Make sure to extract known immutable folders from properties and register them for fast up-to-date check
+                ConfigureKnownImmutableFolders();
 
-            // Determine the set of targets we need to build
-            string[] allTargets = _requestEntry.RequestConfiguration.GetTargetsUsedToBuildRequest(_requestEntry.Request).ToArray();
-
-            ProjectErrorUtilities.VerifyThrowInvalidProject(allTargets.Length > 0, _requestEntry.RequestConfiguration.Project.ProjectFileLocation, "NoTargetSpecified");
-
-            // Set the current directory to that required by the project.
-            SetProjectCurrentDirectory();
-
-            // Transfer results and state from the previous node, if necessary.
-            // In order for the check for target completeness for this project to be valid, all of the target results from the project must be present
-            // in the results cache.  It is possible that this project has been moved from its original node and when it was its results did not come
-            // with it.  This would be signified by the ResultsNode value in the configuration pointing to a different node than the current one.  In that
-            // case we will need to request those results be moved from their original node to this one.
-            if ((_requestEntry.RequestConfiguration.ResultsNodeId != Scheduler.InvalidNodeId) &&
-                (_requestEntry.RequestConfiguration.ResultsNodeId != _componentHost.BuildParameters.NodeId))
-            {
-                // This indicates to the system that we will block waiting for a results transfer.  We will block here until those results become available.
-                await BlockOnTargetInProgress(Microsoft.Build.BackEnd.BuildRequest.InvalidGlobalRequestId, null);
-
-                // All of the results should now be on this node.
-                ErrorUtilities.VerifyThrow(_requestEntry.RequestConfiguration.ResultsNodeId == _componentHost.BuildParameters.NodeId, "Results for configuration {0} were not retrieved from node {1}", _requestEntry.RequestConfiguration.ConfigurationId, _requestEntry.RequestConfiguration.ResultsNodeId);
-            }
-
-            // Build the targets
-            BuildResult result = await _targetBuilder.BuildTargets(_projectLoggingContext, _requestEntry, this, allTargets, _requestEntry.RequestConfiguration.BaseLookup, _cancellationTokenSource.Token);
-
-            if (MSBuildEventSource.Log.IsEnabled())
-            {
-                MSBuildEventSource.Log.BuildProjectStop(_requestEntry.RequestConfiguration.ProjectFullPath, string.Join(", ", allTargets));
-            }
-
-            return result;
-        }
-
-        /// <summary>
-        /// Loads the project specified by the configuration's parameters into the configuration block.
-        /// </summary>
-        private void LoadProjectIntoConfiguration()
-        {
-            ErrorUtilities.VerifyThrow(!_requestEntry.RequestConfiguration.IsLoaded, "Already loaded the project for this configuration id {0}.", _requestEntry.RequestConfiguration.ConfigurationId);
-
-            _requestEntry.RequestConfiguration.InitializeProject(_componentHost.BuildParameters, LoadProjectFromFile);
-        }
-
-        private ProjectInstance LoadProjectFromFile()
-        {
-            if (_componentHost.BuildParameters.SaveOperatingEnvironment)
-            {
-                try
+                // See comment on Microsoft.Build.Internal.Utilities.GenerateToolsVersionToUse
+                _requestEntry.RequestConfiguration.RetrieveFromCache();
+                if (_requestEntry.RequestConfiguration.Project.UsingDifferentToolsVersionFromProjectFile)
                 {
-                    NativeMethodsShared.SetCurrentDirectory(BuildParameters.StartupDirectory);
+                    _projectLoggingContext.LogComment(MessageImportance.Low,
+                        "UsingDifferentToolsVersionFromProjectFile",
+                        _requestEntry.RequestConfiguration.Project.OriginalProjectToolsVersion,
+                        _requestEntry.RequestConfiguration.Project.ToolsVersion);
                 }
-                catch (DirectoryNotFoundException)
+
+                _requestEntry.Request.BuildEventContext = _projectLoggingContext.BuildEventContext;
+
+                // Determine the set of targets we need to build
+                string[] allTargets = _requestEntry.RequestConfiguration
+                    .GetTargetsUsedToBuildRequest(_requestEntry.Request).ToArray();
+
+                ProjectErrorUtilities.VerifyThrowInvalidProject(allTargets.Length > 0,
+                    _requestEntry.RequestConfiguration.Project.ProjectFileLocation, "NoTargetSpecified");
+
+                // Set the current directory to that required by the project.
+                SetProjectCurrentDirectory();
+
+                // Transfer results and state from the previous node, if necessary.
+                // In order for the check for target completeness for this project to be valid, all of the target results from the project must be present
+                // in the results cache.  It is possible that this project has been moved from its original node and when it was its results did not come
+                // with it.  This would be signified by the ResultsNode value in the configuration pointing to a different node than the current one.  In that
+                // case we will need to request those results be moved from their original node to this one.
+                if ((_requestEntry.RequestConfiguration.ResultsNodeId != Scheduler.InvalidNodeId) &&
+                    (_requestEntry.RequestConfiguration.ResultsNodeId != _componentHost.BuildParameters.NodeId))
                 {
-                    // Somehow the startup directory vanished. This can happen if build was started from a USB Key and it was removed.
-                    NativeMethodsShared.SetCurrentDirectory(
-                        BuildEnvironmentHelper.Instance.CurrentMSBuildToolsDirectory);
+                    // This indicates to the system that we will block waiting for a results transfer.  We will block here until those results become available.
+                    await BlockOnTargetInProgress(Microsoft.Build.BackEnd.BuildRequest.InvalidGlobalRequestId, null);
+
+                    // All of the results should now be on this node.
+                    ErrorUtilities.VerifyThrow(
+                        _requestEntry.RequestConfiguration.ResultsNodeId == _componentHost.BuildParameters.NodeId,
+                        "Results for configuration {0} were not retrieved from node {1}",
+                        _requestEntry.RequestConfiguration.ConfigurationId,
+                        _requestEntry.RequestConfiguration.ResultsNodeId);
                 }
+
+                // Build the targets
+                BuildResult result = await _targetBuilder.BuildTargets(_projectLoggingContext, _requestEntry, this,
+                    allTargets, _requestEntry.RequestConfiguration.BaseLookup, _cancellationTokenSource.Token);
+
+                result = _requestEntry.Request.ProxyTargets == null
+                    ? result
+                    : CopyTargetResultsFromProxyTargetsToRealTargets(result);
+
+                if (MSBuildEventSource.Log.IsEnabled())
+                {
+                    MSBuildEventSource.Log.BuildProjectStop(_requestEntry.RequestConfiguration.ProjectFullPath,
+                        string.Join(", ", allTargets));
+                }
+
+                return result;
             }
-
-            Dictionary<string, string> globalProperties = new Dictionary<string, string>(MSBuildNameIgnoreCaseComparer.Default);
-
-            foreach (ProjectPropertyInstance property in _requestEntry.RequestConfiguration.GlobalProperties)
+            finally
             {
-                globalProperties.Add(property.Name, ((IProperty)property).EvaluatedValueEscaped);
+                buildCheckManager.EndProjectRequest(
+                    BuildCheckDataSource.BuildExecution,
+                    _requestEntry.Request.ParentBuildEventContext);
             }
 
-            string toolsVersionOverride = _requestEntry.RequestConfiguration.ExplicitToolsVersionSpecified ? _requestEntry.RequestConfiguration.ToolsVersion : null;
-
-            // Get the hosted ISdkResolverService.  This returns either the MainNodeSdkResolverService or the OutOfProcNodeSdkResolverService depending on who created the current RequestBuilder
-            ISdkResolverService sdkResolverService = _componentHost.GetComponent(BuildComponentType.SdkResolverService) as ISdkResolverService;
-
-            // Use different project load settings if the build request indicates to do so
-            ProjectLoadSettings projectLoadSettings = _componentHost.BuildParameters.ProjectLoadSettings;
-
-            if (_requestEntry.Request.BuildRequestDataFlags.HasFlag(BuildRequestDataFlags.IgnoreMissingEmptyAndInvalidImports))
+            BuildResult CopyTargetResultsFromProxyTargetsToRealTargets(BuildResult resultFromTargetBuilder)
             {
-                projectLoadSettings |= ProjectLoadSettings.IgnoreMissingImports | ProjectLoadSettings.IgnoreInvalidImports | ProjectLoadSettings.IgnoreEmptyImports;
-            }
+                var proxyTargetMapping = _requestEntry.Request.ProxyTargets.ProxyTargetToRealTargetMap;
 
-            return new ProjectInstance(
-                _requestEntry.RequestConfiguration.ProjectFullPath,
-                globalProperties,
-                toolsVersionOverride,
-                _componentHost.BuildParameters,
-                _nodeLoggingContext.LoggingService,
-                new BuildEventContext(
-                    _requestEntry.Request.SubmissionId,
-                    _nodeLoggingContext.BuildEventContext.NodeId,
-                    BuildEventContext.InvalidEvaluationId,
-                    BuildEventContext.InvalidProjectInstanceId,
-                    BuildEventContext.InvalidProjectContextId,
-                    BuildEventContext.InvalidTargetId,
-                    BuildEventContext.InvalidTaskId),
-                sdkResolverService,
-                _requestEntry.Request.SubmissionId,
-                projectLoadSettings);
+                var resultsCache = (IResultsCache)_componentHost.GetComponent(BuildComponentType.ResultsCache);
+                var cachedResult = resultsCache.GetResultsForConfiguration(_requestEntry.Request.ConfigurationId);
+
+                // Some proxy targets do not point to real targets. Exclude those.
+                foreach (var proxyMapping in proxyTargetMapping.Where(kvp => kvp.Value != null))
+                {
+                    var proxyTarget = proxyMapping.Key;
+                    var realTarget = proxyMapping.Value;
+
+                    var proxyTargetResult = resultFromTargetBuilder.ResultsByTarget[proxyTarget];
+
+                    // Update the results cache.
+                    cachedResult.AddResultsForTarget(
+                        realTarget,
+                        proxyTargetResult);
+
+                    // Update and return this one because TargetBuilder.BuildTargets did some mutations on it not present in the cached result.
+                    resultFromTargetBuilder.AddResultsForTarget(
+                        realTarget,
+                        proxyTargetResult);
+                }
+
+                return resultFromTargetBuilder;
+            }
         }
 
         /// <summary>
@@ -1252,19 +1359,16 @@ namespace Microsoft.Build.BackEnd
         private void ConfigureWarningsAsErrorsAndMessages()
         {
             // Gather needed objects
-            //
             ProjectInstance project = _requestEntry?.RequestConfiguration?.Project;
             BuildEventContext buildEventContext = _projectLoggingContext?.BuildEventContext;
             ILoggingService loggingService = _projectLoggingContext?.LoggingService;
 
             // Ensure everything that is required is available at this time
-            //
             if (project != null && buildEventContext != null && loggingService != null && buildEventContext.ProjectInstanceId != BuildEventContext.InvalidProjectInstanceId)
             {
                 if (String.Equals(project.GetPropertyValue(MSBuildConstants.TreatWarningsAsErrors)?.Trim(), "true", StringComparison.OrdinalIgnoreCase))
                 {
                     // If <MSBuildTreatWarningsAsErrors was specified then an empty ISet<string> signals the IEventSourceSink to treat all warnings as errors
-                    //
                     loggingService.AddWarningsAsErrors(buildEventContext, new HashSet<string>());
                 }
                 else
@@ -1277,12 +1381,31 @@ namespace Microsoft.Build.BackEnd
                     }
                 }
 
+                ISet<string> warningsNotAsErrors = ParseWarningCodes(project.GetPropertyValue(MSBuildConstants.WarningsNotAsErrors));
+
+                if (warningsNotAsErrors?.Count > 0)
+                {
+                    loggingService.AddWarningsNotAsErrors(buildEventContext, warningsNotAsErrors);
+                }
+
                 ISet<string> warningsAsMessages = ParseWarningCodes(project.GetPropertyValue(MSBuildConstants.WarningsAsMessages));
 
                 if (warningsAsMessages?.Count > 0)
                 {
                     loggingService.AddWarningsAsMessages(buildEventContext, warningsAsMessages);
                 }
+            }
+        }
+
+        private void ConfigureKnownImmutableFolders()
+        {
+            ProjectInstance project = _requestEntry?.RequestConfiguration?.Project;
+            if (project != null)
+            {
+                // example: C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.7.2
+                FileClassifier.Shared.RegisterImmutableDirectory(project.GetPropertyValue("FrameworkPathOverride")?.Trim());
+                // example: C:\Program Files\dotnet\
+                FileClassifier.Shared.RegisterImmutableDirectory(project.GetPropertyValue("NetCoreRoot")?.Trim());
             }
         }
 

@@ -1,9 +1,11 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.Build.Execution;
-using Microsoft.Build.Collections;
 using System.Threading.Tasks;
+using Microsoft.Build.Collections;
+using Microsoft.Build.Execution;
+
+#nullable disable
 
 namespace Microsoft.Build.BackEnd
 {
@@ -55,5 +57,21 @@ namespace Microsoft.Build.BackEnd
         /// Exits the previous MSBuild callback state.
         /// </summary>
         void ExitMSBuildCallbackState();
+
+        /// <summary>
+        /// Requests CPU resources from the scheduler.
+        /// </summary>
+        /// <param name="monitorLockObject">The object used by the caller for synchronization. The lock on this object must be taken when calling this method.</param>
+        /// <param name="requestedCores">Number of logical cores being requested.</param>
+        /// <param name="waitForCores">True to make the request block and wait for at least one core.</param>
+        /// <returns>Number of logical cores actually granted. If <paramref name="waitForCores"/> is false, the call can return
+        /// zero. Otherwise the return value is positive.</returns>
+        int RequestCores(object monitorLockObject, int requestedCores, bool waitForCores);
+
+        /// <summary>
+        /// Returns CPU resources to the scheduler.
+        /// </summary>
+        /// <param name="coresToRelease">Number of logical cores being returned.</param>
+        void ReleaseCores(int coresToRelease);
     }
 }

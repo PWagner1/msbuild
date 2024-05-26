@@ -1,13 +1,15 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
-// </copyright>
-// <summary>Sink which will take in a build event and raise it on its internal event source</summary>
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using Microsoft.Build.Experimental.BuildCheck.Infrastructure;
+using Microsoft.Build.Experimental.BuildCheck;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 
 using InternalLoggerException = Microsoft.Build.Exceptions.InternalLoggerException;
+
+#nullable disable
 
 namespace Microsoft.Build.BackEnd.Logging
 {
@@ -18,7 +20,7 @@ namespace Microsoft.Build.BackEnd.Logging
 #if FEATURE_APPDOMAIN
         MarshalByRefObject,
 #endif
-        IEventSource3, IBuildEventSink
+        IEventSource4, IBuildEventSink
     {
         #region Events
 
@@ -83,8 +85,8 @@ namespace Microsoft.Build.BackEnd.Logging
         public event CustomBuildEventHandler CustomEventRaised;
 
         /// <summary>
-        /// this event is raised to log build status events, such as 
-        /// build/project/target/task started/stopped 
+        /// this event is raised to log build status events, such as
+        /// build/project/target/task started/stopped
         /// </summary>
         public event BuildStatusEventHandler StatusEventRaised;
 
@@ -93,16 +95,21 @@ namespace Microsoft.Build.BackEnd.Logging
         /// occurred.  It is raised on every event.
         /// </summary>
         public event AnyEventHandler AnyEventRaised;
-        
+
         /// <summary>
         /// This event is raised to log telemetry.
         /// </summary>
         public event TelemetryEventHandler TelemetryLogged;
+
+        /// <summary>
+        /// This event is raised to log BuildCheck events.
+        /// </summary>
+        internal event BuildCheckEventHandler BuildCheckEventRaised;
         #endregion
 
         #region Properties
         /// <summary>
-        /// Provide a friendly name for the sink to make it easier to differentiate during 
+        /// Provide a friendly name for the sink to make it easier to differentiate during
         /// debugging and display
         /// </summary>
         public string Name
@@ -138,7 +145,6 @@ namespace Microsoft.Build.BackEnd.Logging
             private set;
         }
 
-
         /// <summary>
         /// Should evaluation events include profiling information?
         /// </summary>
@@ -152,6 +158,16 @@ namespace Microsoft.Build.BackEnd.Logging
         /// Should task events include task inputs?
         /// </summary>
         public bool IncludeTaskInputs
+        {
+            get;
+            private set;
+        }
+
+        /// <summary>
+        /// Determines whether properties and items should be logged on <see cref="ProjectEvaluationFinishedEventArgs"/>
+        /// instead of <see cref="ProjectStartedEventArgs"/>
+        /// </summary>
+        public bool IncludeEvaluationPropertiesAndItems
         {
             get;
             private set;
@@ -180,11 +196,20 @@ namespace Microsoft.Build.BackEnd.Logging
 
         #endregion
 
+        #region IEventSource4 Methods
+
+        void IEventSource4.IncludeEvaluationPropertiesAndItems()
+        {
+            IncludeEvaluationPropertiesAndItems = true;
+        }
+
+        #endregion
+
         #region IEventSink Methods
 
         /// <summary>
-        /// Raises the given event to all registered loggers. This method up-cast the events
-        /// extracted from the queue.
+        /// Raises the given event to all registered loggers.
+        /// This method casts the events extracted from the queue to a more specific type.
         /// </summary>
         /// <param name="buildEvent">BuildEventArgs</param>
         /// <param name="sinkId">Note this is not used in the eventsource sink</param>
@@ -194,75 +219,64 @@ namespace Microsoft.Build.BackEnd.Logging
         }
 
         /// <summary>
-        /// Raises the given event to all registered loggers. This method up-cast the events
-        /// extracted from the queue.
+        /// Raises the given event to all registered loggers.
+        /// This method casts the events extracted from the queue to a more specific type.
         /// </summary>
         public void Consume(BuildEventArgs buildEvent)
         {
-            // FXCop may complain that there are unecessary casts here, and there are, but
-            // using "as" and allocating another variable for each event is extremely costly
-            // and is much slower then this approach even with the additional casts
-            if (buildEvent is BuildMessageEventArgs)
+            switch (buildEvent)
             {
-                this.RaiseMessageEvent(null, (BuildMessageEventArgs)buildEvent);
-            }
-            else if (buildEvent is TaskStartedEventArgs)
-            {
-                this.RaiseTaskStartedEvent(null, (TaskStartedEventArgs)buildEvent);
-            }
-            else if (buildEvent is TaskFinishedEventArgs)
-            {
-                this.RaiseTaskFinishedEvent(null, (TaskFinishedEventArgs)buildEvent);
-            }
-            else if (buildEvent is TargetStartedEventArgs)
-            {
-                this.RaiseTargetStartedEvent(null, (TargetStartedEventArgs)buildEvent);
-            }
-            else if (buildEvent is TargetFinishedEventArgs)
-            {
-                this.RaiseTargetFinishedEvent(null, (TargetFinishedEventArgs)buildEvent);
-            }
-            else if (buildEvent is ProjectStartedEventArgs)
-            {
-                this.RaiseProjectStartedEvent(null, (ProjectStartedEventArgs)buildEvent);
-            }
-            else if (buildEvent is ProjectFinishedEventArgs)
-            {
-                this.RaiseProjectFinishedEvent(null, (ProjectFinishedEventArgs)buildEvent);
-            }
-            else if (buildEvent is BuildStartedEventArgs)
-            {
-                HaveLoggedBuildStartedEvent = true;
-                this.RaiseBuildStartedEvent(null, (BuildStartedEventArgs)buildEvent);
-            }
-            else if (buildEvent is BuildFinishedEventArgs)
-            {
-                HaveLoggedBuildFinishedEvent = true;
-                this.RaiseBuildFinishedEvent(null, (BuildFinishedEventArgs)buildEvent);
-            }
-            else if (buildEvent is CustomBuildEventArgs)
-            {
-                this.RaiseCustomEvent(null, (CustomBuildEventArgs)buildEvent);
-            }
-            else if (buildEvent is BuildStatusEventArgs)
-            {
-                this.RaiseStatusEvent(null, (BuildStatusEventArgs)buildEvent);
-            }
-            else if (buildEvent is BuildWarningEventArgs)
-            {
-                this.RaiseWarningEvent(null, (BuildWarningEventArgs)buildEvent);
-            }
-            else if (buildEvent is BuildErrorEventArgs)
-            {
-                this.RaiseErrorEvent(null, (BuildErrorEventArgs)buildEvent);
-            }
-            else if (buildEvent is TelemetryEventArgs)
-            {
-                this.RaiseTelemetryEvent(null, (TelemetryEventArgs) buildEvent);
-            }
-            else
-            {
-                ErrorUtilities.VerifyThrow(false, "Unknown event args type.");
+                case BuildMessageEventArgs buildMessageEvent:
+                    RaiseMessageEvent(null, buildMessageEvent);
+                    break;
+                case TaskStartedEventArgs taskStartedEvent:
+                    RaiseTaskStartedEvent(null, taskStartedEvent);
+                    break;
+                case TaskFinishedEventArgs taskFinishedEvent:
+                    RaiseTaskFinishedEvent(null, taskFinishedEvent);
+                    break;
+                case TargetStartedEventArgs targetStartedEvent:
+                    RaiseTargetStartedEvent(null, targetStartedEvent);
+                    break;
+                case TargetFinishedEventArgs targetFinishedEvent:
+                    RaiseTargetFinishedEvent(null, targetFinishedEvent);
+                    break;
+                case ProjectStartedEventArgs projectStartedEvent:
+                    RaiseProjectStartedEvent(null, projectStartedEvent);
+                    break;
+                case ProjectFinishedEventArgs projectFinishedEvent:
+                    RaiseProjectFinishedEvent(null, projectFinishedEvent);
+                    break;
+                case BuildStartedEventArgs buildStartedEvent:
+                    HaveLoggedBuildStartedEvent = true;
+                    RaiseBuildStartedEvent(null, buildStartedEvent);
+                    break;
+                case BuildFinishedEventArgs buildFinishedEvent:
+                    HaveLoggedBuildFinishedEvent = true;
+                    RaiseBuildFinishedEvent(null, buildFinishedEvent);
+                    break;
+                case CustomBuildEventArgs customBuildEvent:
+                    RaiseCustomEvent(null, customBuildEvent);
+                    break;
+                case BuildStatusEventArgs buildStatusEvent:
+                    RaiseStatusEvent(null, buildStatusEvent);
+                    break;
+                case BuildWarningEventArgs buildWarningEvent:
+                    RaiseWarningEvent(null, buildWarningEvent);
+                    break;
+                case BuildErrorEventArgs buildErrorEvent:
+                    RaiseErrorEvent(null, buildErrorEvent);
+                    break;
+                case TelemetryEventArgs telemetryEvent:
+                    RaiseTelemetryEvent(null, telemetryEvent);
+                    break;
+                case BuildCheckEventArgs buildCheckEvent:
+                    RaiseBuildCheckEvent(null, buildCheckEvent);
+                    break;
+
+                default:
+                    ErrorUtilities.ThrowInternalError("Unknown event args type.");
+                    break;
             }
         }
 
@@ -297,6 +311,7 @@ namespace Microsoft.Build.BackEnd.Logging
             StatusEventRaised = null;
             AnyEventRaised = null;
             TelemetryLogged = null;
+            BuildCheckEventRaised = null;
         }
 
         #endregion
@@ -310,7 +325,7 @@ namespace Microsoft.Build.BackEnd.Logging
         /// <param name="buildEvent">BuildMessageEventArgs</param>
         /// <exception cref="LoggerException">When EventHandler raises an logger exception the LoggerException is rethrown</exception>
         /// <exception cref="InternalLoggerException">Any exceptions which are not LoggerExceptions are wrapped in an InternalLoggerException</exception>
-        /// <exception cref="Exception">ExceptionHandling.IsCriticalException exceptions will not be wrapped</exception> 
+        /// <exception cref="Exception">ExceptionHandling.IsCriticalException exceptions will not be wrapped</exception>
         private void RaiseMessageEvent(object sender, BuildMessageEventArgs buildEvent)
         {
             if (MessageRaised != null)
@@ -534,15 +549,11 @@ namespace Microsoft.Build.BackEnd.Logging
                     // if a logger has failed politely, abort immediately
                     // first unregister all loggers, since other loggers may receive remaining events in unexpected orderings
                     // if a fellow logger is throwing in an event handler.
-                    this.UnregisterAllEventHandlers();
+                    UnregisterAllEventHandlers();
                     throw;
                 }
                 catch (Exception exception)
                 {
-                    // first unregister all loggers, since other loggers may receive remaining events in unexpected orderings
-                    // if a fellow logger is throwing in an event handler.
-                    this.UnregisterAllEventHandlers();
-
                     if (ExceptionHandling.IsCriticalException(exception))
                     {
                         throw;
@@ -849,6 +860,40 @@ namespace Microsoft.Build.BackEnd.Logging
             RaiseAnyEvent(sender, buildEvent);
         }
 
+        private void RaiseBuildCheckEvent(object sender, BuildCheckEventArgs buildEvent)
+        {
+            if (BuildCheckEventRaised != null)
+            {
+                try
+                {
+                    BuildCheckEventRaised(sender, buildEvent);
+                }
+                catch (LoggerException)
+                {
+                    // if a logger has failed politely, abort immediately
+                    // first unregister all loggers, since other loggers may receive remaining events in unexpected orderings
+                    // if a fellow logger is throwing in an event handler.
+                    this.UnregisterAllEventHandlers();
+                    throw;
+                }
+                catch (Exception exception)
+                {
+                    // first unregister all loggers, since other loggers may receive remaining events in unexpected orderings
+                    // if a fellow logger is throwing in an event handler.
+                    this.UnregisterAllEventHandlers();
+
+                    if (ExceptionHandling.IsCriticalException(exception))
+                    {
+                        throw;
+                    }
+
+                    InternalLoggerException.Throw(exception, buildEvent, "FatalErrorWhileLogging", false);
+                }
+            }
+
+            RaiseAnyEvent(sender, buildEvent);
+        }
+
         /// <summary>
         /// Raises a catch-all build event to all registered loggers.
         /// </summary>
@@ -870,24 +915,20 @@ namespace Microsoft.Build.BackEnd.Logging
                     // if a logger has failed politely, abort immediately
                     // first unregister all loggers, since other loggers may receive remaining events in unexpected orderings
                     // if a fellow logger is throwing in an event handler.
-                    this.UnregisterAllEventHandlers();
+                    UnregisterAllEventHandlers();
 
-                    // We ought to dump this farther up the stack, but if for example a task is logging an event within a 
-                    // catch(Exception) block and not rethrowing it, there's the possibility that this exception could 
-                    // just get silently eaten.  So better to have duplicates than to not log the problem at all. :) 
+                    // We ought to dump this further up the stack, but if for example a task is logging an event within a
+                    // catch(Exception) block and not rethrowing it, there's the possibility that this exception could
+                    // just get silently eaten.  So better to have duplicates than to not log the problem at all. :)
                     ExceptionHandling.DumpExceptionToFile(exception);
 
                     throw;
                 }
                 catch (Exception exception)
                 {
-                    // first unregister all loggers, since other loggers may receive remaining events in unexpected orderings
-                    // if a fellow logger is throwing in an event handler.
-                    this.UnregisterAllEventHandlers();
-
-                    // We ought to dump this farther up the stack, but if for example a task is logging an event within a 
-                    // catch(Exception) block and not rethrowing it, there's the possibility that this exception could 
-                    // just get silently eaten.  So better to have duplicates than to not log the problem at all. :) 
+                    // We ought to dump this further up the stack, but if for example a task is logging an event within a
+                    // catch(Exception) block and not rethrowing it, there's the possibility that this exception could
+                    // just get silently eaten.  So better to have duplicates than to not log the problem at all. :)
                     ExceptionHandling.DumpExceptionToFile(exception);
 
                     if (ExceptionHandling.IsCriticalException(exception))

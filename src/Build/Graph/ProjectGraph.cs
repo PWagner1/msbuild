@@ -1,5 +1,5 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections.Concurrent;
@@ -10,19 +10,23 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using Microsoft.Build.BackEnd;
+using Microsoft.Build.Collections;
+using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
+using Microsoft.Build.Evaluation.Context;
 using Microsoft.Build.Eventing;
 using Microsoft.Build.Exceptions;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Shared;
+
+#nullable disable
 
 namespace Microsoft.Build.Graph
 {
     /// <summary>
     ///     Represents a graph of evaluated projects.
     /// </summary>
-    [DebuggerDisplay(@"#roots={GraphRoots.Count}, #nodes={ProjectNodes.Count}, #entryPoints={EntryPointNodes.Count}")]
+    [DebuggerDisplay(@"{DebuggerDisplayString()}")]
     public sealed class ProjectGraph
     {
         /// <summary>
@@ -55,11 +59,15 @@ namespace Microsoft.Build.Graph
 
         private readonly Lazy<IReadOnlyCollection<ProjectGraphNode>> _projectNodesTopologicallySorted;
 
+        private readonly EvaluationContext _evaluationContext = null;
+
         private GraphBuilder.GraphEdges Edges { get; }
 
         internal GraphBuilder.GraphEdges TestOnly_Edges => Edges;
 
-        public GraphConstructionMetrics ConstructionMetrics { get; private set;}
+        internal SolutionFile Solution { get; }
+
+        public GraphConstructionMetrics ConstructionMetrics { get; private set; }
 
         /// <summary>
         /// Various metrics on graph construction.
@@ -330,7 +338,7 @@ namespace Microsoft.Build.Graph
                 entryPoints,
                 projectCollection,
                 projectInstanceFactory,
-                Environment.ProcessorCount,
+                NativeMethodsShared.GetLogicalCoreCount(),
                 CancellationToken.None)
         {
         }
@@ -350,7 +358,7 @@ namespace Microsoft.Build.Graph
         ///     on <see cref="ProjectInstanceFactoryFunc" /> for other scenarios.
         /// </param>
         /// <param name="cancellationToken">
-        ///     The <see cref="T:System.Threading.CancellationToken" /> token to observe.
+        ///     The <see cref="CancellationToken"/> to observe.
         /// </param>
         /// <exception cref="InvalidProjectFileException">
         ///     If the evaluation of any project in the graph fails
@@ -371,7 +379,7 @@ namespace Microsoft.Build.Graph
                 entryPoints,
                 projectCollection,
                 projectInstanceFactory,
-                Environment.ProcessorCount,
+                NativeMethodsShared.GetLogicalCoreCount(),
                 cancellationToken)
         {
         }
@@ -394,7 +402,7 @@ namespace Microsoft.Build.Graph
         ///     Number of threads to participate in building the project graph.
         /// </param>
         /// <param name="cancellationToken">
-        ///     The <see cref="T:System.Threading.CancellationToken" /> token to observe.
+        ///     The <see cref="CancellationToken"/> to observe.
         /// </param>
         /// <exception cref="InvalidProjectFileException">
         ///     If the evaluation of any project in the graph fails
@@ -417,7 +425,11 @@ namespace Microsoft.Build.Graph
 
             var measurementInfo = BeginMeasurement();
 
-            projectInstanceFactory ??= DefaultProjectInstanceFactory;
+            if (projectInstanceFactory is null)
+            {
+                _evaluationContext = EvaluationContext.Create(EvaluationContext.SharingPolicy.Shared);
+                projectInstanceFactory = DefaultProjectInstanceFactory;
+            }
 
             var graphBuilder = new GraphBuilder(
                 entryPoints,
@@ -432,6 +444,7 @@ namespace Microsoft.Build.Graph
             GraphRoots = graphBuilder.RootNodes;
             ProjectNodes = graphBuilder.ProjectNodes;
             Edges = graphBuilder.Edges;
+            Solution = graphBuilder.Solution;
 
             _projectNodesTopologicallySorted = new Lazy<IReadOnlyCollection<ProjectGraphNode>>(() => TopologicalSort(GraphRoots, ProjectNodes));
 
@@ -475,13 +488,15 @@ namespace Microsoft.Build.Graph
             }
         }
 
-        internal string ToDot()
+        internal string ToDot(IReadOnlyDictionary<ProjectGraphNode, ImmutableList<string>> targetsPerNode = null)
         {
             var nodeCount = 0;
-            return ToDot(node => nodeCount++.ToString());
+            return ToDot(node => nodeCount++.ToString(), targetsPerNode);
         }
 
-        internal string ToDot(Func<ProjectGraphNode, string> nodeIdProvider)
+        internal string ToDot(
+            Func<ProjectGraphNode, string> nodeIdProvider,
+            IReadOnlyDictionary<ProjectGraphNode, ImmutableList<string>> targetsPerNode = null)
         {
             ErrorUtilities.VerifyThrowArgumentNull(nodeIdProvider, nameof(nodeIdProvider));
 
@@ -489,31 +504,56 @@ namespace Microsoft.Build.Graph
 
             var sb = new StringBuilder();
 
-            sb.Append("digraph g\n{\n\tnode [shape=box]\n");
+            sb.AppendLine($"/* {DebuggerDisplayString()} */");
+
+            sb.AppendLine("digraph g")
+                .AppendLine("{")
+                .AppendLine("\tnode [shape=box]");
 
             foreach (var node in ProjectNodes)
             {
-                var nodeId = nodeIds.GetOrAdd(node, (n, idProvider) => idProvider(n), nodeIdProvider);
+                var nodeId = GetNodeId(node);
 
                 var nodeName = Path.GetFileNameWithoutExtension(node.ProjectInstance.FullPath);
+
                 var globalPropertiesString = string.Join(
                     "<br/>",
                     node.ProjectInstance.GlobalProperties.OrderBy(kvp => kvp.Key)
                         .Select(kvp => $"{kvp.Key}={kvp.Value}"));
 
-                sb.Append('\t').Append(nodeId).Append(" [label=<").Append(nodeName).Append("<br/>").Append(globalPropertiesString).AppendLine(">]");
+                var targetListString = GetTargetListString(node);
+
+                sb.AppendLine($"\t{nodeId} [label=<{nodeName}<br/>({targetListString})<br/>{globalPropertiesString}>]");
 
                 foreach (var reference in node.ProjectReferences)
                 {
-                    var referenceId = nodeIds.GetOrAdd(reference, (n, idProvider) => idProvider(n), nodeIdProvider);
+                    var referenceId = GetNodeId(reference);
 
-                    sb.Append('\t').Append(nodeId).Append(" -> ").AppendLine(referenceId);
+                    sb.AppendLine($"\t{nodeId} -> {referenceId}");
                 }
             }
 
-            sb.Append("}");
+            sb.Append('}');
 
             return sb.ToString();
+
+            string GetNodeId(ProjectGraphNode node)
+            {
+                return nodeIds.GetOrAdd(node, (n, idProvider) => idProvider(n), nodeIdProvider);
+            }
+
+            string GetTargetListString(ProjectGraphNode node)
+            {
+                var targetListString = targetsPerNode is null
+                    ? string.Empty
+                    : string.Join(", ", targetsPerNode[node]);
+                return targetListString;
+            }
+        }
+
+        private string DebuggerDisplayString()
+        {
+            return $"#roots={GraphRoots.Count}, #nodes={ProjectNodes.Count}, #entryPoints={EntryPointNodes.Count}";
         }
 
         private static IReadOnlyCollection<ProjectGraphNode> TopologicalSort(
@@ -559,9 +599,8 @@ namespace Microsoft.Build.Graph
         ///     This method uses the ProjectReferenceTargets items to determine the targets to run per node. The results can then
         ///     be used to start building each project individually, assuming a given project is built after its references.
         /// </remarks>
-        /// <param name="entryProjectTargets">
-        ///     The target list for the <see cref="GraphRoots" />. May be null or empty, in which case the entry projects' default
-        ///     targets will be used.
+        /// <param name="entryProjectTargets">The target list for the entry project. May be null or empty, in which case the entry
+        /// projects' default targets will be used.
         /// </param>
         /// <returns>
         ///     A dictionary containing the target list for each node. If a node's target list is empty, then no targets were
@@ -577,15 +616,92 @@ namespace Microsoft.Build.Graph
             var encounteredEdges = new HashSet<ProjectGraphBuildRequest>();
             var edgesToVisit = new Queue<ProjectGraphBuildRequest>();
 
-            // Initial state for the graph roots
-            foreach (var entryPointNode in GraphRoots)
+            if (entryProjectTargets == null || entryProjectTargets.Count == 0)
             {
-                var entryTargets = entryProjectTargets == null || entryProjectTargets.Count == 0
-                    ? ImmutableList.CreateRange(entryPointNode.ProjectInstance.DefaultTargets)
-                    : ImmutableList.CreateRange(entryProjectTargets);
-                var entryEdge = new ProjectGraphBuildRequest(entryPointNode, entryTargets);
-                encounteredEdges.Add(entryEdge);
-                edgesToVisit.Enqueue(entryEdge);
+                // If no targets were specified, use every project's default targets.
+                foreach (ProjectGraphNode entryPointNode in EntryPointNodes)
+                {
+                    var entryTargets = ImmutableList.CreateRange(entryPointNode.ProjectInstance.DefaultTargets);
+                    var entryEdge = new ProjectGraphBuildRequest(entryPointNode, entryTargets);
+                    encounteredEdges.Add(entryEdge);
+                    edgesToVisit.Enqueue(entryEdge);
+                }
+            }
+            else
+            {
+                foreach (string targetName in entryProjectTargets)
+                {
+                    // Special-case the "Build" target. The solution's metaproj invokes each project's default targets
+                    if (targetName.Equals("Build", StringComparison.OrdinalIgnoreCase))
+                    {
+                        foreach (ProjectGraphNode entryPointNode in EntryPointNodes)
+                        {
+                            var entryTargets = ImmutableList.CreateRange(entryPointNode.ProjectInstance.DefaultTargets);
+                            var entryEdge = new ProjectGraphBuildRequest(entryPointNode, entryTargets);
+                            encounteredEdges.Add(entryEdge);
+                            edgesToVisit.Enqueue(entryEdge);
+                        }
+
+                        continue;
+                    }
+
+                    bool isSolutionTraversalTarget = false;
+                    if (Solution != null)
+                    {
+                        foreach (ProjectInSolution project in Solution.ProjectsInOrder)
+                        {
+                            if (!SolutionFile.IsBuildableProject(project))
+                            {
+                                continue;
+                            }
+
+                            string baseProjectName = ProjectInSolution.DisambiguateProjectTargetName(project.GetUniqueProjectName());
+
+                            // Solutions generate target names to build individual projects. Map these to "real" targets on the relevant projects.
+                            // This logic should match SolutionProjectGenerator's behavior, particularly EvaluateAndAddProjects's calls to AddTraversalTargetForProject.
+                            if (MSBuildNameIgnoreCaseComparer.Default.Equals(targetName, baseProjectName))
+                            {
+                                // Build a specific project with its default targets.
+                                ProjectGraphNode node = GetNodeForProject(project);
+                                ProjectGraphBuildRequest entryEdge = new(node, ImmutableList.CreateRange(node.ProjectInstance.DefaultTargets));
+                                encounteredEdges.Add(entryEdge);
+                                edgesToVisit.Enqueue(entryEdge);
+                                isSolutionTraversalTarget = true;
+                            }
+                            else if (targetName.StartsWith($"{baseProjectName}:", StringComparison.OrdinalIgnoreCase))
+                            {
+                                // Build a specific project with the specified target
+                                string projectTargetName = targetName.Substring(baseProjectName.Length + 1);
+
+                                // Special-case "Project:" and "Project:Build". SolutionProjectGenerator does not generate a target for those, so should error with MSB4057
+                                ProjectErrorUtilities.VerifyThrowInvalidProject(
+                                    projectTargetName.Length > 0 && !projectTargetName.Equals("Build", StringComparison.OrdinalIgnoreCase),
+                                    ElementLocation.Create(Solution.FullPath),
+                                    "TargetDoesNotExist",
+                                    targetName);
+
+                                ProjectGraphNode node = GetNodeForProject(project);
+                                ProjectGraphBuildRequest entryEdge = new(node,[projectTargetName]);
+                                encounteredEdges.Add(entryEdge);
+                                edgesToVisit.Enqueue(entryEdge);
+                                isSolutionTraversalTarget = true;
+                            }
+
+                            // For solutions, there should only be exactly one entry node per project file
+                            ProjectGraphNode GetNodeForProject(ProjectInSolution project) => EntryPointNodes.First(node => string.Equals(node.ProjectInstance.FullPath, project.AbsolutePath));
+                        }
+                    }
+
+                    if (!isSolutionTraversalTarget)
+                    {
+                        foreach (ProjectGraphNode entryPointNode in EntryPointNodes)
+                        {
+                            ProjectGraphBuildRequest entryEdge = new(entryPointNode,[targetName]);
+                            encounteredEdges.Add(entryEdge);
+                            edgesToVisit.Enqueue(entryEdge);
+                        }
+                    }
+                }
             }
 
             // Traverse the entire graph, visiting each edge once.
@@ -609,7 +725,7 @@ namespace Microsoft.Build.Graph
                 // Queue the project references for visitation, if the edge hasn't already been traversed.
                 foreach (var referenceNode in node.ProjectReferences)
                 {
-                    var applicableTargets = targetsToPropagate.GetApplicableTargetsForReference(referenceNode.ProjectInstance);
+                    var applicableTargets = targetsToPropagate.GetApplicableTargetsForReference(referenceNode);
 
                     if (applicableTargets.IsEmpty)
                     {
@@ -716,16 +832,33 @@ namespace Microsoft.Build.Graph
             return targets;
         }
 
-        internal static ProjectInstance DefaultProjectInstanceFactory(
+        internal ProjectInstance DefaultProjectInstanceFactory(
             string projectPath,
             Dictionary<string, string> globalProperties,
             ProjectCollection projectCollection)
+        {
+            Debug.Assert(_evaluationContext is not null);
+
+            return StaticProjectInstanceFactory(
+                                projectPath,
+                                globalProperties,
+                                projectCollection,
+                                _evaluationContext);
+        }
+
+        internal static ProjectInstance StaticProjectInstanceFactory(
+            string projectPath,
+            Dictionary<string, string> globalProperties,
+            ProjectCollection projectCollection,
+            EvaluationContext evaluationContext)
         {
             return new ProjectInstance(
                 projectPath,
                 globalProperties,
                 MSBuildConstants.CurrentToolsVersion,
-                projectCollection);
+                subToolsetVersion: null,
+                projectCollection,
+                evaluationContext);
         }
 
         private struct ProjectGraphBuildRequest : IEquatable<ProjectGraphBuildRequest>
@@ -740,7 +873,7 @@ namespace Microsoft.Build.Graph
 
             public ImmutableList<string> RequestedTargets { get; }
 
-            public bool Equals(ProjectGraphBuildRequest other)
+            public readonly bool Equals(ProjectGraphBuildRequest other)
             {
                 if (Node != other.Node
                     || RequestedTargets.Count != other.RequestedTargets.Count)
@@ -760,12 +893,12 @@ namespace Microsoft.Build.Graph
                 return true;
             }
 
-            public override bool Equals(object obj)
+            public override readonly bool Equals(object obj)
             {
                 return !(obj is null) && obj is ProjectGraphBuildRequest graphNodeWithTargets && Equals(graphNodeWithTargets);
             }
 
-            public override int GetHashCode()
+            public override readonly int GetHashCode()
             {
                 unchecked
                 {

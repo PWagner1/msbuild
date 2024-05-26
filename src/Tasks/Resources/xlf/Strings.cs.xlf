@@ -121,6 +121,16 @@
         <target state="translated">MSB3654: Pozdržené podepisování požaduje, aby byl určen alespoň veřejný klíč.  Zadejte veřejný klíč pomocí vlastnosti KeyFile nebo KeyContainer, nebo zakažte pozdržené podepisování.</target>
         <note>{StrBegin="MSB3654: "}</note>
       </trans-unit>
+      <trans-unit id="CombineTargetFrameworkInfoProperties.NotNullAndEmptyRootElementName">
+        <source>MSB3991: '{0}' is not set or empty. When {1} is false, make sure to set a non-empty value for '{0}'.</source>
+        <target state="translated">MSB3991: Hodnota {0} není nastavena nebo je prázdná. Pokud {1} má hodnotu false, nezapomeňte pro hodnotu {0} nastavit neprázdnou hodnotu.</target>
+        <note>{StrBegin="MSB3991: "}</note>
+      </trans-unit>
+      <trans-unit id="CombineTargetFrameworkInfoProperties.NotNullRootElementName">
+        <source>MSB3992: '{0}' is not set. When {1} is true, make sure to set a value for '{0}'.</source>
+        <target state="translated">MSB3992: Hodnota {0} není nastaven. Pokud {1} má hodnotu true, nezapomeňte nastavit hodnotu pro {0}.</target>
+        <note>{StrBegin="MSB3992: "}</note>
+      </trans-unit>
       <trans-unit id="Compiler.FatalArguments">
         <source>MSB3881: Fatal Error: more than {0} command line arguments.</source>
         <target state="translated">MSB3881: Závažná chyba: víc než {0} argumentů příkazového řádku</target>
@@ -181,10 +191,25 @@
         <target state="translated">Vytváří se pevný odkaz pro kopírování {0} do {1}.</target>
         <note>LOCALIZATION: {0} and {1} are paths.</note>
       </trans-unit>
+      <trans-unit id="Copy.IOException">
+        <source>MSB3894: Got {0} copying "{1}" to "{2}" and HR is {3}</source>
+        <target state="translated">MSB3894: Při kopírování „{1}“ do „{2}“ došlo k výjimce {0} a HR je {3}</target>
+        <note>{StrBegin="MSB3894: "} LOCALIZATION: {0} is exception.ToString(), {1} and {2} are paths, {3} is a number")</note>
+      </trans-unit>
+      <trans-unit id="Copy.IncompatibleParameters">
+        <source>MSB3896: Both "{0}" and "{1}" were specified as parameters in the project file but cannot be used together. Please choose one or the other.</source>
+        <target state="translated">MSB3896: V souboru projektu byl zadán jak parametr {0}, tak parametr {1}. Nelze je však použít oba najednou. Zvolte prosím jenom jeden z nich.</target>
+        <note>{StrBegin="MSB3896: "}</note>
+      </trans-unit>
       <trans-unit id="Copy.LinkFailed">
         <source>MSB3893: Could not use a link to copy "{0}" to "{1}".</source>
         <target state="translated">MSB3893: Nedá se použít odkaz pro kopírování {0} do {1}.</target>
         <note>{StrBegin="MSB3893: "} LOCALIZATION: {0} and {1} are paths.</note>
+      </trans-unit>
+      <trans-unit id="Copy.NonWindowsLinkErrorMessage">
+        <source>The {0} library call failed with the following error code: {1}.</source>
+        <target state="translated">Volání knihovny {0} se nezdařilo s následujícím kódem chyby: {1}.</target>
+        <note />
       </trans-unit>
       <trans-unit id="Copy.RetryingAsFileCopy">
         <source>Could not use a link to copy "{0}" to "{1}". Copying the file instead. {2}</source>
@@ -200,6 +225,16 @@
         <source>Removing read-only attribute from "{0}".</source>
         <target state="translated">Probíhá odebírání atributu pouze pro čtení z položky {0}.</target>
         <note />
+      </trans-unit>
+      <trans-unit id="Copy.RetryingAsSymbolicLink">
+        <source>Could not use a hard link to copy "{0}" to "{1}". Copying the file with symbolic link instead. {2}</source>
+        <target state="translated">Nepovedlo se použít pevný odkaz ke zkopírování „{0}“ do „{1}“. Místo toho se soubor kopíruje pomocí symbolického odkazu. {2}</target>
+        <note>LOCALIZATION: {0} and {1} are paths. {2} is an optional localized message.</note>
+      </trans-unit>
+      <trans-unit id="Copy.RetryingOnAccessDenied">
+        <source>MSB3895: Retrying on ERROR_ACCESS_DENIED because environment variable MSBUILDALWAYSRETRY=1</source>
+        <target state="translated">MSB3895: Opakování na ERROR_ACCESS_DENIED, protože proměnná prostředí MSBUILDALWAYSRETRY = 1</target>
+        <note>{StrBegin="MSB3895: "} LOCALIZATION: Do NOT translate MSBUILDALWAYSRETRY)</note>
       </trans-unit>
       <trans-unit id="Copy.SourceIsDirectory">
         <source>MSB3025: The source file "{0}" is actually a directory.  The "Copy" task does not support copying directories.</source>
@@ -295,6 +330,21 @@
         <source>MSB3061: Unable to delete file "{0}". {1}</source>
         <target state="translated">MSB3061: Nelze odstranit soubor {0}. {1}</target>
         <note>{StrBegin="MSB3061: "}</note>
+      </trans-unit>
+      <trans-unit id="Delete.InvalidRetryCount">
+        <source>MSB3028: {0} is an invalid retry count. Value must not be negative.</source>
+        <target state="translated">MSB3028: {0} je neplatný počet opakování. Hodnota nesmí být záporná.</target>
+        <note>{StrBegin="MSB3028: "} LOCALIZATION: {0} is a number.</note>
+      </trans-unit>
+      <trans-unit id="Delete.InvalidRetryDelay">
+        <source>MSB3029: {0} is an invalid retry delay. Value must not be negative.</source>
+        <target state="translated">MSB3029: {0} je neplatné zpoždění opakování. Hodnota nesmí být záporná.</target>
+        <note>{StrBegin="MSB3029: "} LOCALIZATION: {0} is a number.</note>
+      </trans-unit>
+      <trans-unit id="Delete.Retrying">
+        <source>MSB3062: Could not delete file "{0}". Beginning retry {1} in {2}ms. {3}</source>
+        <target state="translated">MSB3062: Nelze odstranit soubor „{0}“. Začátek {1} opakování za {2}ms {3}</target>
+        <note>{StrBegin="MSB3062: "} LOCALIZATION: {0} are paths. {1} and {2} are numbers. {3} is an optional localized message.</note>
       </trans-unit>
       <trans-unit id="Delete.SkippingNonexistentFile">
         <source>File "{0}" doesn't exist. Skipping.</source>
@@ -509,6 +559,16 @@
         <target state="translated">Globální vlastnosti:</target>
         <note />
       </trans-unit>
+      <trans-unit id="General.StateFileAlreadyPresent">
+        <source>MSB3667: There is already a file at "{0}". If you are trying to create a precomputed cache, ensure that you are building a single project that depends on your assemblies rather than building your assemblies themselves. If you are running the ResolveAssemblyReference task normally, do not set the "AssemblyInformationCacheOutputPath" parameter of the ResolveAssemblyReference task.</source>
+        <target state="translated">MSB3667: V {0} už nějaký soubor existuje. Pokud se pokoušíte vytvořit předvypočítanou mezipaměť, ujistěte se, že sestavujete jeden projekt, který závisí na sestaveních, nikoli sestavení samotná. Pokud spouštíte úlohu ResolveAssemblyReference běžným způsobem, nenastavujte v úloze ResolveAssemblyReference parametr AssemblyInformationCacheOutputPath.</target>
+        <note>{StrBegin="MSB3667: "}</note>
+      </trans-unit>
+      <trans-unit id="General.TaskRequiresWindows">
+        <source>MSB3096: Task "{0}" is only supported when building on Windows.</source>
+        <target state="translated">MSB3096: Úloha {0} se podporuje pouze při sestavování v systému Windows.</target>
+        <note>{StrBegin="MSB3096: "}</note>
+      </trans-unit>
       <trans-unit id="General.UndefineProperties">
         <source>Removing Properties:</source>
         <target state="translated">Odstraňování vlastností:</target>
@@ -588,6 +648,11 @@
         <source>MSB3094: "{2}" refers to {0} item(s), and "{3}" refers to {1} item(s). They must have the same number of items.</source>
         <target state="translated">MSB3094: Položka {2} odkazuje na {0} položek a položka {3} odkazuje na {1} položek. Musí mít stejný počet položek.</target>
         <note>{StrBegin="MSB3094: "}</note>
+      </trans-unit>
+      <trans-unit id="GenerateBindingRedirects.CreatingBindingRedirectionFile">
+        <source>Creating binding redirection file "{0}".</source>
+        <target state="translated">Vytváření souboru přesměrování vazby „{0}“.</target>
+        <note />
       </trans-unit>
       <trans-unit id="GenerateBindingRedirects.MissingConfigurationNode">
         <source>MSB3831: The application configuration file must have root configuration element.</source>
@@ -995,14 +1060,21 @@
         <note>{StrBegin="MSB3183: "}</note>
       </trans-unit>
       <trans-unit id="GenerateManifest.WriteOutputManifestFailed">
-        <source>MSB3173: Unable to write manifest '{0}'. {1}</source>
-        <target state="translated">MSB3173: Nelze zapsat manifest {0}. {1}</target>
+        <source>MSB3173: Unable to write manifest '{0}'. {1} {2}</source>
+        <target state="translated">MSB3173: Nepovedlo se zapsat manifest {0}. {1} {2}</target>
         <note>{StrBegin="MSB3173: "}</note>
       </trans-unit>
       <trans-unit id="GenerateManifest.InvalidRequestedExecutionLevel">
         <source>MSB3190: ClickOnce does not support the request execution level '{0}'.</source>
         <target state="translated">MSB3190: Funkce ClickOnce nepodporuje požadovanou úroveň provedení {0}.</target>
         <note>{StrBegin="MSB3190: "}</note>
+      </trans-unit>
+      <trans-unit id="GenerateResource.BinaryFormatterUse">
+        <source>MSB3825: Resource "{0}" of type "{1}" is deserialized via BinaryFormatter at runtime. BinaryFormatter is deprecated due to possible security risks and will be removed with .NET 9. If you wish to continue using it, set property "GenerateResourceWarnOnBinaryFormatterUse" to false.
+           More information: https://aka.ms/msbuild/net8-binaryformatter</source>
+        <target state="translated">MSB3825: Prostředek „{0}“ typu „{1}“ je deserializován prostřednictvím BinaryFormatter za běhu. BinaryFormatter je zastaralý kvůli možným bezpečnostním rizikům a odebere se s .NET 9. Pokud ho chcete používat dál, nastavte vlastnost GenerateResourceWarnOnBinaryFormatterUse na false. 
+           Další informace: https://aka.ms/msbuild/net8-binaryformatter</target>
+        <note>{StrBegin="MSB3825: "}</note>
       </trans-unit>
       <trans-unit id="GenerateResource.CoreSupportsLimitedScenarios">
         <source>MSB3824: In order to build with .NET Core, resource inputs must be in .txt or .resx format.</source>
@@ -1033,6 +1105,11 @@
         <source>MSB3821: Couldn't process file {0} due to its being in the Internet or Restricted zone or having the mark of the web on the file. Remove the mark of the web if you want to process these files.</source>
         <target state="translated">MSB3821: Nešlo zpracovat soubor {0}, protože je v zóně Internet nebo Omezené nebo má na souboru značku webu. Pokud chcete tyto soubory zpracovat, odeberte značku webu.</target>
         <note>{StrBegin="MSB3821: "} "Internet zone", "Restricted zone", and "mark of the web" are Windows concepts that may have a specific translation.</note>
+      </trans-unit>
+      <trans-unit id="GenerateResource.MimeTypeNotSupportedOnCore">
+        <source>MSB3826: Resource \"{0}\" in \"{1}\" uses MIME type \"{2}\", which is not supported by MSBuild when running on .NET.</source>
+        <target state="translated">MSB3826: Prostředek \"{0}\" v \"{1}\" používá typ MIME \"{2}\", který MSBuild při spuštění v .NET nepodporuje.</target>
+        <note>{StrBegin="MSB3826: "}</note>
       </trans-unit>
       <trans-unit id="GenerateResource.OutputDoesntExist">
         <source>Output file "{0}" does not exist.</source>
@@ -1321,6 +1398,51 @@
         <target state="translated">MSB3441: Nelze získat název sestavení pro {0}. {1}</target>
         <note>{StrBegin="MSB3441: "}</note>
       </trans-unit>
+      <trans-unit id="GetCompatiblePlatform.AnyCPUDefault">
+        <source>Choosing AnyCPU by default.</source>
+        <target state="translated">Zvolí se možnost AnyCPU jako výchozí.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform.DisplayChosenPlatform">
+        <source>Project '{0}' will build with platform: '{1}'.</source>
+        <target state="translated">Projekt {0} se sestaví s platformou: {1}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform.FoundMappingInTable">
+        <source>Found mapping '{0}'='{1}' in given lookup table: '{2}'.</source>
+        <target state="translated">Bylo nalezeno mapování {0}={1} v dané vyhledávací tabulce: {2}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform.InvalidLookupTableFormat">
+        <source>MSB3983: The PlatformLookupTable '{0}' is in an invalid format and won't be used. The format should be 'A=B;C=D'.</source>
+        <target state="translated">MSB3983: PlatformLookupTable {0} nemá platný formát a nedá se použít. Formát by měl být A=B;C=D.</target>
+        <note>{StrBegin="MSB3983: "}</note>
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform.LookupTableParsed">
+        <source>Parsed lookup table:'{0}'.</source>
+        <target state="translated">Analyzovaná vyhledávací tabulka: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform.NoCompatiblePlatformFound">
+        <source>MSB3981: Could not determine what '{0}' should be built as. The project will be built without the Platform property set.</source>
+        <target state="translated">MSB3981: Nešlo určit, jak by se mělo sestavit {0}. Projekt se sestaví bez sady vlastností platformy.</target>
+        <note>{StrBegin="MSB3981: "}</note>
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform.NoPlatformsListed">
+        <source>MSB3982: EnableDynamicPlatformResolution is true but referenced project '{0}' has no 'Platforms' or 'Platform' metadata set. It will be built without a specified platform.</source>
+        <target state="translated">MSB3982: EnableDynamicPlatformResolution je true, ale odkazovaný projekt {0} nemá nastavená metadata Platforms ani Platform. Sestaví se bez zadané platformy.</target>
+        <note>{StrBegin="MSB3982: "}</note>
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform.ReferencedProjectHasDefinitivePlatform">
+        <source>Platform property of referenced project '{0}' matches current project's platform: '{1}'. Referenced project will be built without a global Platform property.</source>
+        <target state="translated">Vlastnost platformy odkazovaného projektu {0} odpovídá platformě aktuálního projektu: {1}. Odkazovaný projekt se sestaví bez globální vlastnosti platformy.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform.SamePlatform">
+        <source>ProjectReference and current project have the same platform.</source>
+        <target state="translated">ProjectReference a aktuální projekt mají stejnou platformu.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GetFrameworkSdkPath.CouldNotFindSDK">
         <source>Could not locate the expected version of the Microsoft Windows SDK. Looked for a location specified in the "{0}" value of the registry key "{1}". If your build process does not need the SDK then this can be ignored. Otherwise you can solve the problem by doing one of the following:  1) Install the Microsoft Windows SDK.  2) Install Visual Studio 2010.  3) Manually set the above registry key to the correct location.</source>
         <target state="translated">Očekávaná verze sady Microsoft Windows SDK nebyla nalezena. Při hledání bylo použito umístění určené hodnotou {0} klíče registru {1}. Pokud daný proces sestavení sadu SDK nepotřebuje, lze tuto chybu ignorovat. V opačném případě můžete potíže odstranit provedením jedné z následujících akcí: 1) instalací sady Microsoft Windows SDK,  2) Instalací sady Visual Studio 2010. 3) Ručním nastavením uvedeného klíče registru na správné umístění.</target>
@@ -1333,7 +1455,7 @@
       </trans-unit>
       <trans-unit id="GetReferenceAssemblyPaths.OutOfDateSDK">
         <source>MSB3971: The reference assemblies for "{0}" were not found. You might be using an older .NET SDK to target .NET 5.0 or higher. Update Visual Studio and/or your .NET SDK.</source>
-        <target state="new">MSB3971: The reference assemblies for "{0}" were not found. You might be using an older .NET SDK to target .NET 5.0 or higher. Update Visual Studio and/or your .NET SDK.</target>
+        <target state="translated">MSB3971: Referenční sestavení pro {0} se nenašla. Je možné, že používáte starší sadu .NET SDK, se kterou cílíte na .NET 5.0 nebo novější. Aktualizujte Visual Studio nebo sadu .NET SDK.</target>
         <note>{StrBegin="MSB3971: "}</note>
       </trans-unit>
       <trans-unit id="MakeDir.Comment">
@@ -1497,6 +1619,11 @@
         <target state="translated">MSB3216: Nelze zaregistrovat sestavení {0}. Byl odepřen přístup. Zkontrolujte, zda spouštíte aplikaci jako správce. {1}</target>
         <note>{StrBegin="MSB3216: "}</note>
       </trans-unit>
+      <trans-unit id="RemoveDir.EmptyPath">
+        <source>MSB3232: An empty directory was passed to RemoveDir and was ignored.</source>
+        <target state="translated">MSB3232: Do adresáře RemoveDir byl předán prázdný adresář a byl ignorován.</target>
+        <note>{StrBegin="MSB3232: "}</note>
+      </trans-unit>
       <trans-unit id="RemoveDir.Error">
         <source>MSB3231: Unable to remove directory "{0}". {1}</source>
         <target state="translated">MSB3231: Nelze odebrat adresář {0}. {1}</target>
@@ -1551,6 +1678,18 @@
         <source>AssemblyFoldersEx location: "{0}"</source>
         <target state="translated">Umístění AssemblyFoldersEx: {0}</target>
         <note />
+      </trans-unit>
+      <trans-unit id="ResolveAssemblyReference.NoBecauseBadImage">
+        <source>This reference is not "CopyLocal" because it is a bad image. It may be a native binary, or it may not be an assembly at all.</source>
+        <target state="translated">Tento odkaz není CopyLocal, protože se jedná o chybný obrázek. Může se jednat o nativní binární soubor, nebo se nemusí vůbec jednat o sestavení.</target>
+        <note>
+      LOCALIZATION: Please don't localize "CopyLocal" this is an item meta-data name.
+    </note>
+      </trans-unit>
+      <trans-unit id="ResolveAssemblyReference.SearchPathAddedByParentAssembly">
+        <source>For SearchPath "{0}" (added by referencing assembly "{1}").</source>
+        <target state="translated">Pro SearchPath „{0}“ (přidáno odkazem na sestavení „{1}“)</target>
+        <note> {1} is the name of the parent assembly for which SearchPath was used.</note>
       </trans-unit>
       <trans-unit id="ResolveAssemblyReference.SearchedAssemblyFoldersEx">
         <source>Considered AssemblyFoldersEx locations.</source>
@@ -1607,8 +1746,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ResolveAssemblyReference.ConsideredAndRejectedBecauseTargetDidntHaveFusionName">
-        <source>Considered "{0}", which existed but didn't have a valid identity. This may not be an assembly.</source>
-        <target state="translated">Byl proveden pokus o použití sestavení {0}, které sice existovalo, ale nemělo platnou identitu. Pravděpodobně nejde o sestavení.</target>
+        <source>Considered "{0}", which existed but did not appear to be a valid .NET assembly.</source>
+        <target state="translated">Zvažuje se {0}, což existovalo, ale zřejmě nebylo platným sestavením .NET.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResolveAssemblyReference.TargetedProcessorArchitectureDoesNotMatch">
@@ -1811,6 +1950,11 @@
         <target state="translated">Byla nalezena neplatná PE hlavička. Implementační soubor nebude použit.</target>
         <note>This message can be used as the {1} in MSB3272</note>
       </trans-unit>
+      <trans-unit id="ResolveAssemblyReference.UnifiedReferenceDependsOn">
+        <source>References which depend on or have been unified to "{0}" [{1}].</source>
+        <target state="translated">Reference, které jsou závislé na nebo byly sjednoceny s „{0}“ [{1}].</target>
+        <note> This will look like references which depend on or have been unified to "A, Version=2.0.0.0 PublicKey=4a4fded9gisujf" [a.dll].</note>
+      </trans-unit>
       <trans-unit id="ResolveAssemblyReference.UnknownProcessorArchitecture">
         <source>MSB3273: Unknown processor architecture. The implementation file "{0}" for "{1}" had an ImageFileMachine value of "0x{2}". If you wish to use this implementation file make sure the "ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch" property in your project is set to "Warning" or "None".</source>
         <target state="translated">MSB3273: Neznámá architektura procesoru. V implementačním souboru {0} pro {1} je uvedena hodnota ImageFileMachine 0x{2}. Pokud chcete tento implementační soubor použít, zkontrolujte, zda je vlastnost ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch ve vašem projektu nastavena na hodnotu Warning nebo None.</target>
@@ -1834,7 +1978,7 @@
       <trans-unit id="ResolveAssemblyReference.FoundConflicts">
         <source>MSB3277: Found conflicts between different versions of "{0}" that could not be resolved.
 {1}</source>
-        <target state="new">MSB3277: Found conflicts between different versions of "{0}" that could not be resolved.
+        <target state="translated">MSB3277: Našly se konflikty mezi různými verzemi {0}, které se nepovedlo přeložit.
 {1}</target>
         <note>{StrBegin="MSB3277: "}</note>
       </trans-unit>
@@ -2016,7 +2160,7 @@
         <target state="translated">Informace o seznamu profilu TargetFramework:</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResolveAssemblyReference.TargetFrameworkWhiteListLogHeader">
+      <trans-unit id="ResolveAssemblyReference.TargetFrameworkAllowListLogHeader">
         <source>TargetFramework Profile List Paths:</source>
         <target state="translated">Cesty seznamu profilu TargetFramework:</target>
         <note />
@@ -2261,6 +2405,11 @@
         <target state="translated">MSB3326: Následující soubor klíčů nelze importovat: {0}. Soubor klíčů může být chráněn heslem. Chcete-li problém vyřešit, naimportujte certifikát znovu nebo certifikát naimportujte ručně do osobního úložiště certifikátů aktuálního uživatele.</target>
         <note>{StrBegin="MSB3326: "}</note>
       </trans-unit>
+      <trans-unit id="ResolveKeySource.PfxUnsupported">
+        <source>PFX signing not supported on .NET Core.</source>
+        <target state="translated">Podepisování PFX se v .NET Core nepodporuje.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResolveKeySource.ResolvedThumbprintEmpty">
         <source>MSB3327: Unable to find code signing certificate in the current user’s Windows certificate store. To correct this, either disable signing of the ClickOnce manifest or install the certificate into the certificate store.</source>
         <target state="translated">MSB3327: V úložišti certifikátů Windows aktuálního uživatele se nedá najít certifikát pro podpis kódu. Pokud chcete tento problém opravit, zakažte podepisování manifestu ClickOnce, nebo do úložiště certifikátů nainstalujte certifikát.</target>
@@ -2369,6 +2518,11 @@
         <source>MSB3353: Public key necessary for delay signing was not specified.</source>
         <target state="translated">MSB3353: Nebyl zadán veřejný klíč nezbytný ke zpožděnému podepsání.</target>
         <note>{StrBegin="MSB3353: "}</note>
+      </trans-unit>
+      <trans-unit id="Task.FileLocked">
+        <source>The file is locked by: "{0}"</source>
+        <target state="translated">Soubor uzamkl(a): {0}.</target>
+        <note />
       </trans-unit>
       <trans-unit id="TaskRequiresFrameworkFailure">
         <source>MSB4803: The task "{0}" is not supported on the .NET Core version of MSBuild. Please use the .NET Framework version of MSBuild. See https://aka.ms/msbuild/MSB4803 for further details.</source>
@@ -2480,6 +2634,11 @@
         <target state="translated">Rozzipování ze souboru {0} do souboru {1} neproběhlo, protože parametr {2} byl v projektu nastaven na hodnotu {3} a velikosti souborů a časová razítka se shodují.</target>
         <note />
       </trans-unit>
+      <trans-unit id="Unzip.DidNotUnzipBecauseOfFilter">
+        <source>Did not unzip file "{0}" because it didn't match the include filter or because it matched the exclude filter.</source>
+        <target state="translated">Soubor {0} se nerozzipoval, protože neodpovídá filtru zahrnutí nebo odpovídá filtru vyloučení.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Unzip.ErrorCouldNotCreateDestinationDirectory">
         <source>MSB3931: Failed to unzip to directory "{0}" because it could not be created.  {1}</source>
         <target state="translated">MSB3931: Rozzipování do adresáře {0} se nepodařilo, protože ho nebylo možné vytvořit. {1}</target>
@@ -2510,9 +2669,24 @@
         <target state="translated">MSB3932: Soubor {0} se nepodařilo rozzipovat, protože neexistuje nebo není přístupný.</target>
         <note>{StrBegin="MSB3932: "}</note>
       </trans-unit>
+      <trans-unit id="Unzip.ErrorParsingPatternInvalidPath">
+        <source>MSB3937: Failed to parse pattern "{0}" because it contains an invalid path character.</source>
+        <target state="translated">MSB3937: Nepovedlo se parsovat vzor {0}, protože obsahuje neplatný znak cesty.</target>
+        <note>{StrBegin="MSB3937: "}</note>
+      </trans-unit>
+      <trans-unit id="Unzip.ErrorParsingPatternPropertyReferences">
+        <source>MSB3938: Failed to parse pattern "{0}" because it contains a property reference which isn't supported.</source>
+        <target state="translated">MSB3938: Nepovedlo se parsovat vzor {0}, protože obsahuje odkaz na vlastnost, která se nepodporuje.</target>
+        <note>{StrBegin="MSB3938: "}</note>
+      </trans-unit>
       <trans-unit id="Unzip.FileComment">
         <source>Unzipping file "{0}" to "{1}".</source>
         <target state="translated">Soubor {0} se rozzipovává do {1}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Unzip.ZipSlipExploit">
+        <source>Entry is outside the target directory: "{0}"</source>
+        <target state="translated">Položka je mimo cílový adresář: „{0}“</target>
         <note />
       </trans-unit>
       <trans-unit id="Vbc.EnumParameterHasInvalidValue">
@@ -2534,6 +2708,31 @@
         <source>MSB3952: File hash mismatch. Expected {0} to have a {1} file hash of {2}, but it was {3}.</source>
         <target state="translated">MSB3952: Neodpovídající hodnota hash souboru. Očekávalo se, že {0} bude mít hodnotu hash souboru {1} {2}, ale byla {3}.</target>
         <note>{StrBegin="MSB3952: "}</note>
+      </trans-unit>
+      <trans-unit id="WriteCodeFragment.CouldNotConvertToInferredType">
+        <source>Could not convert the value for parameter "{0}" to the inferred type "{1}". The value will be treated as a string. {2}</source>
+        <target state="translated">Hodnota parametru „{0}“ se nemohla převést na odvozený typ „{1}“. Hodnota se zpracuje jako řetězec. {2}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WriteCodeFragment.CouldNotConvertValue">
+        <source>MSB3716: The parameter value "{0}" could not be converted to "{1}". {2}</source>
+        <target state="translated">MSB3716: Hodnota parametru „{0}“ se nemohla převést na „{1}“. {2}</target>
+        <note>{StrBegin="MSB3716: "}</note>
+      </trans-unit>
+      <trans-unit id="WriteCodeFragment.CouldNotInferParameterType">
+        <source>Could not infer the type of parameter "{0}" because the attribute type is unknown. The value will be treated as a string.</source>
+        <target state="translated">Nepovedlo se odvodit typ parametru „{0}“, protože typ atributu je neznámý. Hodnota se zpracuje jako řetězec.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WriteCodeFragment.MultipleConstructorsFound">
+        <source>Multiple attribute constructors were found for type inferencing.</source>
+        <target state="translated">Pro typ odvození se našlo víc konstruktorů atributů.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WriteCodeFragment.ParameterTypeNotFound">
+        <source>MSB3715: The type "{0}" was not found.</source>
+        <target state="translated">MSB3715: Typ „{0}“ ne nenašel.</target>
+        <note>{StrBegin="MSB3715: "}</note>
       </trans-unit>
       <trans-unit id="WriteLinesToFile.ErrorOrWarning">
         <source>MSB3491: Could not write lines to file "{0}". {1}</source>
@@ -2564,6 +2763,11 @@
         <source>MSB3762: No references were passed to the task. References to at least mscorlib and Windows.Foundation are required.</source>
         <target state="translated">MSB3762: Úloze nebyly předány žádné odkazy. Je vyžadován odkaz alespoň na knihovny mscorlib a Windows.Foundation.</target>
         <note>{StrBegin="MSB3762: "}</note>
+      </trans-unit>
+      <trans-unit id="WriteLinesToFile.UnusedWriteOnlyWhenDifferent">
+        <source>'WriteOnlyWhenDifferent' attribute on "{0}" takes effect only when 'Overwrite="true"'.</source>
+        <target state="translated">Atribut „WriteOnlyWhenDifferent“ pro „{0}“ se projeví jenom v případě, že overwrite="true"</target>
+        <note />
       </trans-unit>
       <trans-unit id="Xaml.DuplicatePropertyName">
         <source>MSB3724: Unable to create Xaml task.  Duplicate property name '{0}'.</source>
@@ -2639,6 +2843,11 @@
         <source>MSB3705: XslCompiledDllPath is not supported when building with .NET Core.</source>
         <target state="translated">MSB3705: XslCompiledDllPath se při sestavování pomocí .NET Core nepodporuje.</target>
         <note>{StrBegin="MSB3705: "}</note>
+      </trans-unit>
+      <trans-unit id="XslTransform.SecuritySettingsViaUseTrustedSettings">
+        <source>You are enabling relaxed XSLT security settings via the UseTrustedSettings parameter. For more details on security implications of this setting please see https://aka.ms/msbuild/xsltransformation-task</source>
+        <target state="translated">Povolujete uvolněná nastavení zabezpečení XSLT prostřednictvím parametru UseTrustedSettings. Další podrobnosti o důsledcích zabezpečení tohoto nastavení najdete v https://aka.ms/msbuild/xsltransformation-task</target>
+        <note />
       </trans-unit>
       <trans-unit id="XslTransform.XsltArgumentsError">
         <source>MSB3702: Unable to process the XsltParameters argument for the XslTransformation task. {0}</source>
@@ -3175,11 +3384,6 @@
         <target state="translated">Konfigurační soubor AssemblyFolder ({0}) zadaný v Microsoft.Common.CurrentVersion.targets byl neplatný. Chyba: {1}</target>
         <note />
       </trans-unit>
-      <trans-unit id="Copy.ExactlyOneTypeOfLink">
-        <source>MSB3891: Both "{0}" and "{1}" were specified in the project file. Please choose one or the other.</source>
-        <target state="translated">MSB3891: V souboru projektu jste zadali jak položku {0}, tak i {1}. Zvolte buď jednu, nebo druhou.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="WriteLinesToFile.ErrorReadingFile">
         <source>MSB3492: Could not read existing file "{0}" to determine whether its contents are up to date. Overwriting it.</source>
         <target state="translated">MSB3492: Nešlo přečíst existující soubor {0}, aby se zjistilo, jestli je jeho obsah aktuální. Přepíše se.</target>
@@ -3204,11 +3408,6 @@
         <source>MSB4801: The task factory "{0}" is not supported on the .NET Core version of MSBuild.</source>
         <target state="translated">MSB4801: Objekt pro vytváření úloh {0} se ve verzi .NET Core nástroje MSBuild nepodporuje.</target>
         <note>{StrBegin="MSB4801: "}</note>
-      </trans-unit>
-      <trans-unit id="Copy.FileLocked">
-        <source>The file is locked by: "{0}"</source>
-        <target state="translated">Soubor uzamkl(a): {0}.</target>
-        <note />
       </trans-unit>
       <trans-unit id="CodeTaskFactory.InvalidCodeType">
         <source>MSB3759: The specified code type "{0}" is invalid.  The supported code types are "{1}".</source>

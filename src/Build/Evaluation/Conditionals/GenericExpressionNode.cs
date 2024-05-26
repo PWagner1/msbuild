@@ -1,9 +1,11 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-
+using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Shared;
+
+#nullable disable
 
 namespace Microsoft.Build.Evaluation
 {
@@ -12,12 +14,9 @@ namespace Microsoft.Build.Evaluation
     /// </summary>
     internal abstract class GenericExpressionNode
     {
-        internal abstract bool CanBoolEvaluate(ConditionEvaluator.IConditionEvaluationState state);
-        internal abstract bool CanNumericEvaluate(ConditionEvaluator.IConditionEvaluationState state);
-        internal abstract bool CanVersionEvaluate(ConditionEvaluator.IConditionEvaluationState state);
-        internal abstract bool BoolEvaluate(ConditionEvaluator.IConditionEvaluationState state);
-        internal abstract double NumericEvaluate(ConditionEvaluator.IConditionEvaluationState state);
-        internal abstract Version VersionEvaluate(ConditionEvaluator.IConditionEvaluationState state);
+        internal abstract bool TryBoolEvaluate(ConditionEvaluator.IConditionEvaluationState state, out bool result);
+        internal abstract bool TryNumericEvaluate(ConditionEvaluator.IConditionEvaluationState state, out double result);
+        internal abstract bool TryVersionEvaluate(ConditionEvaluator.IConditionEvaluationState state, out Version result);
 
         /// <summary>
         /// Returns true if this node evaluates to an empty string,
@@ -44,7 +43,13 @@ namespace Microsoft.Build.Evaluation
         internal abstract string GetUnexpandedValue(ConditionEvaluator.IConditionEvaluationState state);
 
         /// <summary>
-        /// If any expression nodes cache any state for the duration of evaluation, 
+        /// Checks if value is empty before any item and property expressions are expanded
+        /// </summary>
+        /// <returns></returns>
+        internal abstract bool IsUnexpandedValueEmpty();
+
+        /// <summary>
+        /// If any expression nodes cache any state for the duration of evaluation,
         /// now's the time to clean it up
         /// </summary>
         internal abstract void ResetState();
@@ -56,14 +61,16 @@ namespace Microsoft.Build.Evaluation
         /// <returns></returns>
         internal bool Evaluate(ConditionEvaluator.IConditionEvaluationState state)
         {
-            ProjectErrorUtilities.VerifyThrowInvalidProject(
-                CanBoolEvaluate(state),
-                state.ElementLocation,
-                "ConditionNotBooleanDetail",
-                state.Condition,
-                GetExpandedValue(state));
+            if (!TryBoolEvaluate(state, out bool boolValue))
+            {
+                ProjectErrorUtilities.ThrowInvalidProject(
+                    state.ElementLocation,
+                    "ConditionNotBooleanDetail",
+                    state.Condition,
+                    GetExpandedValue(state));
+            }
 
-            return BoolEvaluate(state);
+            return boolValue;
         }
 
         /// <summary>
@@ -88,7 +95,7 @@ namespace Microsoft.Build.Evaluation
         internal bool PotentialAndOrConflict()
         {
             // The values of the functions are assigned to boolean locals
-            // in order to force evaluation of the functions even when the 
+            // in order to force evaluation of the functions even when the
             // first one returns false
             bool detectOr = DetectOr();
             bool detectAnd = DetectAnd();

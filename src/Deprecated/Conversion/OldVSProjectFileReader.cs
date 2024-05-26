@@ -1,5 +1,9 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
 
 using System;
 using System.IO;
@@ -11,21 +15,21 @@ using error = Microsoft.Build.Shared.ErrorUtilities;
 namespace Microsoft.Build.Conversion
 {
     /// <summary>
-    /// This class implements a custom text reader for the old VS7/Everett 
-    /// project file format.  The old format allowed certain XML special 
+    /// This class implements a custom text reader for the old VS7/Everett
+    /// project file format.  The old format allowed certain XML special
     /// characters to be present within an XML attribute value.  For example,
     ///
     ///     &lt;MyElement MyAttribute="My --> Value" /&gt;
     ///
     /// However, the System.Xml classes are more strict, and do not allow
-    /// the &lt; or &gt; characters to exist within an attribute value.  But 
+    /// the &lt; or &gt; characters to exist within an attribute value.  But
     /// the conversion utility still needs to be able to convert all old
     /// project files.  So the OldVSProjectFileReader class implements
     /// the TextReader interface, thereby effectively intercepting all of
     /// the calls which are used by the XmlTextReader to actually read the
-    /// raw text out of the file.  As we are reading the text out of the 
+    /// raw text out of the file.  As we are reading the text out of the
     /// file, we replace all &gt; (less-than) characters inside attribute values with "&gt;",
-    /// etc.  The XmlTextReader has no idea that this is going on, but 
+    /// etc.  The XmlTextReader has no idea that this is going on, but
     /// no longer complains about invalid characters.
     /// </summary>
     /// <owner>rgoel</owner>
@@ -33,18 +37,18 @@ namespace Microsoft.Build.Conversion
     {
         // This is the underlying text file where we will be reading the raw text
         // from.
-        private StreamReader    oldVSProjectFile;
-        
+        private StreamReader oldVSProjectFile;
+
         // We will be reading one line at a time out of the text file, and caching
         // it here.
-        private StringBuilder   singleLine;
-        
+        private StringBuilder singleLine;
+
         // The "TextReader" interface that we are implementing only allows
         // forward access through the file.  You cannot seek to a random location
         // or read backwards.  This variable is the index into the "singleLine"
         // string above, which indicates how far the caller has read.  Once we
         // reach the end of "singleLine", we'll go read a new line from the file.
-        private int             currentReadPositionWithinSingleLine;
+        private int currentReadPositionWithinSingleLine;
 
         /// <summary>
         /// Constructor, initialized using the filename of an existing old format
@@ -58,7 +62,7 @@ namespace Microsoft.Build.Conversion
             )
         {
             this.oldVSProjectFile = new StreamReader(filename, Encoding.Default); // HIGHCHAR: Default means ANSI, ANSI is what VS .NET 2003 wrote. Without this, the project would be read as ASCII.
-            
+
             this.singleLine = new StringBuilder();
             this.currentReadPositionWithinSingleLine = 0;
         }
@@ -76,7 +80,7 @@ namespace Microsoft.Build.Conversion
 
         /// <summary>
         /// Returns the next character in the file, without actually advancing
-        /// the read pointer.  Returns -1 if we're already at the end of the file.  
+        /// the read pointer.  Returns -1 if we're already at the end of the file.
         /// </summary>
         /// <returns></returns>
         /// <owner>rgoel</owner>
@@ -84,7 +88,7 @@ namespace Microsoft.Build.Conversion
             (
             )
         {
-            // If necessary, read a new line of text into our internal buffer 
+            // If necessary, read a new line of text into our internal buffer
             // (this.singleLine).
             if (!this.ReadLineIntoInternalBuffer())
             {
@@ -97,7 +101,7 @@ namespace Microsoft.Build.Conversion
         }
 
         /// <summary>
-        /// Returns the next character in the file, and advances the read pointer.  
+        /// Returns the next character in the file, and advances the read pointer.
         /// Returns -1 if we're already at the end of the file.
         /// </summary>
         /// <returns></returns>
@@ -119,7 +123,7 @@ namespace Microsoft.Build.Conversion
         }
 
         /// <summary>
-        /// Reads the specified number of characters into the caller's buffer, 
+        /// Reads the specified number of characters into the caller's buffer,
         /// starting at the specified index into the caller's buffer.  Returns
         /// the number of characters read, or 0 if we're already at the end of
         /// the file.
@@ -131,9 +135,9 @@ namespace Microsoft.Build.Conversion
         /// <owner>rgoel</owner>
         public override int Read
             (
-            char[]  bufferToReadInto,       // The buffer to read the data into.
-            int     startIndexIntoBuffer,   // The index into "bufferToReadInto"
-            int     charactersToRead        // The number of characters to read.
+            char[] bufferToReadInto,       // The buffer to read the data into.
+            int startIndexIntoBuffer,   // The index into "bufferToReadInto"
+            int charactersToRead        // The number of characters to read.
             )
         {
             // Make sure there's enough room in the caller's buffer for what he's
@@ -153,7 +157,7 @@ namespace Microsoft.Build.Conversion
                 // Read more data from the underlying file if necessary.
                 if (!this.ReadLineIntoInternalBuffer())
                 {
-                    // If we've reached the end of the underlying file, exit the 
+                    // If we've reached the end of the underlying file, exit the
                     // loop.
                     break;
                 }
@@ -169,7 +173,7 @@ namespace Microsoft.Build.Conversion
                 }
 
                 // Copy characters from our cached "singleLine" to the caller's buffer.
-                this.singleLine.ToString().CopyTo(this.currentReadPositionWithinSingleLine, bufferToReadInto, 
+                this.singleLine.ToString().CopyTo(this.currentReadPositionWithinSingleLine, bufferToReadInto,
                     startIndexIntoBuffer, charactersToCopy);
 
                 // Update all counts and indices.
@@ -197,9 +201,9 @@ namespace Microsoft.Build.Conversion
         /// <owner>rgoel</owner>
         public override int ReadBlock
             (
-            char[]  bufferToReadInto, 
-            int     startIndexIntoBuffer, 
-            int     charactersToRead
+            char[] bufferToReadInto,
+            int startIndexIntoBuffer,
+            int charactersToRead
             )
         {
             throw new NotImplementedException();
@@ -235,7 +239,7 @@ namespace Microsoft.Build.Conversion
             this.currentReadPositionWithinSingleLine = this.singleLine.Length;
 
             // Strip off the line endings before returning to caller.
-            char[] lineEndingCharacters = new char[] {'\r', '\n'};
+            char[] lineEndingCharacters = new char[] { '\r', '\n' };
             return result.Trim(lineEndingCharacters);
         }
 
@@ -264,7 +268,7 @@ namespace Microsoft.Build.Conversion
                 }
 
                 // Append the line of text to the resulting output.
-                result.Append(this.singleLine.ToString(this.currentReadPositionWithinSingleLine, 
+                result.Append(this.singleLine.ToString(this.currentReadPositionWithinSingleLine,
                     this.singleLine.Length - this.currentReadPositionWithinSingleLine));
 
                 this.currentReadPositionWithinSingleLine = this.singleLine.Length;
@@ -275,7 +279,7 @@ namespace Microsoft.Build.Conversion
 
         /// <summary>
         /// And this is where the real magic happens.  If our currently cached
-        /// "singleLine" has been used up, we read a new line of text from the 
+        /// "singleLine" has been used up, we read a new line of text from the
         /// underlying text file.  But as we read the line of text from the file,
         /// we immediately replace all instances of special characters that occur
         /// within double-quotes with the corresponding XML-friendly equivalents.
@@ -289,7 +293,7 @@ namespace Microsoft.Build.Conversion
         ///
         /// and we would store it this way in our "singleLine", so that the callers
         /// never know the difference.
-        /// 
+        ///
         /// This method returns true on success, and false if we were unable to
         /// read a new line (due to end of file).
         /// </summary>
@@ -314,11 +318,11 @@ namespace Microsoft.Build.Conversion
                 // Take the line of text just read, and replace all special characters
                 // with the escaped XML-friendly string equivalents.
                 this.singleLine = new StringBuilder(this.ReplaceSpecialCharacters(lineFromProjectFile));
-                
-                // The underlying StreamReader.ReadLine method doesn't give us the 
+
+                // The underlying StreamReader.ReadLine method doesn't give us the
                 // trailing line endings, so add them back ourselves.
                 this.singleLine.Append(Environment.NewLine);
-                
+
                 // So now we have a new cached "singleLine".  Reset the read pointer
                 // to the beginning of the new line just read.
                 this.currentReadPositionWithinSingleLine = 0;
@@ -330,7 +334,7 @@ namespace Microsoft.Build.Conversion
         /// <summary>
         /// This method uses a regular expression to search for the stuff in
         /// between double-quotes.  We obviously don't want to touch the stuff
-        /// OUTSIDE of double-quotes, because then we would be mucking with the 
+        /// OUTSIDE of double-quotes, because then we would be mucking with the
         /// real angle-brackets that delimit the XML element names, etc.
         /// </summary>
         /// <param name="originalLine"></param>
@@ -341,22 +345,22 @@ namespace Microsoft.Build.Conversion
             string originalLine
             )
         {
-            // Find the stuff within double-quotes, and send it off to the 
+            // Find the stuff within double-quotes, and send it off to the
             // "ReplaceSpecialCharactersInXmlAttribute" for proper replacement of
             // the special characters.
             Regex attributeValueInsideDoubleQuotesPattern = new Regex("= *\"[^\"]*\"");
 
-            string replacedStuffInsideDoubleQuotes = attributeValueInsideDoubleQuotesPattern.Replace(originalLine, 
+            string replacedStuffInsideDoubleQuotes = attributeValueInsideDoubleQuotesPattern.Replace(originalLine,
                 new MatchEvaluator(this.ReplaceSpecialCharactersInXmlAttribute));
-                
-            // Find the stuff within single-quotes, and send it off to the 
+
+            // Find the stuff within single-quotes, and send it off to the
             // "ReplaceSpecialCharactersInXmlAttribute" for proper replacement of
             // the special characters.
             Regex attributeValueInsideSingleQuotesPattern = new Regex("= *'[^']*'");
 
-            string replacedStuffInsideSingleQuotes = attributeValueInsideSingleQuotesPattern.Replace(replacedStuffInsideDoubleQuotes, 
+            string replacedStuffInsideSingleQuotes = attributeValueInsideSingleQuotesPattern.Replace(replacedStuffInsideDoubleQuotes,
                 new MatchEvaluator(this.ReplaceSpecialCharactersInXmlAttribute));
-                
+
             return replacedStuffInsideSingleQuotes;
         }
 
@@ -364,7 +368,7 @@ namespace Microsoft.Build.Conversion
         /// This method is used as the delegate that is passed into Regex.Replace.
         /// It a regular expression to search for the stuff in
         /// between double-quotes.  We obviously don't want to touch the stuff
-        /// OUTSIDE of double-quotes, because then we would be mucking with the 
+        /// OUTSIDE of double-quotes, because then we would be mucking with the
         /// real angle-brackets that delimit the XML element names, etc.
         /// </summary>
         /// <param name="xmlAttribute"></param>
@@ -382,7 +386,7 @@ namespace Microsoft.Build.Conversion
         }
 
         /// <summary>
-        /// This method actually does the replacement of special characters within the 
+        /// This method actually does the replacement of special characters within the
         /// text of the XML attribute.
         /// </summary>
         /// <param name="xmlAttributeText">Input string</param>
@@ -395,12 +399,12 @@ namespace Microsoft.Build.Conversion
         {
             // Replace the special characters with their XML-friendly escaped equivalents.  The
             // "<" and ">" signs are easy, because if they exist at all within the value of an
-            // XML attribute, we know that they need to be replaced with "&lt;" and "&gt;" 
+            // XML attribute, we know that they need to be replaced with "&lt;" and "&gt;"
             // respectively.
             xmlAttributeText = xmlAttributeText.Replace("<", "&lt;");
             xmlAttributeText = xmlAttributeText.Replace(">", "&gt;");
             xmlAttributeText = ReplaceNonEscapingAmpersands(xmlAttributeText);
-            
+
             return xmlAttributeText;
         }
 
@@ -411,8 +415,8 @@ namespace Microsoft.Build.Conversion
         /// the "&amp;" character, it determines whether the "&amp;" character needs to be replaced
         /// with "&amp;amp;".  The old XML parser used in the VS.NET 2002/2003 project system
         /// was quite inconsistent in its treatment of escaped characters in XML, so here
-        /// we're having to make up for those bugs.  The new XML parser (System.Xml) 
-        /// is much more strict in enforcing proper XML syntax, and therefore doesn't 
+        /// we're having to make up for those bugs.  The new XML parser (System.Xml)
+        /// is much more strict in enforcing proper XML syntax, and therefore doesn't
         /// tolerate "&amp;" characters in the XML attribute value, unless the "&amp;" is being
         /// used to escape some special character.
         /// </summary>
@@ -425,11 +429,11 @@ namespace Microsoft.Build.Conversion
             )
         {
             // Ampersands are a little trickier, because some instances of "&" we need to leave
-            // untouched, and some we need to replace with "&amp;".  For example, 
+            // untouched, and some we need to replace with "&amp;".  For example,
             //      aaa&bbb         should be replaced with         aaa&amp;bbb
             // But:
             //      aaa&lt;bbb      should not be touched.
-            
+
             // Loop through each instance of "&"
             int indexOfAmpersand = xmlAttributeText.IndexOf('&');
             while (indexOfAmpersand != -1)
@@ -448,15 +452,15 @@ namespace Microsoft.Build.Conversion
                 {
                     // We found the semicolon.  Capture the characters between (but not
                     // including) the "&" and ";".
-                    string entityName = xmlAttributeText.Substring(indexOfAmpersand + 1, 
+                    string entityName = xmlAttributeText.Substring(indexOfAmpersand + 1,
                         indexOfNextSemicolon - indexOfAmpersand - 1);
 
                     // Perf note: Here we are walking through the entire list of entities, and
                     // doing a string comparison for each.  This is expensive, but this code
-                    // should only get executed in fairly rare circumstances.  It's not very 
+                    // should only get executed in fairly rare circumstances.  It's not very
                     // common for people to have these embedded into their project files.
                     bool foundEntity = false;
-                    for (int i = 0 ; i < entities.Length ; i++)
+                    for (int i = 0; i < entities.Length; i++)
                     {
                         // Case-sensitive comparison to see if the entity name matches any of
                         // the well-known ones that were emitted by the XML writer in the VS.NET
@@ -468,7 +472,7 @@ namespace Microsoft.Build.Conversion
                         }
                     }
 
-                    // If it didn't match a well-known entity name, then the next thing to 
+                    // If it didn't match a well-known entity name, then the next thing to
                     // check is if it represents an ASCII code.  For example, in an XML
                     // attribute, if I wanted to represent the "+" sign, I could do this:
                     //
@@ -478,7 +482,7 @@ namespace Microsoft.Build.Conversion
                     {
                         // At this point, we know entityName is something like "#1234" or "#x1234abcd"
                         bool isNumber = false;
-                        
+
                         // A lower-case "x" in the second position indicates a hexadecimal value.
                         if ((entityName.Length > 2) && (entityName[1] == 'x'))
                         {
@@ -517,7 +521,7 @@ namespace Microsoft.Build.Conversion
                         }
                     }
 
-                    // If the ampersand did not precede an actual well-known entity, then we DO want to 
+                    // If the ampersand did not precede an actual well-known entity, then we DO want to
                     // replace the "&" with a "&amp;".  Otherwise we don't.
                     if (!foundEntity)
                     {
@@ -562,9 +566,9 @@ namespace Microsoft.Build.Conversion
         // This is the complete list of well-known entity names that were written out
         // by the XML writer in the VS.NET 2002/2003 project system.  This list was
         // taken directly from the source code.
-        private static readonly string[] entities = 
+        private static readonly string[] entities =
         {
-            "quot",          // 
+            "quot",          //
             "amp",           // & - ampersand
             "apos",          // ' - apostrophe //// not part of HTML!
             "lt",            // < less than
@@ -681,7 +685,7 @@ namespace Microsoft.Build.Conversion
             "Zeta",         // greek capital letter zeta
             "Eta",          // greek capital letter eta
             "Theta",        // greek capital letter theta
-            "Iota",         // greek capital letter iota 
+            "Iota",         // greek capital letter iota
             "Kappa",        // greek capital letter kappa
             "Lambda",       // greek capital letter lambda
             "Mu",           // greek capital letter mu
@@ -695,7 +699,7 @@ namespace Microsoft.Build.Conversion
             "Upsilon",      // greek capital letter upsilon
             "Phi",          // greek capital letter phi
             "Chi",          // greek capital letter chi
-            "Psi",          // greek capital letter psi   
+            "Psi",          // greek capital letter psi
             "Omega",        // greek capital letter omega
             "alpha",        // greek small letter alpha
             "beta",         // greek small letter beta
@@ -705,7 +709,7 @@ namespace Microsoft.Build.Conversion
             "zeta",         // greek small letter zeta
             "eta",          // greek small letter eta
             "theta",        // greek small letter theta
-            "iota",         // greek small letter iota 
+            "iota",         // greek small letter iota
             "kappa",        // greek small letter kappa
             "lambda",       // greek small letter lambda
             "mu",           // greek small letter mu
@@ -720,7 +724,7 @@ namespace Microsoft.Build.Conversion
             "upsilon",      // greek small letter upsilon
             "phi",          // greek small letter phi
             "chi",          // greek small letter chi
-            "psi",          // greek small letter psi   
+            "psi",          // greek small letter psi
             "omega",        // greek small letter omega
             "thetasym",     // greek small letter theta symbol, U03D1 NEW
             "upsih",        // greek upsilon with hook symbol
@@ -751,71 +755,71 @@ namespace Microsoft.Build.Conversion
             "rsaquo",      // single right-pointing angle quotation mark, U203A ISO proposed
             "oline",       // overline, spacing overscore
             "frasl",       // fraction slash
-            "image",       // blackletter capital I, =imaginary part, U2111 ISOamso 
-            "weierp",      // script capital P, =power set, =Weierstrass p, U2118 ISOamso 
-            "real",        // blackletter capital R, =real part symbol, U211C ISOamso 
-            "trade",       // trade mark sign, U2122 ISOnum 
-            "alefsym",     // alef symbol, =first transfinite cardinal, U2135 NEW 
-            "larr",        // leftwards arrow, U2190 ISOnum 
+            "image",       // blackletter capital I, =imaginary part, U2111 ISOamso
+            "weierp",      // script capital P, =power set, =Weierstrass p, U2118 ISOamso
+            "real",        // blackletter capital R, =real part symbol, U211C ISOamso
+            "trade",       // trade mark sign, U2122 ISOnum
+            "alefsym",     // alef symbol, =first transfinite cardinal, U2135 NEW
+            "larr",        // leftwards arrow, U2190 ISOnum
             "uarr",        // upwards arrow, U2191 ISOnum
-            "rarr",        // rightwards arrow, U2192 ISOnum 
-            "darr",        // downwards arrow, U2193 ISOnum 
-            "harr",        // left right arrow, U2194 ISOamsa 
-            "crarr",       // downwards arrow with corner leftwards, =carriage return, U21B5 NEW 
-            "lArr",        // leftwards double arrow, U21D0 ISOtech 
-            "uArr",        // upwards double arrow, U21D1 ISOamsa 
-            "rArr",        // rightwards double arrow, U21D2 ISOtech 
-            "dArr",        // downwards double arrow, U21D3 ISOamsa 
-            "hArr",        // left right double arrow, U21D4 ISOamsa 
-            "forall",      // for all, U2200 ISOtech 
-            "part",        // partial differential, U2202 ISOtech  
-            "exist",       // there exists, U2203 ISOtech 
-            "empty",       // empty set, =null set, =diameter, U2205 ISOamso 
-            "nabla",       // nabla, =backward difference, U2207 ISOtech 
-            "isin",        // element of, U2208 ISOtech 
-            "notin",       // not an element of, U2209 ISOtech 
-            "ni",          // contains as member, U220B ISOtech 
-            "prod",        // n-ary product, =product sign, U220F ISOamsb 
-            "sum",         // n-ary sumation, U2211 ISOamsb 
-            "minus",       // minus sign, U2212 ISOtech 
-            "lowast",      // asterisk operator, U2217 ISOtech 
-            "radic",       // square root, =radical sign, U221A ISOtech 
-            "prop",        // proportional to, U221D ISOtech 
-            "infin",       // infinity, U221E ISOtech 
-            "ang",         // angle, U2220 ISOamso 
-            "and",         // logical and, =wedge, U2227 ISOtech 
-            "or",          // logical or, =vee, U2228 ISOtech 
-            "cap",         // intersection, =cap, U2229 ISOtech 
-            "cup",         // union, =cup, U222A ISOtech 
-            "int",         // integral, U222B ISOtech 
-            "there4",      // therefore, U2234 ISOtech 
-            "sim",         // tilde operator, =varies with, =similar to, U223C ISOtech 
-            "cong",        // approximately equal to, U2245 ISOtech 
-            "asymp",       // almost equal to, =asymptotic to, U2248 ISOamsr 
-            "ne",          // not equal to, U2260 ISOtech 
-            "equiv",       // identical to, U2261 ISOtech 
-            "le",          // less-than or equal to, U2264 ISOtech 
-            "ge",          // greater-than or equal to, U2265 ISOtech 
-            "sub",         // subset of, U2282 ISOtech 
-            "sup",         // superset of, U2283 ISOtech 
-            "nsub",        // not a subset of, U2284 ISOamsn 
-            "sube",        // subset of or equal to, U2286 ISOtech 
-            "supe",        // superset of or equal to, U2287 ISOtech 
-            "oplus",       // circled plus, =direct sum, U2295 ISOamsb 
-            "otimes",      // circled times, =vector product, U2297 ISOamsb 
-            "perp",        // up tack, =orthogonal to, =perpendicular, U22A5 ISOtech 
-            "sdot",        // dot operator, U22C5 ISOamsb 
-            "lceil",       // left ceiling, =apl upstile, U2308, ISOamsc  
-            "rceil",       // right ceiling, U2309, ISOamsc  
-            "lfloor",      // left floor, =apl downstile, U230A, ISOamsc  
-            "rfloor",      // right floor, U230B, ISOamsc  
-            "lang",        // left-pointing angle bracket, =bra, U2329 ISOtech 
-            "rang",        // right-pointing angle bracket, =ket, U232A ISOtech 
-            "loz",         // lozenge, U25CA ISOpub 
-            "spades",      // black spade suit, U2660 ISOpub 
-            "clubs",       // black club suit, =shamrock, U2663 ISOpub 
-            "hearts",      // black heart suit, =valentine, U2665 ISOpub 
-            "diams"        // black diamond suit, U2666 ISOpub 
+            "rarr",        // rightwards arrow, U2192 ISOnum
+            "darr",        // downwards arrow, U2193 ISOnum
+            "harr",        // left right arrow, U2194 ISOamsa
+            "crarr",       // downwards arrow with corner leftwards, =carriage return, U21B5 NEW
+            "lArr",        // leftwards double arrow, U21D0 ISOtech
+            "uArr",        // upwards double arrow, U21D1 ISOamsa
+            "rArr",        // rightwards double arrow, U21D2 ISOtech
+            "dArr",        // downwards double arrow, U21D3 ISOamsa
+            "hArr",        // left right double arrow, U21D4 ISOamsa
+            "forall",      // for all, U2200 ISOtech
+            "part",        // partial differential, U2202 ISOtech
+            "exist",       // there exists, U2203 ISOtech
+            "empty",       // empty set, =null set, =diameter, U2205 ISOamso
+            "nabla",       // nabla, =backward difference, U2207 ISOtech
+            "isin",        // element of, U2208 ISOtech
+            "notin",       // not an element of, U2209 ISOtech
+            "ni",          // contains as member, U220B ISOtech
+            "prod",        // n-ary product, =product sign, U220F ISOamsb
+            "sum",         // n-ary sumation, U2211 ISOamsb
+            "minus",       // minus sign, U2212 ISOtech
+            "lowast",      // asterisk operator, U2217 ISOtech
+            "radic",       // square root, =radical sign, U221A ISOtech
+            "prop",        // proportional to, U221D ISOtech
+            "infin",       // infinity, U221E ISOtech
+            "ang",         // angle, U2220 ISOamso
+            "and",         // logical and, =wedge, U2227 ISOtech
+            "or",          // logical or, =vee, U2228 ISOtech
+            "cap",         // intersection, =cap, U2229 ISOtech
+            "cup",         // union, =cup, U222A ISOtech
+            "int",         // integral, U222B ISOtech
+            "there4",      // therefore, U2234 ISOtech
+            "sim",         // tilde operator, =varies with, =similar to, U223C ISOtech
+            "cong",        // approximately equal to, U2245 ISOtech
+            "asymp",       // almost equal to, =asymptotic to, U2248 ISOamsr
+            "ne",          // not equal to, U2260 ISOtech
+            "equiv",       // identical to, U2261 ISOtech
+            "le",          // less-than or equal to, U2264 ISOtech
+            "ge",          // greater-than or equal to, U2265 ISOtech
+            "sub",         // subset of, U2282 ISOtech
+            "sup",         // superset of, U2283 ISOtech
+            "nsub",        // not a subset of, U2284 ISOamsn
+            "sube",        // subset of or equal to, U2286 ISOtech
+            "supe",        // superset of or equal to, U2287 ISOtech
+            "oplus",       // circled plus, =direct sum, U2295 ISOamsb
+            "otimes",      // circled times, =vector product, U2297 ISOamsb
+            "perp",        // up tack, =orthogonal to, =perpendicular, U22A5 ISOtech
+            "sdot",        // dot operator, U22C5 ISOamsb
+            "lceil",       // left ceiling, =apl upstile, U2308, ISOamsc
+            "rceil",       // right ceiling, U2309, ISOamsc
+            "lfloor",      // left floor, =apl downstile, U230A, ISOamsc
+            "rfloor",      // right floor, U230B, ISOamsc
+            "lang",        // left-pointing angle bracket, =bra, U2329 ISOtech
+            "rang",        // right-pointing angle bracket, =ket, U232A ISOtech
+            "loz",         // lozenge, U25CA ISOpub
+            "spades",      // black spade suit, U2660 ISOpub
+            "clubs",       // black club suit, =shamrock, U2663 ISOpub
+            "hearts",      // black heart suit, =valentine, U2665 ISOpub
+            "diams"        // black diamond suit, U2666 ISOpub
         };
     }
 }

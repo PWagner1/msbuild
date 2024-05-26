@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.Xml;
 using System.Collections;
@@ -140,13 +144,13 @@ namespace Microsoft.Build.UnitTests
 
         /// <summary>
         /// Right now we are just testing the fact that the TaskWorker thread will take in a couple of tasks, some doing blocking
-        /// callbacks and make sure that each of the tasks completed correctly. Since the tasks are the ones which will 
+        /// callbacks and make sure that each of the tasks completed correctly. Since the tasks are the ones which will
         /// in the end set the exit event, if the test does not complete then the test has failed.
         /// </summary>
         [Test]
         public void TaskWorkerThreadTest()
         {
-            // This event will be triggered right before a "engine" call back is made. 
+            // This event will be triggered right before a "engine" call back is made.
             // Once this event is fired we insert another item into the queue
             ManualResetEvent rightBeforeCallbackBlock = new ManualResetEvent(false);
 
@@ -175,7 +179,7 @@ namespace Microsoft.Build.UnitTests
 
             workerThread.ActivateThread();
 
-            // Wait for the call back to happen     
+            // Wait for the call back to happen
             rightBeforeCallbackBlock.WaitOne();
 
             // Lets insert a execution task which and post a work item which will cause a localDoneEvent to be set

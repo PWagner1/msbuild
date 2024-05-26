@@ -1,21 +1,20 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
 #if FEATURE_WIN32_REGISTRY
 
 using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Security;
 
 using Microsoft.Build.Shared;
 using Microsoft.Win32;
 using RegistryException = Microsoft.Build.Exceptions.RegistryException;
 
+#nullable disable
+
 namespace Microsoft.Build.Internal
 {
     /// <summary>
-    /// Thin wrapper around Microsoft.Win32.RegistryKey that can be 
+    /// Thin wrapper around Microsoft.Win32.RegistryKey that can be
     /// subclassed for testing purposes
     /// </summary>
     internal class RegistryKeyWrapper : IDisposable
@@ -85,18 +84,15 @@ namespace Microsoft.Build.Internal
                 {
                     return Exists() ? WrappedKey.Name : string.Empty;
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (!ExceptionHandling.NotExpectedRegistryException(ex))
                 {
-                    if (ExceptionHandling.NotExpectedRegistryException(ex))
-                        throw;
-
                     throw new RegistryException(ex.Message, ex);
                 }
             }
         }
 
         /// <summary>
-        /// Convenient static helper method on RegistryKeyWrapper, for when someone is only intersted in knowing 
+        /// Convenient static helper method on RegistryKeyWrapper, for when someone is only intersted in knowing
         /// whether a particular registry key exists or not.
         /// </summary>
         public static bool KeyExists(string registryKeyPath, RegistryHive registryHive, RegistryView registryView)
@@ -118,11 +114,8 @@ namespace Microsoft.Build.Internal
             {
                 return Exists() ? WrappedKey.GetValue(name) : null;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!ExceptionHandling.NotExpectedRegistryException(ex))
             {
-                if (ExceptionHandling.NotExpectedRegistryException(ex))
-                    throw;
-
                 throw new RegistryException(ex.Message, Name + "@" + name, ex);
             }
         }
@@ -137,11 +130,8 @@ namespace Microsoft.Build.Internal
             {
                 return Exists() ? WrappedKey.GetValueNames() : Array.Empty<string>();
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!ExceptionHandling.NotExpectedRegistryException(ex))
             {
-                if (ExceptionHandling.NotExpectedRegistryException(ex))
-                    throw;
-
                 throw new RegistryException(ex.Message, Name, ex);
             }
         }
@@ -156,11 +146,8 @@ namespace Microsoft.Build.Internal
             {
                 return Exists() ? WrappedKey.GetSubKeyNames() : Array.Empty<string>();
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!ExceptionHandling.NotExpectedRegistryException(ex))
             {
-                if (ExceptionHandling.NotExpectedRegistryException(ex))
-                    throw;
-
                 throw new RegistryException(ex.Message, Name, ex);
             }
         }
@@ -187,7 +174,9 @@ namespace Microsoft.Build.Internal
                 catch (Exception ex)
                 {
                     if (ExceptionHandling.NotExpectedRegistryException(ex))
+                    {
                         throw;
+                    }
 
                     throw new RegistryException(ex.Message, wrapper.Name + "\\" + keyNames[i], ex);
                 }
@@ -221,11 +210,8 @@ namespace Microsoft.Build.Internal
                     {
                         _wrappedKey = _registryHive.OpenSubKey(_registryKeyPath);
                     }
-                    catch (Exception ex)
+                    catch (Exception ex) when (!ExceptionHandling.NotExpectedRegistryException(ex))
                     {
-                        if (ExceptionHandling.NotExpectedRegistryException(ex))
-                            throw;
-
                         throw new RegistryException(ex.Message, _wrappedKey == null ? string.Empty : Name, ex);
                     }
                     finally

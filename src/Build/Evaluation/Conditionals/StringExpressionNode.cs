@@ -1,10 +1,12 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Diagnostics;
-
+using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Shared;
+
+#nullable disable
 
 namespace Microsoft.Build.Evaluation
 {
@@ -29,60 +31,35 @@ namespace Microsoft.Build.Evaluation
             _expandable = expandable;
         }
 
-        /// <summary>
-        /// Evaluate as boolean
-        /// </summary>
-        internal override bool BoolEvaluate(ConditionEvaluator.IConditionEvaluationState state)
+        internal override bool TryBoolEvaluate(ConditionEvaluator.IConditionEvaluationState state, out bool result)
         {
-            return ConversionUtilities.ConvertStringToBool(GetExpandedValue(state));
+            return ConversionUtilities.TryConvertStringToBool(GetExpandedValue(state), out result);
         }
 
-        /// <summary>
-        /// Evaluate as numeric
-        /// </summary>
-        internal override double NumericEvaluate(ConditionEvaluator.IConditionEvaluationState state)
+        internal override bool TryNumericEvaluate(ConditionEvaluator.IConditionEvaluationState state, out double result)
         {
             if (ShouldBeTreatedAsVisualStudioVersion(state))
             {
-                return ConversionUtilities.ConvertDecimalOrHexToDouble(MSBuildConstants.CurrentVisualStudioVersion);
-            }
-
-            return ConversionUtilities.ConvertDecimalOrHexToDouble(GetExpandedValue(state));
-        }
-
-        internal override Version VersionEvaluate(ConditionEvaluator.IConditionEvaluationState state)
-        {
-            if (ShouldBeTreatedAsVisualStudioVersion(state))
-            {
-                return Version.Parse(MSBuildConstants.CurrentVisualStudioVersion);
-            }
-
-            return Version.Parse(GetExpandedValue(state));
-        }
-
-        internal override bool CanBoolEvaluate(ConditionEvaluator.IConditionEvaluationState state)
-        {
-            return ConversionUtilities.CanConvertStringToBool(GetExpandedValue(state));
-        }
-
-        internal override bool CanNumericEvaluate(ConditionEvaluator.IConditionEvaluationState state)
-        {
-            if (ShouldBeTreatedAsVisualStudioVersion(state))
-            {
+                result = ConversionUtilities.ConvertDecimalOrHexToDouble(MSBuildConstants.CurrentVisualStudioVersion);
                 return true;
             }
-
-            return ConversionUtilities.ValidDecimalOrHexNumber(GetExpandedValue(state));
+            else
+            {
+                return ConversionUtilities.TryConvertDecimalOrHexToDouble(GetExpandedValue(state), out result);
+            }
         }
 
-        internal override bool CanVersionEvaluate(ConditionEvaluator.IConditionEvaluationState state)
+        internal override bool TryVersionEvaluate(ConditionEvaluator.IConditionEvaluationState state, out Version result)
         {
             if (ShouldBeTreatedAsVisualStudioVersion(state))
             {
+                result = Version.Parse(MSBuildConstants.CurrentVisualStudioVersion);
                 return true;
             }
-
-            return Version.TryParse(GetExpandedValue(state), out _);
+            else
+            {
+                return Version.TryParse(GetExpandedValue(state), out result);
+            }
         }
 
         /// <summary>
@@ -98,6 +75,25 @@ namespace Microsoft.Build.Evaluation
             {
                 if (_expandable)
                 {
+                    switch (_value.Length)
+                    {
+                        case 0:
+                            _cachedExpandedValue = String.Empty;
+                            return true;
+                        // If the length is 1 or 2, it can't possibly be a property, item, or metadata, and it isn't empty.
+                        case 1:
+                        case 2:
+                            _cachedExpandedValue = _value;
+                            return false;
+                        default:
+                            if (_value[1] != '(' || (_value[0] != '$' && _value[0] != '%' && _value[0] != '@') || _value[_value.Length - 1] != ')')
+                            {
+                                // This isn't just a property, item, or metadata value, and it isn't empty.
+                                return false;
+                            }
+                            break;
+                    }
+
                     string expandBreakEarly = state.ExpandIntoStringBreakEarly(_value);
 
                     if (expandBreakEarly == null)
@@ -120,6 +116,10 @@ namespace Microsoft.Build.Evaluation
             return _cachedExpandedValue.Length == 0;
         }
 
+
+        /// <inheritdoc cref="GenericExpressionNode"/>
+        internal override bool IsUnexpandedValueEmpty() 
+            => string.IsNullOrEmpty(_value);
 
         /// <summary>
         /// Value before any item and property expressions are expanded
@@ -152,7 +152,7 @@ namespace Microsoft.Build.Evaluation
         }
 
         /// <summary>
-        /// If any expression nodes cache any state for the duration of evaluation, 
+        /// If any expression nodes cache any state for the duration of evaluation,
         /// now's the time to clean it up
         /// </summary>
         internal override void ResetState()
@@ -171,7 +171,7 @@ namespace Microsoft.Build.Evaluation
         /// Needed to provide a compat shim for numeric/version comparisons
         /// on MSBuildToolsVersion, which were fine when it was a number
         /// but now cause the project to throw InvalidProjectException when
-        /// ToolsVersion is "Current". https://github.com/Microsoft/msbuild/issues/4150
+        /// ToolsVersion is "Current". https://github.com/dotnet/msbuild/issues/4150
         /// </remarks>
         private bool ShouldBeTreatedAsVisualStudioVersion(ConditionEvaluator.IConditionEvaluationState state)
         {

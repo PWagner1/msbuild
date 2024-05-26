@@ -1,5 +1,5 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections.Generic;
@@ -8,11 +8,13 @@ using System.Linq;
 using System.Xml;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
-using InvalidProjectFileException = Microsoft.Build.Exceptions.InvalidProjectFileException;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Xunit;
+using InvalidProjectFileException = Microsoft.Build.Exceptions.InvalidProjectFileException;
+
+#nullable disable
 
 namespace Microsoft.Build.UnitTests.OM.Definition
 {
@@ -137,8 +139,7 @@ namespace Microsoft.Build.UnitTests.OM.Definition
                 {
                     File.Delete(file);
                 }
-            }
-           );
+            });
         }
         /// <summary>
         /// Attempt to add new metadata on imported item definition should succeed,
@@ -164,8 +165,7 @@ namespace Microsoft.Build.UnitTests.OM.Definition
                 ProjectItemDefinition definition = project.ItemDefinitions["i"];
                 definition.SetMetadataValue("n", "n0");
 
-                string expected = String.Format
-                    (
+                string expected = String.Format(
     ObjectModelHelpers.CleanupFileContents(
 @"<Project ToolsVersion=""msbuilddefaulttoolsversion"" xmlns=""msbuildnamespace"">
   <ItemDefinitionGroup>
@@ -175,8 +175,7 @@ namespace Microsoft.Build.UnitTests.OM.Definition
   </ItemDefinitionGroup>
   <Import Project=""{0}"" />
 </Project>"),
-                   file
-                   );
+                   file);
 
                 Helpers.VerifyAssertProjectContent(expected, project.Xml);
             }
@@ -457,7 +456,7 @@ ObjectModelHelpers.CleanupFileContents(
 
         /// <summary>
         /// Built-in metadata is prohibited in item definition conditions.
-        /// Ideally it would also be late evaluated, but that's too difficult. 
+        /// Ideally it would also be late evaluated, but that's too difficult.
         /// </summary>
         [Fact]
         public void ExpandBuiltInMetadataAtPointOfUse_BuiltInProhibitedOnItemDefinitionMetadataCondition()
@@ -475,12 +474,11 @@ ObjectModelHelpers.CleanupFileContents(
 </Project>");
 
                 Project project = new Project(XmlReader.Create(new StringReader(content)));
-            }
-           );
+            });
         }
         /// <summary>
         /// Built-in metadata is prohibited in item definition conditions.
-        /// Ideally it would also be late evaluated, but that's too difficult. 
+        /// Ideally it would also be late evaluated, but that's too difficult.
         /// </summary>
         [Fact]
         public void ExpandBuiltInMetadataAtPointOfUse_UnquotedBuiltInProhibitedOnItemDefinitionMetadataCondition()
@@ -498,12 +496,11 @@ ObjectModelHelpers.CleanupFileContents(
 </Project>");
 
                 Project project = new Project(XmlReader.Create(new StringReader(content)));
-            }
-           );
+            });
         }
         /// <summary>
         /// Built-in metadata is prohibited in item definition conditions.
-        /// Ideally it would also be late evaluated, but that's too difficult. 
+        /// Ideally it would also be late evaluated, but that's too difficult.
         /// </summary>
         [Fact]
         public void ExpandBuiltInMetadataAtPointOfUse_BuiltInProhibitedOnItemDefinitionCondition()
@@ -521,12 +518,11 @@ ObjectModelHelpers.CleanupFileContents(
 </Project>");
 
                 Project project = new Project(XmlReader.Create(new StringReader(content)));
-            }
-           );
+            });
         }
         /// <summary>
         /// Built-in metadata is prohibited in item definition conditions.
-        /// Ideally it would also be late evaluated, but that's too difficult. 
+        /// Ideally it would also be late evaluated, but that's too difficult.
         /// </summary>
         [Fact]
         public void ExpandBuiltInMetadataAtPointOfUse_BuiltInProhibitedOnItemDefinitionGroupCondition()
@@ -544,12 +540,11 @@ ObjectModelHelpers.CleanupFileContents(
 </Project>");
 
                 Project project = new Project(XmlReader.Create(new StringReader(content)));
-            }
-           );
+            });
         }
         /// <summary>
         /// Built-in metadata is prohibited in item definition conditions.
-        /// Ideally it would also be late evaluated, but that's too difficult. 
+        /// Ideally it would also be late evaluated, but that's too difficult.
         /// </summary>
         [Fact]
         public void ExpandBuiltInMetadataAtPointOfUse_QualifiedBuiltInProhibitedOnItemDefinitionMetadataCondition()
@@ -567,12 +562,11 @@ ObjectModelHelpers.CleanupFileContents(
 </Project>");
 
                 Project project = new Project(XmlReader.Create(new StringReader(content)));
-            }
-           );
+            });
         }
         /// <summary>
         /// Built-in metadata is prohibited in item definition conditions.
-        /// Ideally it would also be late evaluated, but that's too difficult. 
+        /// Ideally it would also be late evaluated, but that's too difficult.
         /// </summary>
         [Fact]
         public void ExpandBuiltInMetadataAtPointOfUse_QualifiedBuiltInProhibitedOnItemDefinitionCondition()
@@ -590,12 +584,11 @@ ObjectModelHelpers.CleanupFileContents(
 </Project>");
 
                 Project project = new Project(XmlReader.Create(new StringReader(content)));
-            }
-           );
+            });
         }
         /// <summary>
         /// Built-in metadata is prohibited in item definition conditions.
-        /// Ideally it would also be late evaluated, but that's too difficult. 
+        /// Ideally it would also be late evaluated, but that's too difficult.
         /// </summary>
         [Fact]
         public void ExpandBuiltInMetadataAtPointOfUse_QualifiedBuiltInProhibitedOnItemDefinitionGroupCondition()
@@ -613,12 +606,11 @@ ObjectModelHelpers.CleanupFileContents(
 </Project>");
 
                 Project project = new Project(XmlReader.Create(new StringReader(content)));
-            }
-           );
+            });
         }
         /// <summary>
         /// Built-in metadata is prohibited in item definition conditions.
-        /// Ideally it would also be late evaluated, but that's too difficult. 
+        /// Ideally it would also be late evaluated, but that's too difficult.
         /// </summary>
         [Fact]
         public void ExpandBuiltInMetadataAtPointOfUse_UnquotedQualifiedBuiltInProhibitedOnItemDefinitionCondition()
@@ -636,8 +628,7 @@ ObjectModelHelpers.CleanupFileContents(
 </Project>");
 
                 Project project = new Project(XmlReader.Create(new StringReader(content)));
-            }
-           );
+            });
         }
         /// <summary>
         /// Custom metadata is allowed in item definition conditions.

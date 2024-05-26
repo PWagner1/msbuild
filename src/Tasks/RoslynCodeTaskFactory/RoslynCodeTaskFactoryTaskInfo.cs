@@ -1,8 +1,10 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections.Generic;
+
+#nullable disable
 
 namespace Microsoft.Build.Tasks
 {
@@ -51,7 +53,7 @@ namespace Microsoft.Build.Tasks
                 return true;
             }
 
-            return References.Equals(other.References) && String.Equals(SourceCode, other.SourceCode, StringComparison.OrdinalIgnoreCase);
+            return String.Equals(SourceCode, other.SourceCode, StringComparison.OrdinalIgnoreCase) && References.SetEquals(other.References);
         }
 
         public override bool Equals(object obj)
@@ -66,7 +68,8 @@ namespace Microsoft.Build.Tasks
 
         public override int GetHashCode()
         {
-            return 0;
+            // This is good enough to avoid most collisions, no need to hash References
+            return SourceCode.GetHashCode();
         }
     }
 }

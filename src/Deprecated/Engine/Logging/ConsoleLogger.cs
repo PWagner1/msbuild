@@ -1,5 +1,9 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
 
 using System;
 
@@ -32,8 +36,8 @@ namespace Microsoft.Build.BuildEngine
 
     /// <summary>
     /// This class implements the default logger that outputs event data
-    /// to the console (stdout). 
-    /// It is a facade: it creates, wraps and delegates to a kind of BaseConsoleLogger, 
+    /// to the console (stdout).
+    /// It is a facade: it creates, wraps and delegates to a kind of BaseConsoleLogger,
     /// either SerialConsoleLogger or ParallelConsoleLogger.
     /// </summary>
     /// <remarks>This class is not thread safe.</remarks>
@@ -111,7 +115,7 @@ namespace Microsoft.Build.BuildEngine
                 bool useMPLogger = false;
                 if (!string.IsNullOrEmpty(parameters))
                 {
-                    string [] parameterComponents = parameters.Split(BaseConsoleLogger.parameterDelimiters);
+                    string[] parameterComponents = parameters.Split(BaseConsoleLogger.parameterDelimiters);
                     for (int param = 0; param < parameterComponents.Length; param++)
                     {
                         if (parameterComponents[param].Length > 0)
@@ -137,7 +141,7 @@ namespace Microsoft.Build.BuildEngine
                     consoleLogger = new ParallelConsoleLogger(verbosity, write, colorSet, colorReset);
                 }
 
-                if(!string.IsNullOrEmpty(parameters))
+                if (!string.IsNullOrEmpty(parameters))
                 {
                     consoleLogger.Parameters = parameters;
                     parameters = null;
@@ -283,7 +287,7 @@ namespace Microsoft.Build.BuildEngine
 
         /// <summary>
         /// Apply a parameter.
-        /// NOTE: This method was public by accident in Whidbey, so it cannot be made internal now. It has 
+        /// NOTE: This method was public by accident in Whidbey, so it cannot be made internal now. It has
         /// no good reason for being public.
         /// </summary>
         public void ApplyParameter(string parameterName, string parameterValue)

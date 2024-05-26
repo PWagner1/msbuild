@@ -1,20 +1,23 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using Microsoft.Build.Framework;
-using Microsoft.Build.BackEnd;
-using Microsoft.Build.Construction;
-using Microsoft.Build.Shared;
-using Microsoft.Build.BackEnd.Logging;
-using System.Collections.Generic;
-using Microsoft.Build.Execution;
-using Microsoft.Build.Collections;
 using System.Collections;
-using Microsoft.Build.Unittest;
-using TaskItem = Microsoft.Build.Execution.ProjectItemInstance.TaskItem;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.Build.BackEnd;
+using Microsoft.Build.BackEnd.Logging;
+using Microsoft.Build.Collections;
+using Microsoft.Build.Construction;
+using Microsoft.Build.Execution;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Shared;
+using Microsoft.Build.Unittest;
+using Shouldly;
 using Xunit;
+using TaskItem = Microsoft.Build.Execution.ProjectItemInstance.TaskItem;
+
+#nullable disable
 
 namespace Microsoft.Build.UnitTests.BackEnd
 {
@@ -70,7 +73,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             _elementLocation = ElementLocation.Create("MockFile", 5, 5);
 
             BuildRequest buildRequest = new BuildRequest(1 /* submissionId */, 1, 1, new List<string>(), null, BuildEventContext.Invalid, null);
-            BuildRequestConfiguration configuration = new BuildRequestConfiguration(1, new BuildRequestData("Nothing", new Dictionary<string, string>(), "4.0", new string[0], null), "2.0");
+            BuildRequestConfiguration configuration = new BuildRequestConfiguration(1, new BuildRequestData("Nothing", new Dictionary<string, string>(), "4.0", Array.Empty<string>(), null), "2.0");
 
             configuration.Project = new ProjectInstance(ProjectRootElement.Create());
 
@@ -119,20 +122,20 @@ namespace Microsoft.Build.UnitTests.BackEnd
         public void CustomBuildErrorEventIsPreserved()
         {
             // Create a custom build event args that derives from MSBuild's BuildErrorEventArgs.
-            // Set a custom field on this event (FXCopRule).
-            MyCustomBuildErrorEventArgs fxcopError = new MyCustomBuildErrorEventArgs("Your code failed.");
-            fxcopError.FXCopRule = "CodeViolation";
+            // Set a custom field on this event.
+            MyCustomBuildErrorEventArgs customBuildError = new MyCustomBuildErrorEventArgs("Your code failed.");
+            customBuildError.CustomData = "CodeViolation";
 
             // Log the custom event args.  (Pretend that the task actually did this.)
-            _taskHost.LogErrorEvent(fxcopError);
+            _taskHost.LogErrorEvent(customBuildError);
 
             // Make sure our custom logger received the actual custom event and not some fake.
             Assert.True(_customLogger.LastError is MyCustomBuildErrorEventArgs); // "Expected Custom Error Event"
 
             // Make sure the special fields in the custom event match what we originally logged.
-            fxcopError = _customLogger.LastError as MyCustomBuildErrorEventArgs;
-            Assert.Equal("Your code failed.", fxcopError.Message);
-            Assert.Equal("CodeViolation", fxcopError.FXCopRule);
+            customBuildError = _customLogger.LastError as MyCustomBuildErrorEventArgs;
+            Assert.Equal("Your code failed.", customBuildError.Message);
+            Assert.Equal("CodeViolation", customBuildError.CustomData);
         }
 
         /// <summary>
@@ -145,19 +148,19 @@ namespace Microsoft.Build.UnitTests.BackEnd
         public void CustomBuildWarningEventIsPreserved()
         {
             // Create a custom build event args that derives from MSBuild's BuildWarningEventArgs.
-            // Set a custom field on this event (FXCopRule).
-            MyCustomBuildWarningEventArgs fxcopWarning = new MyCustomBuildWarningEventArgs("Your code failed.");
-            fxcopWarning.FXCopRule = "CodeViolation";
+            // Set a custom field on this event.
+            MyCustomBuildWarningEventArgs customBuildWarning = new MyCustomBuildWarningEventArgs("Your code failed.");
+            customBuildWarning.CustomData = "CodeViolation";
 
-            _taskHost.LogWarningEvent(fxcopWarning);
+            _taskHost.LogWarningEvent(customBuildWarning);
 
             // Make sure our custom logger received the actual custom event and not some fake.
             Assert.True(_customLogger.LastWarning is MyCustomBuildWarningEventArgs); // "Expected Custom Warning Event"
 
             // Make sure the special fields in the custom event match what we originally logged.
-            fxcopWarning = _customLogger.LastWarning as MyCustomBuildWarningEventArgs;
-            Assert.Equal("Your code failed.", fxcopWarning.Message);
-            Assert.Equal("CodeViolation", fxcopWarning.FXCopRule);
+            customBuildWarning = _customLogger.LastWarning as MyCustomBuildWarningEventArgs;
+            Assert.Equal("Your code failed.", customBuildWarning.Message);
+            Assert.Equal("CodeViolation", customBuildWarning.CustomData);
         }
 
         /// <summary>
@@ -170,7 +173,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         public void CustomBuildMessageEventIsPreserved()
         {
             // Create a custom build event args that derives from MSBuild's BuildMessageEventArgs.
-            // Set a custom field on this event (FXCopRule).
+            // Set a custom field on this event.
             MyCustomMessageEvent customMessage = new MyCustomMessageEvent("I am a message");
             customMessage.CustomMessage = "CodeViolation";
 
@@ -233,8 +236,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             Assert.Throws<ArgumentNullException>(() =>
             {
                 _taskHost.LogErrorEvent(null);
-            }
-           );
+            });
         }
         /// <summary>
         /// Test that a null warning event will cause an exception
@@ -245,8 +247,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             Assert.Throws<ArgumentNullException>(() =>
             {
                 _taskHost.LogWarningEvent(null);
-            }
-           );
+            });
         }
         /// <summary>
         /// Test that a null message event will cause an exception
@@ -257,8 +258,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             Assert.Throws<ArgumentNullException>(() =>
             {
                 _taskHost.LogMessageEvent(null);
-            }
-           );
+            });
         }
         /// <summary>
         /// Test that a null custom event will cause an exception
@@ -269,8 +269,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             Assert.Throws<ArgumentNullException>(() =>
             {
                 _taskHost.LogCustomEvent(null);
-            }
-           );
+            });
         }
         /// <summary>
         /// Test that errors are logged properly
@@ -387,6 +386,61 @@ namespace Microsoft.Build.UnitTests.BackEnd
         }
 
         /// <summary>
+        /// Test that extended custom events are logged properly
+        /// </summary>
+        [Fact]
+        public void TestLogExtendedCustomEventNotSerializableMP()
+        {
+            _mockHost.BuildParameters.MaxNodeCount = 4;
+
+            // Log the custom event args.  (Pretend that the task actually did this.)
+            _taskHost.LogCustomEvent(new ExtendedCustomBuildEventArgs("testExtCustomBuildEvent", "ext message", null, null));
+
+            // Make sure our custom logger received the actual custom event and not some fake.
+            Assert.True(_customLogger.LastCustom is ExtendedCustomBuildEventArgs); // "Expected custom build Event"
+            Assert.Equal("ext message", _customLogger.LastCustom.Message);
+        }
+
+        [Fact]
+        public void TestLogExtendedCustomErrorNotSerializableMP()
+        {
+            _mockHost.BuildParameters.MaxNodeCount = 4;
+
+            // Log the custom event args.  (Pretend that the task actually did this.)
+            _taskHost.LogErrorEvent(new ExtendedBuildErrorEventArgs("testExtCustomBuildError", null, null, null, 0, 0, 0, 0,"ext err message", null, null));
+
+            // Make sure our custom logger received the actual custom event and not some fake.
+            Assert.True(_customLogger.LastError is ExtendedBuildErrorEventArgs); // "Expected custom build Event"
+            Assert.Equal("ext err message", _customLogger.LastError.Message);
+        }
+
+        [Fact]
+        public void TestLogExtendedCustomWarningNotSerializableMP()
+        {
+            _mockHost.BuildParameters.MaxNodeCount = 4;
+
+            // Log the custom event args.  (Pretend that the task actually did this.)
+            _taskHost.LogWarningEvent(new ExtendedBuildWarningEventArgs("testExtCustomBuildWarning", null, null, null, 0, 0, 0, 0, "ext warn message", null, null));
+
+            // Make sure our custom logger received the actual custom event and not some fake.
+            Assert.True(_customLogger.LastWarning is ExtendedBuildWarningEventArgs); // "Expected custom build Event"
+            Assert.Equal("ext warn message", _customLogger.LastWarning.Message);
+        }
+
+        [Fact]
+        public void TestLogExtendedCustomMessageNotSerializableMP()
+        {
+            _mockHost.BuildParameters.MaxNodeCount = 4;
+
+            // Log the custom event args.  (Pretend that the task actually did this.)
+            _taskHost.LogMessageEvent(new ExtendedBuildMessageEventArgs("testExtCustomBuildMessage", "ext message", null, null, MessageImportance.Normal));
+
+            // Make sure our custom logger received the actual custom event and not some fake.
+            Assert.True(_customLogger.LastMessage is ExtendedBuildMessageEventArgs); // "Expected custom build Event"
+            Assert.Equal("ext message", _customLogger.LastMessage.Message);
+        }
+
+        /// <summary>
         /// Test that errors are logged properly
         /// </summary>
         [Fact]
@@ -495,7 +549,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         public void LogCustomAfterTaskIsDone()
         {
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName='test' TaskFactory='CodeTaskFactory' AssemblyFile='$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll' >
                             <Task>
                               <Using Namespace='System' />
@@ -531,7 +585,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         public void LogCommentAfterTaskIsDone()
         {
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName='test' TaskFactory='CodeTaskFactory' AssemblyFile='$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll' >
                             <Task>
                               <Using Namespace='System' />
@@ -567,7 +621,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         public void LogWarningAfterTaskIsDone()
         {
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName='test' TaskFactory='CodeTaskFactory' AssemblyFile='$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll' >
                             <Task>
                               <Using Namespace='System' />
@@ -603,7 +657,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         public void LogErrorAfterTaskIsDone()
         {
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName='test' TaskFactory='CodeTaskFactory' AssemblyFile='$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll' >
                             <Task>
                               <Using Namespace='System' />
@@ -705,13 +759,97 @@ namespace Microsoft.Build.UnitTests.BackEnd
             mockLogger.AssertLogContains("Global property count: 0");
         }
 
+        [Fact]
+        public void RequestCoresThrowsOnInvalidInput()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+            {
+                _taskHost.RequestCores(0);
+            });
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+            {
+                _taskHost.RequestCores(-1);
+            });
+        }
+
+        [Fact]
+        public void RequestCoresUsesImplicitCore()
+        {
+            // If the request callback has no cores to grant, we still get 1 for the implicit core.
+            _mockRequestCallback.CoresToGrant = 0;
+            _taskHost.RequestCores(3).ShouldBe(1);
+            _mockRequestCallback.LastRequestedCores.ShouldBe(2);
+            _mockRequestCallback.LastWaitForCores.ShouldBeFalse();
+        }
+
+        [Fact]
+        public void RequestCoresUsesCoresFromRequestCallback()
+        {
+            // The request callback has 1 core to grant, we should see it returned from RequestCores.
+            _mockRequestCallback.CoresToGrant = 1;
+            _taskHost.RequestCores(3).ShouldBe(2);
+            _mockRequestCallback.LastRequestedCores.ShouldBe(2);
+            _mockRequestCallback.LastWaitForCores.ShouldBeFalse();
+
+            // Since we've used the implicit core, the second call will return only what the request callback gives us and may block.
+            _mockRequestCallback.CoresToGrant = 1;
+            _taskHost.RequestCores(3).ShouldBe(1);
+            _mockRequestCallback.LastRequestedCores.ShouldBe(3);
+            _mockRequestCallback.LastWaitForCores.ShouldBeTrue();
+        }
+
+        [Fact]
+        public void ReleaseCoresThrowsOnInvalidInput()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+            {
+                _taskHost.ReleaseCores(0);
+            });
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+            {
+                _taskHost.ReleaseCores(-1);
+            });
+        }
+
+        [Fact]
+        public void ReleaseCoresReturnsCoresToRequestCallback()
+        {
+            _mockRequestCallback.CoresToGrant = 1;
+            _taskHost.RequestCores(3).ShouldBe(2);
+
+            // We return one of two granted cores, the call passes through to the request callback.
+            _taskHost.ReleaseCores(1);
+            _mockRequestCallback.LastCoresToRelease.ShouldBe(1);
+
+            // The implicit core is still allocated so a subsequent RequestCores call may block.
+            _taskHost.RequestCores(1);
+            _mockRequestCallback.LastWaitForCores.ShouldBeTrue();
+        }
+
+        [Fact]
+        public void ReleaseCoresReturnsImplicitCore()
+        {
+            _mockRequestCallback.CoresToGrant = 1;
+            _taskHost.RequestCores(3).ShouldBe(2);
+
+            // We return both granted cores, one of them is returned to the request callback.
+            _taskHost.ReleaseCores(2);
+            _mockRequestCallback.LastCoresToRelease.ShouldBe(1);
+
+            // The implicit core is not allocated anymore so a subsequent RequestCores call won't block.
+            _taskHost.RequestCores(1);
+            _mockRequestCallback.LastWaitForCores.ShouldBeFalse();
+        }
+
         #region Helper Classes
 
         /// <summary>
         /// Create a custom message event to make sure it can get sent correctly
         /// </summary>
         [Serializable]
-        internal class MyCustomMessageEvent : BuildMessageEventArgs
+        internal sealed class MyCustomMessageEvent : BuildMessageEventArgs
         {
             /// <summary>
             /// Some custom data for the custom event.
@@ -721,10 +859,8 @@ namespace Microsoft.Build.UnitTests.BackEnd
             /// <summary>
             /// Constructor
             /// </summary>
-            internal MyCustomMessageEvent
-                (
-                string message
-                )
+            internal MyCustomMessageEvent(
+                string message)
                 : base(message, null, null, MessageImportance.High)
             {
             }
@@ -750,7 +886,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// Create a custom build event to test the logging of custom build events against the task host
         /// </summary>
         [Serializable]
-        internal class MyCustomBuildEventArgs : CustomBuildEventArgs
+        internal sealed class MyCustomBuildEventArgs : CustomBuildEventArgs
         {
             /// <summary>
             /// Constructor
@@ -771,20 +907,18 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// Class which implements a simple custom build error
         /// </summary>
         [Serializable]
-        internal class MyCustomBuildErrorEventArgs : BuildErrorEventArgs
+        internal sealed class MyCustomBuildErrorEventArgs : BuildErrorEventArgs
         {
             /// <summary>
             /// Some custom data for the custom event.
             /// </summary>
-            private string _fxcopRule;
+            private string _customData;
 
             /// <summary>
             /// Constructor
             /// </summary>
-            internal MyCustomBuildErrorEventArgs
-                (
-                string message
-                )
+            internal MyCustomBuildErrorEventArgs(
+                string message)
                 : base(null, null, null, 0, 0, 0, 0, message, null, null)
             {
             }
@@ -792,16 +926,16 @@ namespace Microsoft.Build.UnitTests.BackEnd
             /// <summary>
             /// Some data which can be set on the custom error event to make sure it makes it to the logger.
             /// </summary>
-            internal string FXCopRule
+            internal string CustomData
             {
                 get
                 {
-                    return _fxcopRule;
+                    return _customData;
                 }
 
                 set
                 {
-                    _fxcopRule = value;
+                    _customData = value;
                 }
             }
         }
@@ -810,20 +944,18 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// Class which implements a simple custom build warning
         /// </summary>
         [Serializable]
-        internal class MyCustomBuildWarningEventArgs : BuildWarningEventArgs
+        internal sealed class MyCustomBuildWarningEventArgs : BuildWarningEventArgs
         {
             /// <summary>
             /// Custom data for the custom event
             /// </summary>
-            private string _fxcopRule;
+            private string _customData;
 
             /// <summary>
             /// Constructor
             /// </summary>
-            internal MyCustomBuildWarningEventArgs
-                (
-                string message
-                )
+            internal MyCustomBuildWarningEventArgs(
+                string message)
                 : base(null, null, null, 0, 0, 0, 0, message, null, null)
             {
             }
@@ -831,16 +963,16 @@ namespace Microsoft.Build.UnitTests.BackEnd
             /// <summary>
             /// Getter for the custom data in the custom event.
             /// </summary>
-            internal string FXCopRule
+            internal string CustomData
             {
                 get
                 {
-                    return _fxcopRule;
+                    return _customData;
                 }
 
                 set
                 {
-                    _fxcopRule = value;
+                    _customData = value;
                 }
             }
         }
@@ -848,7 +980,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// <summary>
         /// Create a custom message event to make sure it can get sent correctly
         /// </summary>
-        internal class MyCustomMessageEventNotSerializable : BuildMessageEventArgs
+        internal sealed class MyCustomMessageEventNotSerializable : BuildMessageEventArgs
         {
             /// <summary>
             /// Some custom data for the custom event.
@@ -858,10 +990,8 @@ namespace Microsoft.Build.UnitTests.BackEnd
             /// <summary>
             /// Constructor
             /// </summary>
-            internal MyCustomMessageEventNotSerializable
-                (
-                string message
-                )
+            internal MyCustomMessageEventNotSerializable(
+                string message)
                 : base(message, null, null, MessageImportance.High)
             {
             }
@@ -886,9 +1016,9 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// <summary>
         /// Custom build event which is not marked serializable. This is used to make sure we warn if we try and log a not serializable type in multiproc.
         /// </summary>
-        internal class MyCustomBuildEventArgsNotSerializable : CustomBuildEventArgs
+        internal sealed class MyCustomBuildEventArgsNotSerializable : CustomBuildEventArgs
         {
-            //  If binary serialization is not available, then we use a simple serializer which relies on a default constructor.  So to test
+            // If binary serialization is not available, then we use a simple serializer which relies on a default constructor.  So to test
             //  what happens for an event that's not serializable, don't include a default constructor.
             /// <summary>
             /// Default constructor
@@ -908,20 +1038,18 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// <summary>
         /// Class which implements a simple custom build error which is not serializable
         /// </summary>
-        internal class MyCustomBuildErrorEventArgsNotSerializable : BuildErrorEventArgs
+        internal sealed class MyCustomBuildErrorEventArgsNotSerializable : BuildErrorEventArgs
         {
             /// <summary>
             /// Custom data for the custom event
             /// </summary>
-            private string _fxcopRule;
+            private string _customData;
 
             /// <summary>
             /// Constructor
             /// </summary>
-            internal MyCustomBuildErrorEventArgsNotSerializable
-                (
-                string message
-                )
+            internal MyCustomBuildErrorEventArgsNotSerializable(
+                string message)
                 : base(null, null, null, 0, 0, 0, 0, message, null, null)
             {
             }
@@ -929,16 +1057,16 @@ namespace Microsoft.Build.UnitTests.BackEnd
             /// <summary>
             /// Getter and setter for the custom data
             /// </summary>
-            internal string FXCopRule
+            internal string CustomData
             {
                 get
                 {
-                    return _fxcopRule;
+                    return _customData;
                 }
 
                 set
                 {
-                    _fxcopRule = value;
+                    _customData = value;
                 }
             }
         }
@@ -946,20 +1074,18 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// <summary>
         /// Class which implements a simple custom build warning which is not serializable
         /// </summary>
-        internal class MyCustomBuildWarningEventArgsNotSerializable : BuildWarningEventArgs
+        internal sealed class MyCustomBuildWarningEventArgsNotSerializable : BuildWarningEventArgs
         {
             /// <summary>
             /// Custom data for the custom event
             /// </summary>
-            private string _fxcopRule;
+            private string _customData;
 
             /// <summary>
             /// Constructor
             /// </summary>
-            internal MyCustomBuildWarningEventArgsNotSerializable
-                (
-                string message
-                )
+            internal MyCustomBuildWarningEventArgsNotSerializable(
+                string message)
                 : base(null, null, null, 0, 0, 0, 0, message, null, null)
             {
             }
@@ -967,16 +1093,16 @@ namespace Microsoft.Build.UnitTests.BackEnd
             /// <summary>
             /// Getter and setter for the custom data
             /// </summary>
-            internal string FXCopRule
+            internal string CustomData
             {
                 get
                 {
-                    return _fxcopRule;
+                    return _customData;
                 }
 
                 set
                 {
-                    _fxcopRule = value;
+                    _customData = value;
                 }
             }
         }
@@ -984,7 +1110,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// <summary>
         /// Custom logger which will be used for testing
         /// </summary>
-        internal class MyCustomLogger : ILogger
+        internal sealed class MyCustomLogger : ILogger
         {
             /// <summary>
             /// Last error event the logger encountered
@@ -1214,12 +1340,32 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// <summary>
         /// Mock this class so that we can determine if build results are being cloned or if the live copies are being returned to the callers of the msbuild callback.
         /// </summary>
-        internal class MockIRequestBuilderCallback : IRequestBuilderCallback, IRequestBuilder
+        internal sealed class MockIRequestBuilderCallback : IRequestBuilderCallback, IRequestBuilder
         {
             /// <summary>
             /// BuildResults to return from the BuildProjects method.
             /// </summary>
             private BuildResult[] _buildResultsToReturn;
+
+            /// <summary>
+            /// The requestedCores argument passed to the last RequestCores call.
+            /// </summary>
+            public int LastRequestedCores { get; private set; }
+
+            /// <summary>
+            /// The waitForCores argument passed to the last RequestCores call.
+            /// </summary>
+            public bool LastWaitForCores { get; private set; }
+
+            /// <summary>
+            /// The value to be returned from the RequestCores call.
+            /// </summary>
+            public int CoresToGrant { get; set; }
+
+            /// <summary>
+            /// The coresToRelease argument passed to the last ReleaseCores call.
+            /// </summary>
+            public int LastCoresToRelease { get; private set; }
 
             /// <summary>
             /// Constructor which takes an array of build results to return from the BuildProjects method when it is called.
@@ -1247,6 +1393,11 @@ namespace Microsoft.Build.UnitTests.BackEnd
             /// Not Implemented
             /// </summary>
             public event BuildRequestBlockedDelegate OnBuildRequestBlocked;
+
+            /// <summary>
+            /// Not Implemented
+            /// </summary>
+            public event ResourceRequestDelegate OnResourceRequest;
 #pragma warning restore
 
             /// <summary>
@@ -1295,6 +1446,24 @@ namespace Microsoft.Build.UnitTests.BackEnd
             }
 
             /// <summary>
+            /// Mock
+            /// </summary>
+            public int RequestCores(object monitorLockObject, int requestedCores, bool waitForCores)
+            {
+                LastRequestedCores = requestedCores;
+                LastWaitForCores = waitForCores;
+                return CoresToGrant;
+            }
+
+            /// <summary>
+            /// Mock
+            /// </summary>
+            public void ReleaseCores(int coresToRelease)
+            {
+                LastCoresToRelease = coresToRelease;
+            }
+
+            /// <summary>
             /// Mock of the Block on target in progress.
             /// </summary>
             public Task BlockOnTargetInProgress(int blockingRequestId, string blockingTarget, BuildResult partialBuildResult)
@@ -1314,6 +1483,14 @@ namespace Microsoft.Build.UnitTests.BackEnd
             /// Not Implemented
             /// </summary>
             public void ContinueRequest()
+            {
+                throw new NotImplementedException();
+            }
+
+            /// <summary>
+            /// Not Implemented
+            /// </summary>
+            public void ContinueRequestWithResources(ResourceResponse response)
             {
                 throw new NotImplementedException();
             }

@@ -1,5 +1,9 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
 
 using System;
 using System.Xml;
@@ -14,12 +18,11 @@ namespace Microsoft.Build.BuildEngine
     /// This exception is thrown whenever there is a problem with the user's XML project file. The problem might be semantic or
     /// syntactical. The latter would be of a type typically caught by XSD validation (if it was performed by the project writer).
     /// </summary>
-    /// <remarks>
-    /// WARNING: marking a type [Serializable] without implementing ISerializable imposes a serialization contract -- it is a
-    /// promise to never change the type's fields i.e. the type is immutable; adding new fields in the next version of the type
-    /// without following certain special FX guidelines, can break both forward and backward compatibility
-    /// </remarks>
     /// <owner>RGoel</owner>
+    // WARNING: marking a type [Serializable] without implementing ISerializable imposes a serialization contract -- it is a
+    // promise to never change the type's fields i.e. the type is immutable; adding new fields in the next version of the type
+    // without following certain special FX guidelines, can break both forward and backward compatibility
+
     [Serializable]
     public sealed class InvalidProjectFileException : Exception
     {
@@ -72,7 +75,7 @@ namespace Microsoft.Build.BuildEngine
         #region Serialization (update when adding new class members)
 
         /// <summary>
-        /// Protected constructor used for (de)serialization. 
+        /// Protected constructor used for (de)serialization.
         /// If we ever add new members to this class, we'll need to update this.
         /// </summary>
         /// <param name="info"></param>
@@ -98,7 +101,7 @@ namespace Microsoft.Build.BuildEngine
         /// <param name="info"></param>
         /// <param name="context"></param>
         [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
-        override public void GetObjectData(SerializationInfo info, StreamingContext context)
+        public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             base.GetObjectData(info, context);
 
@@ -134,7 +137,7 @@ namespace Microsoft.Build.BuildEngine
             string errorSubcategory,
             string errorCode,
             string helpKeyword
-        ) : 
+        ) :
             base(message)
         {
             ErrorUtilities.VerifyThrowArgumentLength(message, nameof(message));
@@ -175,7 +178,7 @@ namespace Microsoft.Build.BuildEngine
             string errorSubcategory,
             string errorCode,
             string helpKeyword
-        ) : 
+        ) :
             base(message)
         {
             ErrorUtilities.VerifyThrowArgumentNull(projectFile, nameof(projectFile));
@@ -328,7 +331,7 @@ namespace Microsoft.Build.BuildEngine
         }
 
         /// <summary>
-        /// Whether the exception has already been logged. Allows the exception to be logged at the 
+        /// Whether the exception has already been logged. Allows the exception to be logged at the
         /// most appropriate location, but continue to be propagated.
         /// </summary>
         internal bool HasBeenLogged

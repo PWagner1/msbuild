@@ -1,6 +1,6 @@
-﻿using Microsoft.Build.UnitTests;
-using Microsoft.Build.Utilities;
-using Shouldly;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
 using System;
 using System.IO;
 using System.Net;
@@ -10,9 +10,13 @@ using System.Net.Mime;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Build.UnitTests;
+using Microsoft.Build.Utilities;
+using Shouldly;
 using Xunit;
-
 using Task = System.Threading.Tasks.Task;
+
+#nullable disable
 
 namespace Microsoft.Build.Tasks.UnitTests
 {
@@ -72,7 +76,7 @@ namespace Microsoft.Build.Tasks.UnitTests
 
                 FileInfo file = new FileInfo(Path.Combine(folder.Path, "foo.txt"));
 
-                file.Exists.ShouldBeTrue(() => file.FullName);
+                file.Exists.ShouldBeTrue(file.FullName);
 
                 File.ReadAllText(file.FullName).ShouldBe("Success!");
 
@@ -117,7 +121,7 @@ namespace Microsoft.Build.Tasks.UnitTests
 
                 FileInfo file = new FileInfo(Path.Combine(folder.Path, filename));
 
-                file.Exists.ShouldBeTrue(() => file.FullName);
+                file.Exists.ShouldBeTrue(file.FullName);
 
                 File.ReadAllText(file.FullName).ShouldBe("Success!");
 
@@ -151,7 +155,7 @@ namespace Microsoft.Build.Tasks.UnitTests
 
                 FileInfo file = new FileInfo(Path.Combine(folder.Path, filename));
 
-                file.Exists.ShouldBeTrue(() => file.FullName);
+                file.Exists.ShouldBeTrue(file.FullName);
 
                 File.ReadAllText(file.FullName).ShouldBe("Success!");
 
@@ -168,7 +172,7 @@ namespace Microsoft.Build.Tasks.UnitTests
                 SourceUrl = "&&&&&"
             };
 
-            downloadFile.Execute().ShouldBeFalse(() => _mockEngine.Log);
+            downloadFile.Execute().ShouldBeFalse(_mockEngine.Log);
 
             _mockEngine.Log.ShouldContain("MSB3921");
         }
@@ -183,7 +187,7 @@ namespace Microsoft.Build.Tasks.UnitTests
                 SourceUrl = "http://notfound/foo.txt"
             };
 
-            downloadFile.Execute().ShouldBeFalse(() => _mockEngine.Log);
+            downloadFile.Execute().ShouldBeFalse(_mockEngine.Log);
 
             _mockEngine.Log.ShouldContain("Response status code does not indicate success: 404 (Not Found).");
         }
@@ -222,9 +226,9 @@ namespace Microsoft.Build.Tasks.UnitTests
                     SourceUrl = "http://success/foo.txt"
                 };
 
-                downloadFile.Execute().ShouldBeTrue(() => _mockEngine.Log);
+                downloadFile.Execute().ShouldBeTrue(_mockEngine.Log);
 
-                _mockEngine.Log.ShouldContain("MSB3924", () => _mockEngine.Log);
+                _mockEngine.Log.ShouldContain("MSB3924", customMessage: _mockEngine.Log);
             }
         }
 
@@ -240,9 +244,9 @@ namespace Microsoft.Build.Tasks.UnitTests
                 SourceUrl = "http://notfound/foo.txt"
             };
 
-            downloadFile.Execute().ShouldBeFalse(() => _mockEngine.Log);
+            downloadFile.Execute().ShouldBeFalse(_mockEngine.Log);
 
-            _mockEngine.Log.ShouldContain("MSB3924", () => _mockEngine.Log);
+            _mockEngine.Log.ShouldContain("MSB3924", customMessage: _mockEngine.Log);
         }
 
         [Fact]
@@ -263,9 +267,9 @@ namespace Microsoft.Build.Tasks.UnitTests
                 SourceUrl = "http://notfound/foo.txt"
             };
 
-            downloadFile.Execute().ShouldBeFalse(() => _mockEngine.Log);
+            downloadFile.Execute().ShouldBeFalse(_mockEngine.Log);
 
-            _mockEngine.Log.ShouldContain("MSB3923", () => _mockEngine.Log);
+            _mockEngine.Log.ShouldContain("MSB3923", customMessage: _mockEngine.Log);
         }
 
         [Fact]
@@ -302,7 +306,7 @@ namespace Microsoft.Build.Tasks.UnitTests
             runaway.IsCompleted.ShouldBeTrue("Task did not cancel");
 
             var result = await runaway;
-            result.ShouldBeFalse(() => _mockEngine.Log);
+            result.ShouldBeFalse(_mockEngine.Log);
         }
 
         [Fact]
@@ -335,7 +339,7 @@ namespace Microsoft.Build.Tasks.UnitTests
 
                 downloadFile.Execute().ShouldBeTrue();
 
-                _mockEngine.Log.ShouldContain("Did not download file from \"http://success/foo.txt\"", () => _mockEngine.Log);
+                _mockEngine.Log.ShouldContain("Did not download file from \"http://success/foo.txt\"", customMessage: _mockEngine.Log);
             }
         }
 
@@ -353,12 +357,12 @@ namespace Microsoft.Build.Tasks.UnitTests
                 SourceUrl = "http://unknown/"
             };
 
-            downloadFile.Execute().ShouldBeFalse(() => _mockEngine.Log);
+            downloadFile.Execute().ShouldBeFalse(_mockEngine.Log);
 
-            _mockEngine.Log.ShouldContain("MSB3922", () => _mockEngine.Log);
+            _mockEngine.Log.ShouldContain("MSB3922", customMessage: _mockEngine.Log);
         }
 
-        private class MockHttpContent : HttpContent
+        private sealed class MockHttpContent : HttpContent
         {
             private readonly Func<Stream, Task> _func;
             private readonly int _length;
@@ -382,7 +386,7 @@ namespace Microsoft.Build.Tasks.UnitTests
             }
         }
 
-        private class MockHttpMessageHandler : HttpMessageHandler
+        private sealed class MockHttpMessageHandler : HttpMessageHandler
         {
             private readonly Func<HttpRequestMessage, CancellationToken, HttpResponseMessage> _func;
 

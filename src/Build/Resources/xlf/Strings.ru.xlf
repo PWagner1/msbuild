@@ -26,6 +26,116 @@
         <note>{StrBegin="MSB4003: "}UE: Tasks are not allowed to use incorrect case for reserved attributes on the task nodes e.g. "continueonerror"
     instead of the "ContinueOnError".</note>
       </trans-unit>
+      <trans-unit id="Binlog_ArchiveFile_AcquiredAsStream">
+        <source>Content already acquired as StreamReader via GetContentReader.</source>
+        <target state="translated">Содержимое, уже получено как StreamReader через GetContentReader.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Binlog_ArchiveFile_AcquiredAsString">
+        <source>Content already acquired as string via GetContent or initialized as string only.</source>
+        <target state="translated">Содержимое уже получено в виде строки с помощью GetContent или инициализировано только как строка.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Binlog_ArchiveFile_NotSetAfterAcquire">
+        <source>ArchiveFile was obtained, but the final edited version was not set.</source>
+        <target state="translated">ArchiveFile получен, но окончательная измененная версия не установлена.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Binlog_FwdCompatUnsupported">
+        <source>Forward compatible reading is not supported for file format version {0} (needs &gt;= 18).</source>
+        <target state="translated">Чтение с прямой совместимостью не поддерживается для версии формата файла {0} (необходимо &gt;= 18).</target>
+        <note>
+      LOCALIZATION: {0} is an integer number denoting version.
+    </note>
+      </trans-unit>
+      <trans-unit id="Binlog_ImportFileSizeError">
+        <source>Imported files archive exceeded 2GB limit and it's not embedded.</source>
+        <target state="translated">Архив импортируемых файлов превысил ограничение в 2 ГБ и не внедрен.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Binlog_MissingRecoverableErrorSubscribeError">
+        <source>Subscription to RecoverableReadError is mandatory during forward compatible reading.</source>
+        <target state="translated">Подписка на RecoverableReadError обязательна во время прямого совместимого чтения.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Binlog_ReaderMismatchedRead">
+        <source>BuildEvent record number {0} (serialized size: {1}) attempted to perform disallowed reads (details: {2}: {3}).</source>
+        <target state="translated">Номер записи BuildEvent {0} (сериализованный размер: {1}) попытался выполнить запрещенные операции чтения (сведения: {2}: {3}).</target>
+        <note>
+      LOCALIZATION: {0} is an integer number denoting order. {1} is an integer denoting size. {2} is an exception type and {3} the exception message string.
+    </note>
+      </trans-unit>
+      <trans-unit id="Binlog_ReaderSkippingRecord">
+        <source>Skipping the record.</source>
+        <target state="translated">Пропуск записи.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Binlog_ReaderUnderRead">
+        <source>BuildEvent record number {0} was expected to read exactly {1} bytes from the stream, but read {2} instead.</source>
+        <target state="translated">Ожидалось, что номер {0} записи BuildEvent будет считывать в точности {1} байт из потока, но вместо этого прочитано {2}.</target>
+        <note>
+      LOCALIZATION: {0} is an integer number denoting order. {1} is an integer denoting size. {2} is an integer value indicating number of bytes.
+    </note>
+      </trans-unit>
+      <trans-unit id="Binlog_ReaderUnknownType">
+        <source>BuildEvent record number {0} (serialized size: {1}) is of unsupported type: {2}.</source>
+        <target state="translated">Номер записи BuildEvent {0} (сериализованный размер: {1}) имеет неподдерживаемый тип: {2}.</target>
+        <note>
+      LOCALIZATION: {0} is an integer number denoting order. {1} is an integer denoting size. {2} is a string or integer value indicating type.
+    </note>
+      </trans-unit>
+      <trans-unit id="Binlog_Source_MissingSubscribeError">
+        <source>No subscribers for any events.</source>
+        <target state="translated">Нет подписчиков для событий.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Binlog_Source_MultiSubscribeError">
+        <source>Structured events and raw events cannot be replayed at the same time.</source>
+        <target state="translated">Структурированные события и необработанные события не могут воспроизводиться одновременно.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Binlog_Source_VersionUninitialized">
+        <source>Version info not yet initialized. Replay must be called first.</source>
+        <target state="translated">Сведения о версии еще не инициализированы. Сначала необходимо вызвать повторное воспроизведение.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Binlog_StreamUtils_MustBeReadable">
+        <source>Stream must be readable.</source>
+        <target state="translated">Поток должен быть читаем.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Binlog_StreamUtils_SeekNonOrigin">
+        <source>Only seeking from SeekOrigin.Current is supported.</source>
+        <target state="translated">Поддерживается только поиск из SeekOrigin.Current.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Binlog_StreamUtils_SetLengthUnsupported">
+        <source>Changing the stream length is not supported.</source>
+        <target state="translated">Изменение длины потока не поддерживается.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Binlog_StreamUtils_UnsupportedSkipOffset">
+        <source>Attempt to skip {0} bytes, only non-negative offset up to int.MaxValue is allowed.</source>
+        <target state="translated">Попытка пропуска {0} байт, разрешено только неотрицательное смещение до int.MaxValue.</target>
+        <note>
+      LOCALIZATION: {0} is integer number denoting number of bytes. 'int.MaxValue' should not be translated.
+    </note>
+      </trans-unit>
+      <trans-unit id="Binlog_StreamUtils_WriteUnsupported">
+        <source>Writing is not supported.</source>
+        <target state="translated">Запись не поддерживается.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="BuildFinishedQuestionFailure">
+        <source>Question build FAILED. The build exited early as it encountered a target or task that was not up-to-date.</source>
+        <target state="translated">СБОЙ сборки вопроса. Выход из сборки выполнен раньше, так как была обнаружена цель или задача без обновления.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="BuildFinishedQuestionSuccess">
+        <source>Question build succeeded. Up-to-date checks passed.</source>
+        <target state="translated">Сборка вопроса успешно выполнена. Проверки актуальности пройдены.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="BuildInProgress">
         <source>The operation cannot be completed because a build is already in progress.</source>
         <target state="translated">Не удалось завершить операцию, так как уже выполняется сборка.</target>
@@ -55,6 +165,11 @@
       LOCALIZATION: Do not localize the following words: ProjectReference, ProjectReferenceTargets
     </note>
       </trans-unit>
+      <trans-unit id="CannotCopyFromElementOfThatType">
+        <source>MSB4277: Cannot copy from object of that type.</source>
+        <target state="translated">MSB4277: не удается скопировать из объекта этого типа.</target>
+        <note>{StrBegin="MSB4277: "}</note>
+      </trans-unit>
       <trans-unit id="CannotExpandItemMetadata">
         <source>MSB4248: Cannot expand metadata in expression "{0}". {1}</source>
         <target state="translated">MSB4248: невозможно развернуть метаданные в выражении "{0}". {1}</target>
@@ -63,18 +178,20 @@
     LOCALIZATION: "{1}" is a localized message explaining the problem.</note>
       </trans-unit>
       <trans-unit id="ChangeWave_InvalidFormat">
-        <source>Environment variable MSBUILDDISABLEFEATURESFROMVERSION is set to an invalid format. Enabling all change wave versions. Entered value: {0}.</source>
-        <target state="translated">Для переменной среды MSBUILDDISABLEFEATURESFROMVERSION задан недопустимый формат. Все версии наборов рискованных изменений будут включены. Введенное значение: {0}.</target>
-        <note>
-       Value should be of the format: xx.yy
-    </note>
+        <source>MSB4271: Environment variable MSBUILDDISABLEFEATURESFROMVERSION is set to an invalid format. Enabling all change wave versions. Entered value: {0}. Current Change Waves: {1}.</source>
+        <target state="translated">MSB4271: для переменной среды MSBUILDDISABLEFEATURESFROMVERSION задан недопустимый формат. Идет включение всех версий волн изменений. Введенное значение: {0}. Текущие волны изменений: {1}.</target>
+        <note>{StrBegin="MSB4271: "}UE: Value should be of the format: xx.yy</note>
       </trans-unit>
       <trans-unit id="ChangeWave_OutOfRotation">
-        <source>Environment variable MSBUILDDISABLEFEATURESFROMVERSION is set to a version that is out of rotation. Defaulting to Change Wave version: {0}. Entered value: {1}.</source>
-        <target state="translated">Для переменной среды MSBUILDDISABLEFEATURESFROMVERSION задана версия, которая исключена из ротации. Будет использована версия набора рискованных изменений по умолчанию: {0}. Введенное значение: {1}.</target>
-        <note>
-       Refer to https://github.com/dotnet/msbuild/tree/master/documentation/wiki/ChangeWaves.md to see what the current Change Waves are.
-    </note>
+        <source>MSB4272: Environment variable MSBUILDDISABLEFEATURESFROMVERSION is set to a version that is out of rotation. Defaulting to Change Wave version: {0}. Entered value: {1}. Current Change Waves: {2}.</source>
+        <target state="translated">MSB4272: для переменной среды MSBUILDDISABLEFEATURESFROMVERSION задана версия, которая больше не используется. По умолчанию будет использоваться версия волны изменений {0}. Введенное значение: {1}. Текущие волны изменений: {2}.</target>
+        <note>{StrBegin="MSB4272: "}</note>
+      </trans-unit>
+      <trans-unit id="CircularDependency">
+        <source>MSB4006: There is a circular dependency in the target dependency graph involving target "{0}".</source>
+        <target state="translated">MSB4006: круговая зависимость между целями в графике зависимостей для цели "{0}".</target>
+        <note>{StrBegin="MSB4006: "}UE: This message is shown when the build engine detects a target referenced in a circular manner -- a project cannot
+    request a target to build itself (perhaps via a chain of other targets).</note>
       </trans-unit>
       <trans-unit id="CircularDependencyInProjectGraph">
         <source>MSB4251: There is a circular dependency involving the following projects: {0}</source>
@@ -84,9 +201,55 @@
       request a target to build itself (perhaps via a chain of other targets)
     </note>
       </trans-unit>
+      <trans-unit id="CircularDependencyInTargetGraph">
+        <source>MSB4006: There is a circular dependency in the target dependency graph involving target "{0}". Since "{1}" has "{2}" dependence on "{3}", the circular is "{4}".</source>
+        <target state="translated">MSB4006: циклическая зависимость в целевой схеме зависимостей, включающей цель "{0}". Так как "{1}" имеет зависимость "{2}" в "{3}", циклическим является "{4}".</target>
+        <note>{StrBegin="MSB4006: "}UE: This message is shown when the build engine detects a target referenced in a circular manner -- a project cannot
+    request a target to build itself (perhaps via a chain of other targets).</note>
+      </trans-unit>
+      <trans-unit id="CustomAnalyzerAssemblyNotExist">
+        <source>Failed to find the specified custom analyzer assembly: {0}. Please check if it exists.</source>
+        <target state="translated">Не удалось найти указанную сборку настраиваемого анализатора: {0}. Убедитесь, что она существует.</target>
+        <note>The message is emitted when the custom analyzer assembly can not be found.</note>
+      </trans-unit>
+      <trans-unit id="CustomAnalyzerBaseTypeNotAssignable">
+        <source>Failed to load the custom analyzer type: {0} from the assembly: {1}. Make sure it inherits the Microsoft.Build.Experimental.BuildCheck.BuildAnalyzer base class. If it is not intended to be a custom analyzer, than it should not be exposed. More info: https://github.com/dotnet/msbuild/blob/main/documentation/specs/proposed/BuildCheck-Architecture.md#acquisition</source>
+        <target state="new">Failed to load the custom analyzer type: {0} from the assembly: {1}. Make sure it inherits the Microsoft.Build.Experimental.BuildCheck.BuildAnalyzer base class. If it is not intended to be a custom analyzer, than it should not be exposed. More info: https://github.com/dotnet/msbuild/blob/main/documentation/specs/proposed/BuildCheck-Architecture.md#acquisition</target>
+        <note>The message is emitted when the custom analyzer assembly can not be successfully registered.</note>
+      </trans-unit>
+      <trans-unit id="CustomAnalyzerFailedAcquisition">
+        <source>Failed to register the custom analyzer: {0}.</source>
+        <target state="translated">Не удалось зарегистрировать настраиваемый анализатор: {0}.</target>
+        <note>The message is emitted on failed loading of the custom analyzer in process.</note>
+      </trans-unit>
+      <trans-unit id="CustomAnalyzerFailedRuleLoading">
+        <source>Failed to instantiate the custom analyzer rule with the following exception: {0}.</source>
+        <target state="translated">Не удалось создать экземпляр правила настраиваемого анализатора со следующим исключением: {0}.</target>
+        <note>The message is emitted on failed loading of the custom analyzer rule in process.</note>
+      </trans-unit>
+      <trans-unit id="CustomAnalyzerSuccessfulAcquisition">
+        <source>Custom analyzer rule: {0} has been registered successfully.</source>
+        <target state="translated">Зарегистрировано правило настраиваемого анализатора: {0}.</target>
+        <note>The message is emitted on successful loading of the custom analyzer rule in process.</note>
+      </trans-unit>
+      <trans-unit id="DefaultSDKResolverError">
+        <source>MSB4276: The default SDK resolver failed to resolve SDK "{0}" because directory "{1}" did not exist.</source>
+        <target state="translated">MSB4276: стандартному сопоставителю пакетов SDK не удалось разрешить пакет SDK "{0}", так как каталог "{1}" не существует.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DuplicateOverrideUsingTaskElement">
+        <source>MSB4275: Attempted to create multiple overrides of the same task: {0}</source>
+        <target state="translated">MSB4275: попытка создать несколько переопределений одной задачи: {0}</target>
+        <note>{StrBegin="MSB4275: "}</note>
+      </trans-unit>
       <trans-unit id="EmptyOutputCacheFile">
         <source>MSB4257: The specified output result cache file is empty.</source>
         <target state="translated">MSB4257: указанный выходной файл кэша результатов пустой.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="EnvironmentDerivedPropertyRead">
+        <source>Property '{0}' with value '{1}' expanded from the environment.</source>
+        <target state="translated">Свойство "{0}" со значением "{1}" развернуто из окружения.</target>
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariableRead">
@@ -104,10 +267,36 @@
         <target state="translated">MSB4258: произошла ошибка при записи выходного файла кэша результатов в пути "{0}": {1}</target>
         <note />
       </trans-unit>
+      <trans-unit id="FailedToResolveSDK">
+        <source>Could not resolve SDK "{0}". Exactly one of the probing messages below indicates why we could not resolve the SDK. Investigate and resolve that message to correctly specify the SDK.
+  {1}</source>
+        <target state="translated">Не удалось разрешить пакет SDK "{0}". В одном из приведенных ниже сообщений проверки указано, почему не удалось разрешить пакет SDK. Изучите и устраните возникшую проблему, чтобы правильно указать пакет SDK.
+  {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FatalErrorWhileLoggingWithInnerException">
+        <source>MSB4017: The build stopped unexpectedly because of an unexpected logger failure.
+    {0}</source>
+        <target state="translated">MSB4017: сборка остановлена из-за непредвиденного сбоя средства ведения журнала.
+    {0}</target>
+        <note>{StrBegin="MSB4017: "}UE: This message is used for a special exception that is thrown when a logger fails while logging an event (most
+    likely because of a programming error in the logger). When a logger dies, we cannot proceed with the build, and we throw a
+    special exception to abort the build.</note>
+      </trans-unit>
+      <trans-unit id="General.TwoVectorsMustHaveSameLength">
+        <source>MSB3094: "{2}" refers to {0} item(s), and "{3}" refers to {1} item(s). They must have the same number of items.</source>
+        <target state="translated">MSB3094: "{2}" ссылается на следующее число элементов: {0}, а "{3}" — на {1}. Число элементов должно быть одинаковым.</target>
+        <note>{StrBegin="MSB3094: "}</note>
+      </trans-unit>
       <trans-unit id="IllFormedPropertySpaceInCondition">
         <source>MSB4259: Unexpected space at position "{1}" of condition "{0}". Did you forget to remove a space?</source>
-        <target state="new">MSB4259: Unexpected space at position "{1}" of condition "{0}". Did you forget to remove a space?</target>
+        <target state="translated">MSB4259: неожиданный пробел в позиции "{1}" условия "{0}". Вы забыли удалить пробел?</target>
         <note>{StrBegin="MSB4259: "}</note>
+      </trans-unit>
+      <trans-unit id="ImportedProjectFromVSDistribution">
+        <source>MSB4278: The imported file "{0}" does not exist and appears to be part of a Visual Studio component. This file may require MSBuild.exe in order to be imported successfully, and so may fail to build in the dotnet CLI. </source>
+        <target state="translated">MSB4278: импортированный файл "{0}" не существует и, вероятно, является частью компонента Visual Studio. Для успешного импорта этого файла может потребоваться MSBuild.exe, и поэтому возможно, что сборка в CLI dotnet завершится сбоем. </target>
+        <note>{StrBegin="MSB4278: "}LOCALIZATION: &lt;Import&gt; should not be localized.</note>
       </trans-unit>
       <trans-unit id="InputCacheFilesDoNotExist">
         <source>MSB4255: The following input result cache files do not exist: "{0}"</source>
@@ -120,8 +309,23 @@
         <note />
       </trans-unit>
       <trans-unit id="IsolatedContextDoesNotSupportFileSystem">
-        <source>"EvaluationContext objects created with SharingPolicy.Isolated do not support being passed an MSBuildFileSystemBase file system."</source>
-        <target state="translated">"Объекты EvaluationContext, созданные с помощью SharingPolicy.Isolated, не поддерживают передачу в файловую систему MSBuildFileSystemBase."</target>
+        <source>EvaluationContext objects created with SharingPolicy.Isolated or SharingPolicy.SharedSDKCache do not support being passed an MSBuildFileSystemBase file system.</source>
+        <target state="translated">Объекты EvaluationContext, созданные с помощью SharingPolicy.SharedSDKCache, не поддерживают передачу в файловую систему MSBuildFileSystemBase.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ItemReferencingSelfInTarget">
+        <source>MSB4120: Item '{0}' definition within target references itself via (qualified or unqualified) metadatum '{1}'. This can lead to unintended expansion and cross-applying of pre-existing items. More info: https://aka.ms/msbuild/metadata-self-ref</source>
+        <target state="translated">MSB4120: определение элемента "{0}" в целевом объекте ссылается на себя через метаданные "{1}" (квалифицированные или неквалифицированные). Это может привести к непреднамеренному расширению и перекрестному применению существующих элементов. Дополнительные сведения: https://aka.ms/msbuild/metadata-self-ref</target>
+        <note>{StrBegin="MSB4120: "}</note>
+      </trans-unit>
+      <trans-unit id="KillingProcessWithPid">
+        <source>Killing process with pid = {0}.</source>
+        <target state="translated">Завершение процесса с идентификатором {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LoadingProjectCachePlugin">
+        <source>Loading the following project cache plugin: {0}</source>
+        <target state="translated">Идет загрузка следующего подключаемого модуля кэша проектов: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="LogLoggerVerbosity">
@@ -146,9 +350,19 @@
         <target state="translated">Не удается завершить операцию, так как ещё не был вызван BeginBuild.</target>
         <note />
       </trans-unit>
+      <trans-unit id="NoProjectCachePluginFoundInAssembly">
+        <source>MSB4270: No project cache plugins found in assembly "{0}". Expected one.</source>
+        <target state="translated">MSB4270: не найдены подключаемые модули кэша проектов в сборке "{0}". Должен быть указан один модуль.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NodeReused">
+        <source>Reusing node {0} (PID: {1}).</source>
+        <target state="translated">Повторное использование узла {0} (ИД процесса: {1}).</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NuGetAssemblyNotFound">
-        <source>A required NuGet assembly was not found. Expected Path: {0}</source>
-        <target state="translated">Не найдена обязательная сборка NuGet. Ожидаемый путь: {0}</target>
+        <source>A required NuGet assembly '{0}' could not be loaded.</source>
+        <target state="translated">Не удалось загрузить требуемую сборку NuGet "{0}".</target>
         <note />
       </trans-unit>
       <trans-unit id="NullReferenceFromProjectInstanceFactory">
@@ -159,9 +373,9 @@
       LOCALIZATION:  Do not localize the following words: ProjectInstanceFactoryFunc.
     </note>
       </trans-unit>
-      <trans-unit id="OM_MatchOnMetadataIsRestrictedToOnlyOneReferencedItem">
-        <source>Only one item type may be referenced when removing with MatchOnMetadata.</source>
-        <target state="translated">При удалении с помощью MatchOnMetadata можно ссылаться только на один тип элемента.</target>
+      <trans-unit id="OM_MatchOnMetadataIsRestrictedToReferencedItems">
+        <source>Only item types may be referenced when removing with MatchOnMetadata.</source>
+        <target state="translated">При удалении с помощью MatchOnMetadata можно ссылаться только на типы элементов.</target>
         <note />
       </trans-unit>
       <trans-unit id="OM_MatchOnMetadataOnlyApplicableToRemoveItems">
@@ -184,6 +398,109 @@
         <target state="translated">Метод {0} не может быть вызван с коллекцией, содержащей целевые имена, которые пусты или равны NULL.</target>
         <note />
       </trans-unit>
+      <trans-unit id="OutputPropertyLogMessagePrefix">
+        <source>Output Property: </source>
+        <target state="new">Output Property: </target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OverrideUsingTaskElementCreated">
+        <source>Created an override using task: {0} at {1}</source>
+        <target state="translated">Создано переопределение с помощью задачи {0} в {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectCacheEndBuild">
+        <source>Shutting down project cache plugin.</source>
+        <target state="translated">Завершение работы подключаемого модуля кэша проекта.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectCacheException">
+        <source>MSB4273: The project cache threw an unhandled exception from the {0} method.</source>
+        <target state="translated">MSB4273: в кэше проектов возникло необработанное исключение из метода {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectCacheHandleBuildResultFailed">
+        <source>MSB4269: The project cache failed while handling a build result for the following project: {0}.</source>
+        <target state="translated">MSB4269: сбой кэша проекта при обработке результата сборки для следующего проекта: {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectCacheHitWithDefaultTargets">
+        <source>Project cache hit for "{0}" (default targets).</source>
+        <target state="translated">Попадание в кэше проекта для "{0}" (целевые объекты по умолчанию).</target>
+        <note>
+      LOCALIZATION: {0} is a file path.
+    </note>
+      </trans-unit>
+      <trans-unit id="ProjectCacheHitWithOutputs">
+        <source>{0} -&gt; Cache Hit</source>
+        <target state="translated">{0} -&gt; Попадание в кэше</target>
+        <note>
+      {StrBegin="{0} -&gt; "}LOCALIZATION: This string is used to indicate progress and matches the format for a log message from Microsoft.Common.CurrentVersion.targets. {0} is a project name.
+    </note>
+      </trans-unit>
+      <trans-unit id="ProjectCacheHitWithTargetNames">
+        <source>Project cache hit for "{0}" ({1} target(s)).</source>
+        <target state="translated">Попадание в кэше проекта для "{0}" (целевые объекты: {1}).</target>
+        <note>
+      LOCALIZATION: {0} is a file path. {1} is a comma-separated list of target names
+    </note>
+      </trans-unit>
+      <trans-unit id="ProjectCacheInitializationFailed">
+        <source>MSB4266: Failed to initialize the project cache.</source>
+        <target state="translated">MSB4266: не удалось инициализировать кэш проектов.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectCacheMissWithDefaultTargets">
+        <source>Project cache miss for "{0}" (default targets).</source>
+        <target state="translated">Промах кэша проекта для "{0}" (целевые объекты по умолчанию).</target>
+        <note>
+      LOCALIZATION: {0} is a file path.
+    </note>
+      </trans-unit>
+      <trans-unit id="ProjectCacheMissWithTargetNames">
+        <source>Project cache miss for "{0}" ({1} target(s)).</source>
+        <target state="translated">Промах кэша проекта для "{0}" (целевые объекты: {1}).</target>
+        <note>
+      LOCALIZATION: {0} is a file path. {1} is a comma-separated list of target names
+    </note>
+      </trans-unit>
+      <trans-unit id="ProjectCacheNotApplicableWithDefaultTargets">
+        <source>Project cache not applicable for "{0}" (default targets).</source>
+        <target state="translated">Кэш проекта не применим для "{0}" (целевые объекты по умолчанию).</target>
+        <note>
+      LOCALIZATION: {0} is a file path.
+    </note>
+      </trans-unit>
+      <trans-unit id="ProjectCacheNotApplicableWithTargetNames">
+        <source>Project cache not applicable for "{0}" ({1} target(s)).</source>
+        <target state="translated">Кэш проекта не применим для "{0}" (целевые объекты: {1}).</target>
+        <note>
+      LOCALIZATION: {0} is a file path. {1} is a comma-separated list of target names
+    </note>
+      </trans-unit>
+      <trans-unit id="ProjectCacheQueryFailed">
+        <source>MSB4267: The project cache failed while being queried for the following project: {0}. The cache is queried in parallel for multiple projects so this specific project might not be the cause.</source>
+        <target state="translated">MSB4267: произошел сбой кэша при выполнении запроса к следующему проекту: {0}. К кэшу выполнены параллельные запросы к нескольким проектам, поэтому, возможно, причина не в указанном проекте.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectCacheQueryStartedWithDefaultTargets">
+        <source>Querying project cache for "{0}" (default targets):</source>
+        <target state="translated">Запрос кэша проекта для "{0}" (целевые объекты по умолчанию):</target>
+        <note>
+      LOCALIZATION: {0} is a file path.
+    </note>
+      </trans-unit>
+      <trans-unit id="ProjectCacheQueryStartedWithTargetNames">
+        <source>Querying project cache for "{0}" (targets: {1}):</source>
+        <target state="translated">Запрос кэша проекта для "{0}" (целевые объекты: {1}):</target>
+        <note>
+      LOCALIZATION: {0} is a file path. {1} is a comma-separated list of target names
+    </note>
+      </trans-unit>
+      <trans-unit id="ProjectCacheShutdownFailed">
+        <source>MSB4268: The project cache failed to shut down properly.</source>
+        <target state="translated">MSB4268: не удалось правильно завершить работу кэша проектов.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ProjectGraphDoesNotSupportProjectReferenceWithToolset">
         <source>MSB4250: ProjectGraph does not support ProjectReference items with the ToolsVersion metadata set. Found ProjectReference "{0}" with ToolsVersion in file "{1}"</source>
         <target state="translated">MSB4250: ProjectGraph не поддерживает элементы ProjectReference с набором метаданных ToolsVersion. Обнаружен ProjectReference "{0}" с ToolsVersion в файле "{1}"</target>
@@ -192,9 +509,55 @@
       LOCALIZATION:  Do not localize the following words: ProjectGraph, ProjectReference, ToolsVersion.
     </note>
       </trans-unit>
+      <trans-unit id="ProjectImportSkippedExpressionEvaluatedToEmpty">
+        <source>Project "{0}" was not imported by "{1}" at ({2},{3}), due to the expression evaluating to an empty string.</source>
+        <target state="translated">Проект "{0}" не был импортирован "{1}" в ({2},{3}), так как результатом вычисления выражения была пустая строка.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PropertyAssignment">
         <source>Property initial value: $({0})="{1}" Source: {2}</source>
         <target state="translated">Начальное значение свойства: $({0})="{1}" Источник: {2}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PropertyOutsidePropertyGroupInTarget">
+        <source>MSB4067: The element &lt;{0}&gt; beneath element &lt;{1}&gt; is unrecognized. If you intended this to be a property, enclose it within a &lt;PropertyGroup&gt; element.</source>
+        <target state="translated">MSB4067: элемент &lt;{0}&gt; под элементом &lt;{1}&gt; не распознан. Если вы хотите использовать его как свойство, включите его в элемент &lt;PropertyGroup&gt;.</target>
+        <note>{StrBegin="MSB4067: "}</note>
+      </trans-unit>
+      <trans-unit id="ProxyRequestNotScheduledOnInprocNode">
+        <source>MSB4274: Disabling the inproc node leads to performance degradation when using project cache plugins that emit proxy build requests.</source>
+        <target state="translated">MSB4274: Отключение внутрипроцессного узла приводит к замедлению при использовании плагинов кэша проекта, которые создают запросы на сборку прокси-сервера.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ReportFileAccessesX64Only">
+        <source>Reporting file accesses is only currently supported using the x64 flavor of MSBuild.</source>
+        <target state="translated">Доступ к файлам отчетов сейчас поддерживается только при использовании 64-разрядного варианта приложения MSBuild.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SDKResolverAttempt">
+        <source>The "{0}" resolver attempted to resolve the SDK "{1}".
+Warnings: {2}
+Errors: {3}</source>
+        <target state="translated">Преобразователь "{0}" попытался разрешить SDK "{1}".
+Предупреждения: {2}
+Ошибок: {3}</target>
+        <note>
+      LOCALIZATION: Do not localize the word SDK. "{2}" is new line separated warnings or "null". "{3}" is new line separated errors or "null".
+    </note>
+      </trans-unit>
+      <trans-unit id="SDKResolverCriticalFailure">
+        <source>MSB4242: SDK Resolver Failure: "{0}"</source>
+        <target state="translated">MSB4242: сбой сопоставителя SDK: "{0}"</target>
+        <note>{StrBegin="MSB4242: "}</note>
+      </trans-unit>
+      <trans-unit id="SDKResolverFailed">
+        <source>The SDK resolver "{0}" failed while attempting to resolve the SDK "{1}". Exception: "{2}"</source>
+        <target state="translated">Сбой сопоставителя SDK "{0}" при попытке сопоставить пакет SDK "{1}". Исключение: "{2}"</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SDKResolverReturnedNull">
+        <source>SDK resolver "{0}" returned null.</source>
+        <target state="translated">Сопоставитель пакетов SDK "{0}" вернул значение null.</target>
         <note />
       </trans-unit>
       <trans-unit id="SkippedConstraintsOnRequest">
@@ -204,6 +567,11 @@
       LOCALIZATION: {0} and {1} are file paths
     </note>
       </trans-unit>
+      <trans-unit id="SolutionPathPropertyMustBeSetOnVSSubmissions">
+        <source>"MSB4264: Invalid $(SolutionPath) property: {0}"</source>
+        <target state="translated">"MSB4264: недопустимое свойство $(SolutionPath) — {0}"</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StaticGraphAcceptsSingleSolutionEntryPoint">
         <source>MSB4261: Multiple entry points with solutions detected: {0}. If static graph is loaded from a solution, that that solution must be the only entry point.</source>
         <target state="translated">MSB4261: обнаружено несколько точек входа с решениями: {0}. Если статический граф загружен из решения, то это решение должно быть единственной точкой входа.</target>
@@ -212,8 +580,8 @@
     </note>
       </trans-unit>
       <trans-unit id="StaticGraphConstructionMetrics">
-        <source>"Static graph loaded in {0} seconds: {1} nodes, {2} edges"</source>
-        <target state="translated">"Статический граф загружен за {0} с: узлов — {1}, ребер — {2}."</target>
+        <source>Static graph loaded in {0} seconds: {1} nodes, {2} edges</source>
+        <target state="translated">Статический граф загружен за {0} с: узлов — {1}, ребер — {2}.</target>
         <note />
       </trans-unit>
       <trans-unit id="StaticGraphDoesNotSupportSlnReferences">
@@ -238,6 +606,41 @@
       LOCALIZATION: {0} is a file, {1} and {2} are semicolon delimited lists of messages
     </note>
       </trans-unit>
+      <trans-unit id="SucceededToResolveSDK">
+        <source>The SDK "{0}" was successfully resolved by the "{1}" resolver to location "{2}" and version "{3}".</source>
+        <target state="translated">SDK "{0}" успешно разрешен преобразователем "{1}" в расположение "{2}" и версию "{3}".</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TaskAcquiredCores">
+        <source>Task "{0}" requested {1} cores, acquired {2} cores, and now holds {3} cores total.</source>
+        <target state="translated">Задача "{0}" запросила указанное число ядер ({1}) и получила указанное число ядер ({2}). Теперь общее число ядер, которыми располагает задача, равно {3}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TaskAssemblyLoaded">
+        <source>Assembly loaded during {0}{1}: {2} (location: {3}, MVID: {4}, AppDomain: {5})</source>
+        <target state="translated">Сборка загружена во время {0}{1}: {2} (расположение: {3}, MVID: {4}, домен приложения: {5})</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TaskAssemblyLoadedWithAssemblyLoadContext">
+        <source>Assembly loaded during {0}{1}: {2} (location: {3}, MVID: {4}, AssemblyLoadContext: {5})</source>
+        <target state="translated">Сборка загружена во время {0}{1}: {2} (расположение: {3}, MVID: {4}, AssemblyLoadContext: {5})</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TaskAssemblyLocationMismatch">
+        <source>Task assembly was loaded from '{0}' while the desired location was '{1}'.</source>
+        <target state="translated">Сборка задачи была загружена из "{0}", а нужное расположение — "{1}".</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TaskReleasedCores">
+        <source>Task "{0}" released {1} cores and now holds {2} cores total.</source>
+        <target state="translated">Задача "{0}" освободила указанное число ядер ({1}). Теперь общее число ядер, которыми располагает задача, равно {2}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TaskReleasedCoresWarning">
+        <source>Task "{0}" asked to release {1} cores while holding only {2} and now holds {3} cores total.</source>
+        <target state="translated">Задача "{0}" запросила освобождение указанного числа ядер ({1}) с текущим числом ядер {2}. Теперь общее число ядер, которыми располагает задача, равно {3}.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TaskReturnedFalseButDidNotLogError">
         <source>MSB4181: The "{0}" task returned false but did not log an error.</source>
         <target state="translated">MSB4181: задача "{0}" возвратила значение false, но не зарегистрировала ошибку.</target>
@@ -250,6 +653,13 @@
       {StrBegin="MSB4254:"}
       LOCALIZATION: Do not localize the following words: ProjectReference, MSBuild, task.
     </note>
+      </trans-unit>
+      <trans-unit id="UnhandledMSBuildError">
+        <source>This is an unhandled exception in MSBuild -- PLEASE UPVOTE AN EXISTING ISSUE OR FILE A NEW ONE AT https://aka.ms/msbuild/unhandled
+    {0}</source>
+        <target state="translated">Это необработанное исключение в MSBuild. Проголосуйте за существующую проблему или сообщите о новой по адресу https://aka.ms/msbuild/unhandled
+    {0}</target>
+        <note />
       </trans-unit>
       <trans-unit id="UninitializedPropertyRead">
         <source>Read uninitialized property "{0}"</source>
@@ -419,12 +829,6 @@
         <target state="translated">MSB4114: уровень вложения элемента &lt;Choose&gt; не может превышать {0}.</target>
         <note>{StrBegin="MSB4114: "}UE: This message appears if the project file contains unreasonably nested Choose elements.
     LOCALIZATION: Do not localize "Choose" as it is an XML element name.</note>
-      </trans-unit>
-      <trans-unit id="CircularDependency">
-        <source>MSB4006: There is a circular dependency in the target dependency graph involving target "{0}".</source>
-        <target state="translated">MSB4006: круговая зависимость между целями в графике зависимостей для цели "{0}".</target>
-        <note>{StrBegin="MSB4006: "}UE: This message is shown when the build engine detects a target referenced in a circular manner -- a project cannot
-    request a target to build itself (perhaps via a chain of other targets).</note>
       </trans-unit>
       <trans-unit id="ComparisonOnNonNumericExpression">
         <source>MSB4086: A numeric comparison was attempted on "{1}" that evaluates to "{2}" instead of a number, in condition "{0}".</source>
@@ -634,7 +1038,7 @@
       </trans-unit>
       <trans-unit id="FatalTaskError">
         <source>MSB4018: The "{0}" task failed unexpectedly.</source>
-        <target state="translated">MSB4018: непредвиденная ошибка при выполнении задачи {0}".</target>
+        <target state="translated">MSB4018: непредвиденная ошибка при выполнении задачи "{0}".</target>
         <note>{StrBegin="MSB4018: "}UE: This message is shown when a task terminates because of an unhandled exception. The cause is most likely a
     programming error in the task; however, it is also possible that the unhandled exception originated in the engine, and was
     surfaced through the task when the task called into the engine.</note>
@@ -1626,8 +2030,8 @@
         <note>{StrBegin="MSB4091: "}</note>
       </trans-unit>
       <trans-unit id="UnexpectedTaskAttribute">
-        <source>MSB4064: The "{0}" parameter is not supported by the "{1}" task. Verify the parameter exists on the task, and it is a settable public instance property.</source>
-        <target state="translated">MSB4064: параметр "{0}" не поддерживается задачей "{1}". Убедитесь, что параметр существует в задаче и является открытым задаваемым свойством экземпляра.</target>
+        <source>MSB4064: The "{0}" parameter is not supported by the "{1}" task loaded from assembly: {2} from the path: {3}. Verify that the parameter exists on the task, the &lt;UsingTask&gt; points to the correct assembly, and it is a settable public instance property.</source>
+        <target state="translated">MSB4064: параметр "{0}" не поддерживается задачей "{1}", загруженной из сборки {2} (путь: {3}). Убедитесь, что параметр существует в задаче, что &lt;UsingTask&gt; указывает на правильную сборку и что этот параметр является устанавливаемым свойством открытого экземпляра.</target>
         <note>{StrBegin="MSB4064: "}</note>
       </trans-unit>
       <trans-unit id="UnexpectedTaskOutputAttribute">
@@ -1711,8 +2115,8 @@
         <note>{StrBegin="MSB4209: "}</note>
       </trans-unit>
       <trans-unit id="AffinityConflict">
-        <source>MSB4213: The specified request affinity {0} conflicts with a previous affinity {1} specified for this project.</source>
-        <target state="translated">MSB4213: указанное сходство запроса {0} конфликтует с предыдущим сходством {1}, заданным для данного проекта.</target>
+        <source>MSB4213: The specified request affinity {0} conflicts with a previous affinity {1} specified for project {2} with global properties {3}</source>
+        <target state="translated">MSB4213: указанное сходство запроса {0} конфликтует с предыдущим сходством {1}, заданным для проекта {2} с глобальными свойствами {3}</target>
         <note>{StrBegin="MSB4213: "}</note>
       </trans-unit>
       <trans-unit id="UnableToCreateNode">
@@ -1990,8 +2394,8 @@ Utilization:          {0} Average Utilization: {1:###.0}</source>
         <note />
       </trans-unit>
       <trans-unit id="OM_MustSetRecordDuplicateInputs">
-        <source>Project was not loaded with the ProjectLoadSettings.RecordDuplicateImports flag.</source>
-        <target state="translated">Проект не был загружен с флагом ProjectLoadSettings.RecordDuplicateImports.</target>
+        <source>Project was not loaded with the ProjectLoadSettings.RecordDuplicateButNotCircularImports flag.</source>
+        <target state="translated">Проект не был загружен с флагом ProjectLoadSettings.RecordDuplicateButNotCircularImports.</target>
         <note />
       </trans-unit>
       <trans-unit id="OM_CannotSaveFileLoadedAsReadOnly">
@@ -2251,8 +2655,8 @@ Utilization:          {0} Average Utilization: {1:###.0}</source>
         <note>{StrBegin="MSB4238: "}</note>
       </trans-unit>
       <trans-unit id="UnsupportedLogFileFormat">
-        <source>MSB4235: The log file format version is {0}, whereas this version of MSBuild only supports versions up to {1}.</source>
-        <target state="translated">MSB4235: версия формата файла журнала: {0}, тогда как эта версия MSBuild поддерживает только версии до {1}.</target>
+        <source>MSB4235: The log file format version is {0} with minimum required reader version {1}, whereas this version of MSBuild only supports versions up to {2}.</source>
+        <target state="translated">MSB4235: версия формата файла журнала — {0} с минимально необходимой версией чтения — {1}, тогда как эта версия MSBuild поддерживает только версии до {2}.</target>
         <note>{StrBegin="MSB4235: "}</note>
       </trans-unit>
       <trans-unit id="ProjectEvaluationPerformanceSummary">
@@ -2300,15 +2704,10 @@ Utilization:          {0} Average Utilization: {1:###.0}</source>
         <target state="translated">MSB4244: не удалось загрузить сборку сопоставителя SDK типа "{0}". {1}</target>
         <note>{StrBegin="MSB4244: "}</note>
       </trans-unit>
-      <trans-unit id="CouldNotRunSdkResolver">
-        <source>MSB4242: The SDK resolver "{0}" failed to run. {1}</source>
-        <target state="translated">MSB4242: не удалось запустить сопоставитель SDK "{0}". {1}</target>
-        <note>{StrBegin="MSB4242: "}</note>
-      </trans-unit>
       <trans-unit id="CouldNotRunNuGetSdkResolver">
-        <source>MSB4243: The NuGet-based SDK resolver failed to run because NuGet assemblies could not be located.  Check your installation of MSBuild or set the environment variable "{0}" to the folder that contains the required NuGet assemblies. {1}</source>
-        <target state="translated">MSB4243: не удалось запустить сопоставитель SDK на базе NuGet, так как не удалось найти сборки NuGet. Проверьте свою установку MSBuild или укажите папку, содержащую требуемые сборки NuGet, в качестве значения переменной среды "{0}". {1}</target>
-        <note>{StrBegin="MSB4243: "}</note>
+        <source>The NuGet-based SDK resolver failed to run because NuGet assemblies could not be located.  Check your installation of MSBuild or set the environment variable "{0}" to the folder that contains the required NuGet assemblies. {1}</source>
+        <target state="translated">Не удалось запустить сопоставитель SDK на базе NuGet, так как не удалось найти сборки NuGet. Проверьте свою установку MSBuild или укажите папку, содержащую требуемые сборки NuGet, в качестве значения переменной среды "{0}". {1}</target>
+        <note />
       </trans-unit>
       <trans-unit id="ProjectImportSkippedInvalidFile">
         <source>Project "{0}" was not imported by "{1}" at ({2},{3}), due to the file being invalid.</source>
@@ -2346,13 +2745,6 @@ Utilization:          {0} Average Utilization: {1:###.0}</source>
         <source>MSB4241: The SDK reference "{0}" version "{1}" was resolved to version "{2}" instead.  You could be using a different version than expected if you do not update the referenced version to match.</source>
         <target state="translated">MSB4241: ссылка на пакет SDK "{0}" версии "{1}" была сопоставлена версии "{2}". Возможно, вы используете версию, отличную от ожидаемой, если вы не обновили версию по ссылке.</target>
         <note>{StrBegin="MSB4241: "}
-      LOCALIZATION:  Do not localize the word SDK.
-    </note>
-      </trans-unit>
-      <trans-unit id="SdkResolving">
-        <source>Resolving SDK '{0}'...</source>
-        <target state="translated">Сопоставление SDK "{0}"…</target>
-        <note>
       LOCALIZATION:  Do not localize the word SDK.
     </note>
       </trans-unit>

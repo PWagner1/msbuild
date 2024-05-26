@@ -1,26 +1,28 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections.Generic;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
-using Microsoft.Build.Shared.FileSystem;
 using Microsoft.Build.Utilities;
+
+#nullable disable
 
 namespace Microsoft.Build.Tasks
 {
 #if FEATURE_CODETASKFACTORY
-    using System.CodeDom.Compiler;
     using System.CodeDom;
+    using System.CodeDom.Compiler;
     using System.Collections.Concurrent;
-    using System.Diagnostics.CodeAnalysis;
     using System.Diagnostics;
+    using System.Diagnostics.CodeAnalysis;
     using System.Globalization;
     using System.IO;
     using System.Reflection;
     using System.Text;
     using System.Xml;
+    using Microsoft.Build.Shared.FileSystem;
 
     /// <summary>
     /// A task factory which can take code dom supported languages and create a task out of it
@@ -39,6 +41,15 @@ namespace Microsoft.Build.Tasks
 
         static CodeTaskFactory()
         {
+            // Populate default-reference-assembly information
+            Assembly frameworkAssembly = Assembly.GetAssembly(typeof(ITask));
+            _msbuildFrameworkName = frameworkAssembly.FullName;
+            _msbuildFrameworkPath = frameworkAssembly.Location;
+
+            Assembly utilitiesAssembly = Assembly.GetAssembly(typeof(Task));
+            _msbuildUtilitiesName = utilitiesAssembly.FullName;
+            _msbuildUtilitiesPath = utilitiesAssembly.Location;
+
             // The handler is not detached because it only returns assemblies for custom references that cannot be found in the normal Load context
             AppDomain.CurrentDomain.AssemblyResolve += CurrentDomainOnAssemblyResolve;
         }
@@ -53,6 +64,11 @@ namespace Microsoft.Build.Tasks
 
             return assembly;
         }
+
+        private static readonly string _msbuildFrameworkName;
+        private static readonly string _msbuildFrameworkPath;
+        private static readonly string _msbuildUtilitiesName;
+        private static readonly string _msbuildUtilitiesPath;
 
         /// <summary>
         /// Default assemblies names to reference during inline code compilation - from the .NET Framework
@@ -69,11 +85,6 @@ namespace Microsoft.Build.Tasks
         /// duplicate assemblies.
         /// </summary>
         private static readonly ConcurrentDictionary<FullTaskSpecification, Assembly> s_compiledTaskCache = new ConcurrentDictionary<FullTaskSpecification, Assembly>();
-
-        /// <summary>
-        /// The default assemblies to reference when compiling inline code.
-        /// </summary>
-        private static List<string> s_defaultReferencedAssemblies;
 
         /// <summary>
         /// Merged set of assembly reference paths (default + specified)
@@ -151,43 +162,7 @@ namespace Microsoft.Build.Tasks
         public Type TaskType { get; private set; }
 
         /// <summary>
-        /// The assemblies that the codetaskfactory should reference by default.
-        /// </summary>
-        private static List<string> DefaultReferencedAssemblies
-        {
-            get
-            {
-                if (s_defaultReferencedAssemblies == null)
-                {
-                    s_defaultReferencedAssemblies = new List<string>();
-
-                    // Loading with the partial name is fine for framework assemblies -- we'll always get the correct one 
-                    // through the magic of unification
-                    foreach (string frameworkAssembly in s_defaultReferencedFrameworkAssemblyNames)
-                    {
-                        s_defaultReferencedAssemblies.Add(frameworkAssembly);
-                    }
-
-                    // We also want to add references to two MSBuild assemblies: Microsoft.Build.Framework.dll and 
-                    // Microsoft.Build.Utilities.Core.dll.  If we just let the CLR unify the simple name, it will 
-                    // pick the highest version on the machine, which means that in hosts with restrictive binding 
-                    // redirects, or no binding redirects, we'd end up creating an inline task that could not be 
-                    // run.  Instead, to make sure that we can actually use what we're building, just use the Framework
-                    // and Utilities currently loaded into this process -- Since we're in Microsoft.Build.Tasks.Core.dll
-                    // right now, by definition both of them are always already loaded. 
-                    string msbuildFrameworkPath = Assembly.GetAssembly(typeof(ITask)).Location;
-                    string msbuildUtilitiesPath = Assembly.GetAssembly(typeof(Task)).Location;
-
-                    s_defaultReferencedAssemblies.Add(msbuildFrameworkPath);
-                    s_defaultReferencedAssemblies.Add(msbuildUtilitiesPath);
-                }
-
-                return s_defaultReferencedAssemblies;
-            }
-        }
-
-        /// <summary>
-        /// Get the type information for all task parameters
+        /// Get the type information for all task parameters.
         /// </summary>
         public TaskPropertyInfo[] GetTaskParameters()
         {
@@ -197,7 +172,7 @@ namespace Microsoft.Build.Tasks
         }
 
         /// <summary>
-        /// Initialze the task factory
+        /// Initializes the task factory.
         /// </summary>
         public bool Initialize(string taskName, IDictionary<string, TaskPropertyInfo> taskParameters, string taskElementContents, IBuildEngine taskFactoryLoggingHost)
         {
@@ -333,7 +308,7 @@ namespace Microsoft.Build.Tasks
         }
 
         /// <summary>
-        /// Create a taskfactory instance which contains the data that needs to be refreshed between task invocations
+        /// Create a taskfactory instance which contains the data that needs to be refreshed between task invocations.
         /// </summary>
         public ITask CreateTask(IBuildEngine loggingHost)
         {
@@ -467,7 +442,7 @@ namespace Microsoft.Build.Tasks
                     return null;
                 }
 
-                references.Add(attribute.Value);
+                references.Add(FileUtilities.MaybeAdjustFilePath(attribute.Value));
             }
 
             return references;
@@ -638,67 +613,24 @@ namespace Microsoft.Build.Tasks
                 {
                     try
                     {
-                        bool fileExists = FileSystems.Default.FileExists(referenceAssembly);
-                        if (!fileExists)
+                        if (!FileSystems.Default.FileExists(referenceAssembly))
                         {
                             if (!referenceAssembly.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) || !referenceAssembly.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
                             {
-#pragma warning disable 618, 612
-                                // Unfortunately Assembly.Load is not an alternative to LoadWithPartialName, since
-                                // Assembly.Load requires the full assembly name to be passed to it.
-                                // Therefore we must ignore the deprecated warning.
-                                Assembly candidateAssembly = Assembly.LoadWithPartialName(referenceAssembly);
-                                if (candidateAssembly != null)
-                                {
-                                    candidateAssemblyLocation = candidateAssembly.Location;
-                                }
-                                else if (NativeMethodsShared.IsMono)
-                                {
-                                    string path = Path.Combine(
-                                        NativeMethodsShared.FrameworkCurrentPath,
-                                        "Facades",
-                                        Path.GetFileName(referenceAssembly));
-                                    if (!FileSystems.Default.FileExists(path))
-                                    {
-                                        var newPath = path + ".dll";
-                                        path = !FileSystems.Default.FileExists(newPath) ? path + ".exe" : newPath;
-                                    }
-                                    candidateAssembly = Assembly.UnsafeLoadFrom(path);
-                                    if (candidateAssembly != null)
-                                    {
-                                        candidateAssemblyLocation = candidateAssembly.Location;
-                                    }
-                                }
-#pragma warning restore 618, 612
+                                candidateAssemblyLocation = GetPathFromPartialAssemblyName(referenceAssembly);
                             }
                         }
                         else
                         {
-                            try
+                            if (!TryCacheAssemblyIdentityFromPath(referenceAssembly, out candidateAssemblyLocation))
                             {
-                                Assembly candidateAssembly = Assembly.UnsafeLoadFrom(referenceAssembly);
-                                if (candidateAssembly != null)
-                                {
-                                    candidateAssemblyLocation = candidateAssembly.Location;
-                                    s_knownReferenceAssemblies[candidateAssembly.FullName] = candidateAssembly;
-                                }
-                            }
-                            catch (BadImageFormatException e)
-                            {
-                                Debug.Assert(e.Message.Contains("0x80131058"), "Expected Message to contain 0x80131058");
-                                AssemblyName.GetAssemblyName(referenceAssembly);
-                                candidateAssemblyLocation = referenceAssembly;
-                                _log.LogMessageFromResources(MessageImportance.Low, "CodeTaskFactory.HaveReflectionOnlyAssembly", referenceAssembly);
+                                // Assembly should be skipped; return
+                                return;
                             }
                         }
                     }
-                    catch (Exception e)
+                    catch (Exception e) when (!ExceptionHandling.IsCriticalException(e))
                     {
-                        if (ExceptionHandling.IsCriticalException(e))
-                        {
-                            throw;
-                        }
-
                         _log.LogErrorWithCodeFromResources("CodeTaskFactory.ReferenceAssemblyIsInvalid", referenceAssembly, e.Message);
                     }
                 }
@@ -712,6 +644,62 @@ namespace Microsoft.Build.Tasks
                     _log.LogErrorWithCodeFromResources("CodeTaskFactory.CouldNotFindReferenceAssembly", referenceAssembly);
                 }
             }
+
+            static string GetPathFromPartialAssemblyName(string partialName)
+            {
+                string candidateAssemblyLocation = null;
+
+#pragma warning disable 618, 612
+                // Unfortunately Assembly.Load is not an alternative to LoadWithPartialName, since
+                // Assembly.Load requires the full assembly name to be passed to it.
+                // Therefore we must ignore the deprecated warning.
+                Assembly candidateAssembly = Assembly.LoadWithPartialName(partialName);
+                if (candidateAssembly != null)
+                {
+                    candidateAssemblyLocation = candidateAssembly.Location;
+                }
+#pragma warning restore 618, 612
+                return candidateAssemblyLocation;
+            }
+
+            bool TryCacheAssemblyIdentityFromPath(string assemblyFile, out string candidateAssemblyLocation)
+            {
+                candidateAssemblyLocation = null;
+
+                try
+                {
+                    // Framework and Utilities are default references but are often
+                    // specified in the UsingTask anyway; if so just ignore them.
+                    //
+                    // Do this with an explicit upfront check rather than loading the
+                    // assembly and then checking its name, because that can cause
+                    // the loader to have multiple copies of these assemblies as in
+                    // https://github.com/dotnet/msbuild/issues/7108.
+
+                    string name = AssemblyName.GetAssemblyName(assemblyFile).FullName;
+                    if (name == _msbuildFrameworkName ||
+                        name == _msbuildUtilitiesName)
+                    {
+                        return false;
+                    }
+
+                    Assembly candidateAssembly = Assembly.UnsafeLoadFrom(assemblyFile);
+                    if (candidateAssembly != null)
+                    {
+                        candidateAssemblyLocation = candidateAssembly.Location;
+                        s_knownReferenceAssemblies[candidateAssembly.FullName] = candidateAssembly;
+                    }
+                }
+                catch (BadImageFormatException e)
+                {
+                    Debug.Assert(e.Message.Contains("0x80131058"), "Expected Message to contain 0x80131058");
+                    AssemblyName.GetAssemblyName(assemblyFile);
+                    candidateAssemblyLocation = assemblyFile;
+                    _log.LogMessageFromResources(MessageImportance.Low, "CodeTaskFactory.HaveReflectionOnlyAssembly", assemblyFile);
+                }
+
+                return true;
+            }
         }
 
         /// <summary>
@@ -721,8 +709,7 @@ namespace Microsoft.Build.Tasks
         private Assembly CompileInMemoryAssembly()
         {
             // Combine our default assembly references with those specified
-            var finalReferencedAssemblies = new List<string>();
-            CombineReferencedAssemblies(finalReferencedAssemblies);
+            var finalReferencedAssemblies = CombineReferencedAssemblies();
 
             // Combine our default using's with those specified
             string[] finalUsingNamespaces = CombineUsingNamespaces();
@@ -751,7 +738,7 @@ namespace Microsoft.Build.Tasks
 
                 // Horrible code dom / compilation declarations
                 var codeBuilder = new StringBuilder();
-                var writer = new StringWriter(codeBuilder, CultureInfo.CurrentCulture);
+                using var writer = new StringWriter(codeBuilder, CultureInfo.CurrentCulture);
                 var codeGeneratorOptions = new CodeGeneratorOptions
                 {
                     BlankLinesBetweenMembers = true,
@@ -804,22 +791,20 @@ namespace Microsoft.Build.Tasks
                 // Our code generation is complete, grab the source from the builder ready for compilation
                 string fullCode = codeBuilder.ToString();
 
+                // Embed generated file in the binlog
+                string fileNameInBinlog = $"{Guid.NewGuid()}-{_nameOfTask}-compilation-file.tmp";
+                _log.LogIncludeGeneratedFile(fileNameInBinlog, fullCode);
+
                 var fullSpec = new FullTaskSpecification(finalReferencedAssemblies, fullCode);
                 if (!s_compiledTaskCache.TryGetValue(fullSpec, out Assembly existingAssembly))
                 {
-                    // Invokes compilation. 
-
-                    // Note: CompileAssemblyFromSource uses Path.GetTempPath() directory, but will not create it. In some cases 
-                    // this will throw inside CompileAssemblyFromSource. To work around this, ensure the temp directory exists. 
-                    // See: https://github.com/Microsoft/msbuild/issues/328
-                    Directory.CreateDirectory(Path.GetTempPath());
-
+                    // Invokes compilation.
                     CompilerResults compilerResults = provider.CompileAssemblyFromSource(compilerParameters, fullCode);
 
                     string outputPath = null;
                     if (compilerResults.Errors.Count > 0 || Environment.GetEnvironmentVariable("MSBUILDLOGCODETASKFACTORYOUTPUT") != null)
                     {
-                        string tempDirectory = Path.GetTempPath();
+                        string tempDirectory = FileUtilities.TempFileDirectory;
                         string fileName = Guid.NewGuid().ToString() + ".txt";
                         outputPath = Path.Combine(tempDirectory, fileName);
                         File.WriteAllText(outputPath, fullCode);
@@ -851,13 +836,35 @@ namespace Microsoft.Build.Tasks
         /// <summary>
         /// Combine our default referenced assemblies with those explicitly specified
         /// </summary>
-        private void CombineReferencedAssemblies(List<string> finalReferenceList)
+        private List<string> CombineReferencedAssemblies()
         {
-            foreach (string defaultReference in DefaultReferencedAssemblies)
+            List<string> finalReferenceList = new List<string>(s_defaultReferencedFrameworkAssemblyNames.Length + 2 + _referencedAssemblies.Count);
+
+            // Set some default references:
+
+            // Loading with the partial name is fine for framework assemblies -- we'll always get the correct one
+            // through the magic of unification
+            foreach (string defaultReference in s_defaultReferencedFrameworkAssemblyNames)
             {
                 AddReferenceAssemblyToReferenceList(finalReferenceList, defaultReference);
             }
 
+            // We also want to add references to two MSBuild assemblies: Microsoft.Build.Framework.dll and
+            // Microsoft.Build.Utilities.Core.dll.  If we just let the CLR unify the simple name, it will
+            // pick the highest version on the machine, which means that in hosts with restrictive binding
+            // redirects, or no binding redirects, we'd end up creating an inline task that could not be
+            // run.  Instead, to make sure that we can actually use what we're building, just use the Framework
+            // and Utilities currently loaded into this process -- Since we're in Microsoft.Build.Tasks.Core.dll
+            // right now, by definition both of them are always already loaded.
+            //
+            // NOTE Dec 2020: I don't think the above really applies given the eternally-15.1.0.0 version policy
+            // we are currently using. But loading these from an explicit path seems fine so I'm not changing
+            // that.
+
+            finalReferenceList.Add(_msbuildFrameworkPath);
+            finalReferenceList.Add(_msbuildUtilitiesPath);
+
+            // Now for the explicitly-specified references:
             if (_referencedAssemblies != null)
             {
                 foreach (string referenceAssembly in _referencedAssemblies)
@@ -865,6 +872,8 @@ namespace Microsoft.Build.Tasks
                     AddReferenceAssemblyToReferenceList(finalReferenceList, referenceAssembly);
                 }
             }
+
+            return finalReferenceList;
         }
 
         /// <summary>
@@ -1026,7 +1035,7 @@ namespace Microsoft.Build.Tasks
                 TaskResources = AssemblyResources.PrimaryResources,
                 HelpKeywordPrefix = "MSBuild."
             };
-            
+
             log.LogErrorWithCodeFromResources("TaskFactoryNotSupportedFailure", nameof(CodeTaskFactory));
 
             return false;

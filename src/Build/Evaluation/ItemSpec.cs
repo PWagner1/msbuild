@@ -1,12 +1,15 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Globbing;
 using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
+
+#nullable disable
 
 namespace Microsoft.Build.Evaluation
 {
@@ -77,7 +80,7 @@ namespace Microsoft.Build.Evaluation
 
             public override int MatchCount(string itemToMatch)
             {
-                return ReferencedItems.Count(v => v.ItemAsValueFragment.MatchCount(itemToMatch) > 0);
+                return ReferencedItems.Count(v => v.ItemAsValueFragment.IsMatch(itemToMatch));
             }
 
             public override bool IsMatch(string itemToMatch)
@@ -85,22 +88,9 @@ namespace Microsoft.Build.Evaluation
                 return ReferencedItems.Any(v => v.ItemAsValueFragment.IsMatch(itemToMatch));
             }
 
-            public override bool IsMatchOnMetadata(IItem item, IEnumerable<string> metadata, MatchOnMetadataOptions options)
+            public override IEnumerable<string> GetReferencedItems()
             {
-                return ReferencedItems.Any(referencedItem =>
-                        metadata.All(m => !item.GetMetadataValue(m).Equals(string.Empty) && MetadataComparer(options, item.GetMetadataValue(m), referencedItem.Item.GetMetadataValue(m))));
-            }
-
-            private bool MetadataComparer(MatchOnMetadataOptions options, string itemMetadata, string referencedItemMetadata)
-            {
-                if (options.Equals(MatchOnMetadataOptions.PathLike))
-                {
-                    return FileUtilities.ComparePathsNoThrow(itemMetadata, referencedItemMetadata, ProjectDirectory);
-                }
-                else 
-                {
-                    return String.Equals(itemMetadata, referencedItemMetadata, options.Equals(MatchOnMetadataOptions.CaseInsensitive) ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
-                }
+                return ReferencedItems.Select(v => EscapingUtilities.UnescapeAll(v.ItemAsValueFragment.TextFragment));
             }
 
             public override IMSBuildGlob ToMSBuildGlob()
@@ -110,7 +100,13 @@ namespace Microsoft.Build.Evaluation
 
             protected override IMSBuildGlob CreateMsBuildGlob()
             {
-                return new CompositeGlob(ReferencedItems.Select(i => i.ItemAsValueFragment.ToMSBuildGlob()));
+                if (ReferencedItems.Count == 1)
+                {
+                    // Optimize the common case, avoiding allocation of enumerable/enumerator.
+                    return ReferencedItems[0].ItemAsValueFragment.ToMSBuildGlob();
+                }
+
+                return CompositeGlob.Create(ReferencedItems.Select(i => i.ItemAsValueFragment.ToMSBuildGlob()));
             }
 
             private bool InitReferencedItemsIfNecessary()
@@ -149,7 +145,7 @@ namespace Microsoft.Build.Evaluation
         ///     The expander needs to have a default item factory set.
         /// </summary>
         // todo Make this type immutable. Dealing with an Expander change is painful. See the ItemExpressionFragment
-            public Expander<P, I> Expander { get; set; }
+        public Expander<P, I> Expander { get; set; }
 
         /// <summary>
         ///     The xml attribute where this itemspec comes from
@@ -177,7 +173,7 @@ namespace Microsoft.Build.Evaluation
 
         private List<ItemSpecFragment> BuildItemFragments(IElementLocation itemSpecLocation, string projectDirectory, bool expandProperties)
         {
-            //  Code corresponds to Evaluator.CreateItemsFromInclude
+            // Code corresponds to Evaluator.CreateItemsFromInclude
             var evaluatedItemspecEscaped = ItemSpecString;
 
             if (string.IsNullOrEmpty(evaluatedItemspecEscaped))
@@ -228,31 +224,28 @@ namespace Microsoft.Build.Evaluation
                     {
                         // The expression is not of the form "@(X)". Treat as string
 
-                        //  Code corresponds to EngineFileUtilities.GetFileList
-                        var containsEscapedWildcards = EscapingUtilities.ContainsEscapedWildcards(splitEscaped);
-                        var containsRealWildcards = FileMatcher.HasWildcards(splitEscaped);
-
-                        // '*' is an illegal character to have in a filename.
-                        // todo: file-system assumption on legal path characters: https://github.com/Microsoft/msbuild/issues/781
-                        if (containsEscapedWildcards && containsRealWildcards)
+                        // Code corresponds to EngineFileUtilities.GetFileList
+                        if (!FileMatcher.HasWildcards(splitEscaped))
                         {
+                            // No real wildcards means we just return the original string.  Don't even bother
+                            // escaping ... it should already be escaped appropriately since it came directly
+                            // from the project file
+
+                            fragments.Add(new ValueFragment(splitEscaped, projectDirectory));
+                        }
+                        else if (EscapingUtilities.ContainsEscapedWildcards(splitEscaped))
+                        {
+                            // '*' is an illegal character to have in a filename.
+                            // todo: file-system assumption on legal path characters: https://github.com/dotnet/msbuild/issues/781
                             // Just return the original string.
                             fragments.Add(new ValueFragment(splitEscaped, projectDirectory));
                         }
-                        else if (!containsEscapedWildcards && containsRealWildcards)
+                        else
                         {
                             // Unescape before handing it to the filesystem.
                             var filespecUnescaped = EscapingUtilities.UnescapeAll(splitEscaped);
 
                             fragments.Add(new GlobFragment(filespecUnescaped, projectDirectory));
-                        }
-                        else
-                        {
-                            // No real wildcards means we just return the original string.  Don't even bother 
-                            // escaping ... it should already be escaped appropriately since it came directly
-                            // from the project file
-
-                            fragments.Add(new ValueFragment(splitEscaped, projectDirectory));
                         }
                     }
                 }
@@ -269,7 +262,7 @@ namespace Microsoft.Build.Evaluation
         {
             isItemListExpression = false;
 
-            //  Code corresponds to Expander.ExpandSingleItemVectorExpressionIntoItems
+            // Code corresponds to Expander.ExpandSingleItemVectorExpressionIntoItems
             if (expression.Length == 0)
             {
                 return null;
@@ -311,26 +304,6 @@ namespace Microsoft.Build.Evaluation
         }
 
         /// <summary>
-        ///     Return true if any of the given <paramref name="metadata" /> matches the metadata on <paramref name="item" />
-        /// </summary>
-        /// <param name="item">The item to attempt to find a match for based on matching metadata</param>
-        /// <param name="metadata">Names of metadata to look for matches for</param>
-        /// <param name="options">metadata option matching</param>
-        /// <returns></returns>
-        public bool MatchesItemOnMetadata(IItem item, IEnumerable<string> metadata, MatchOnMetadataOptions options)
-        {
-            foreach (var fragment in Fragments)
-            {
-                if (fragment.IsMatchOnMetadata(item, metadata, options))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        /// <summary>
         ///     Return the fragments that match against the given <paramref name="itemToMatch" />
         /// </summary>
         /// <param name="itemToMatch">The item to match.</param>
@@ -358,11 +331,59 @@ namespace Microsoft.Build.Evaluation
         }
 
         /// <summary>
+        /// Returns a list of normalized paths that are common between this itemspec and keys of the given dictionary.
+        /// </summary>
+        /// <param name="itemsByNormalizedValue">The dictionary to match this itemspec against.</param>
+        /// <returns>The keys of <paramref name="itemsByNormalizedValue"/> that are also referenced by this itemspec.</returns>
+        public IList<string> IntersectsWith(IReadOnlyDictionary<string, ItemDataCollectionValue<I>> itemsByNormalizedValue)
+        {
+            IList<string> matches = null;
+
+            foreach (var fragment in Fragments)
+            {
+                IEnumerable<string> referencedItems = fragment.GetReferencedItems();
+                if (referencedItems != null)
+                {
+                    // The fragment can enumerate its referenced items, we can do dictionary lookups.
+                    foreach (var spec in referencedItems)
+                    {
+                        string key = FileUtilities.NormalizePathForComparisonNoThrow(spec, fragment.ProjectDirectory);
+                        if (itemsByNormalizedValue.TryGetValue(key, out var multiValue))
+                        {
+                            matches ??= new List<string>();
+                            matches.Add(key);
+                        }
+                    }
+                }
+                else
+                {
+                    // The fragment cannot enumerate its referenced items. Iterate over the dictionary and test each item.
+                    foreach (var kvp in itemsByNormalizedValue)
+                    {
+                        if (fragment.IsMatchNormalized(kvp.Key))
+                        {
+                            matches ??= new List<string>();
+                            matches.Add(kvp.Key);
+                        }
+                    }
+                }
+            }
+
+            return matches ?? Array.Empty<string>();
+        }
+
+        /// <summary>
         ///     Return an MSBuildGlob that represents this ItemSpec.
         /// </summary>
         public IMSBuildGlob ToMSBuildGlob()
         {
-            return new CompositeGlob(Fragments.Select(f => f.ToMSBuildGlob()));
+            if (Fragments.Count == 1)
+            {
+                // Optimize the common case, avoiding allocation of enumerable/enumerator.
+                return Fragments[0].ToMSBuildGlob();
+            }
+
+            return CompositeGlob.Create(Fragments.Select(f => f.ToMSBuildGlob()));
         }
 
         /// <summary>
@@ -414,7 +435,7 @@ namespace Microsoft.Build.Evaluation
         /// <summary>
         ///     Path of the project the itemspec is coming from
         /// </summary>
-        protected string ProjectDirectory { get; }
+        internal string ProjectDirectory { get; }
 
         // not a Lazy to reduce memory
         private ref FileSpecMatcherTester FileMatcher
@@ -456,12 +477,14 @@ namespace Microsoft.Build.Evaluation
             return FileMatcher.IsMatch(itemToMatch);
         }
 
-        /// <summary>
-        /// Returns true if <paramref name="itemToMatch" /> matches any ReferencedItems based on <paramref name="metadata" /> and <paramref name="options" />.
-        /// </summary>
-        public virtual bool IsMatchOnMetadata(IItem itemToMatch, IEnumerable<string> metadata, MatchOnMetadataOptions options)
+        public virtual bool IsMatchNormalized(string normalizedItemToMatch)
         {
-            return false;
+            return FileMatcher.IsMatchNormalized(normalizedItemToMatch);
+        }
+
+        public virtual IEnumerable<string> GetReferencedItems()
+        {
+            return Enumerable.Repeat(EscapingUtilities.UnescapeAll(TextFragment), 1);
         }
 
         public virtual IMSBuildGlob ToMSBuildGlob()
@@ -495,6 +518,12 @@ namespace Microsoft.Build.Evaluation
         {
         }
 
+        public override IEnumerable<string> GetReferencedItems()
+        {
+            // This fragment cannot efficiently enumerate its referenced items.
+            return null;
+        }
+
         /// <summary>
         /// True if TextFragment starts with /**/ or a variation thereof with backslashes.
         /// </summary>
@@ -503,5 +532,112 @@ namespace Microsoft.Build.Evaluation
             && TextFragment[1] == '*'
             && TextFragment[2] == '*'
             && FileUtilities.IsAnySlash(TextFragment[3]);
+    }
+
+    /// <summary>
+    /// A Trie representing the sets of values of specified metadata taken on by the referenced items.
+    /// A single flat list or set of metadata values would not work in this case because we are matching
+    /// on multiple metadata. If one item specifies NotTargetFramework to be net46 and TargetFramework to
+    /// be netcoreapp3.1, we wouldn't want to match that to an item with TargetFramework 46 and
+    /// NotTargetFramework netcoreapp3.1.
+    ///
+    /// Implementing this as a list of sets where each metadatum key has its own set also would not work
+    /// because different items could match on different metadata, and we want to check to see if any
+    /// single item matches on all the metadata. As an example, consider this scenario:
+    /// Item Baby has metadata GoodAt="eating" BadAt="talking" OkAt="sleeping"
+    /// Item Child has metadata GoodAt="sleeping" BadAt="eating" OkAt="talking"
+    /// Item Adolescent has metadata GoodAt="talking" BadAt="sleeping" OkAt="eating"
+    /// Specifying these three metadata:
+    /// Item Forgind with metadata GoodAt="sleeping" BadAt="talking" OkAt="eating"
+    /// should match none of them because Forgind doesn't match all three metadata of any of the items.
+    /// With a list of sets, Forgind would match Baby on BadAt, Child on GoodAt, and Adolescent on OkAt,
+    /// and Forgind would be erroneously removed.
+    ///
+    /// With a Trie as below, Items specify paths in the tree, so going to any child node eliminates all
+    /// items that don't share that metadatum. This ensures the match is proper.
+    ///
+    /// Todo: Tries naturally can have different shapes depending on in what order the metadata are considered.
+    /// Specifically, if all the items share a single metadata value for the one metadatum and have different
+    /// values for a second metadatum, it will have only one node more than the number of items if the first
+    /// metadatum is considered first. If the metadatum is considered first, it will have twice that number.
+    /// Users can theoretically specify the order in which metadata should be considered by reordering them
+    /// on the line invoking this, but that is extremely nonobvious from a user's perspective.
+    /// It would be nice to detect poorly-ordered metadata and account for it to avoid making more nodes than
+    /// necessary. This would need to order if appropriately both in creating the MetadataTrie and in using it,
+    /// so it could best be done as a preprocessing step. For now, wait to find out if it's necessary (users'
+    /// computers run out of memory) before trying to implement it.
+    /// </summary>
+    /// <typeparam name="P">Property type</typeparam>
+    /// <typeparam name="I">Item type</typeparam>
+    internal sealed class MetadataTrie<P, I> where P : class, IProperty where I : class, IItem, IMetadataTable
+    {
+        private readonly Dictionary<string, MetadataTrie<P, I>> _children;
+        private readonly Func<string, string> _normalize;
+
+        internal MetadataTrie(MatchOnMetadataOptions options, IEnumerable<string> metadata, ItemSpec<P, I> itemSpec)
+        {
+            StringComparer comparer = options == MatchOnMetadataOptions.CaseSensitive ? StringComparer.Ordinal :
+                options == MatchOnMetadataOptions.CaseInsensitive || FileUtilities.PathComparison == StringComparison.OrdinalIgnoreCase ? StringComparer.OrdinalIgnoreCase :
+                StringComparer.Ordinal;
+            _children = new Dictionary<string, MetadataTrie<P, I>>(comparer);
+            _normalize = options == MatchOnMetadataOptions.PathLike ? (Func<string, string>)(p => FileUtilities.NormalizePathForComparisonNoThrow(p, Environment.CurrentDirectory)) : p => p;
+            foreach (ItemSpec<P, I>.ItemExpressionFragment frag in itemSpec.Fragments)
+            {
+                foreach (ItemSpec<P, I>.ReferencedItem referencedItem in frag.ReferencedItems)
+                {
+                    this.Add(metadata.Select(m => referencedItem.Item.GetMetadataValue(m)), comparer);
+                }
+            }
+        }
+
+        private MetadataTrie(StringComparer comparer)
+        {
+            _children = new Dictionary<string, MetadataTrie<P, I>>(comparer);
+        }
+
+        // Relies on IEnumerable returning the metadata in a reasonable order. Reasonable?
+        private void Add(IEnumerable<string> metadata, StringComparer comparer)
+        {
+            MetadataTrie<P, I> current = this;
+            foreach (string m in metadata)
+            {
+                string normalizedString = _normalize(m);
+                if (!current._children.TryGetValue(normalizedString, out MetadataTrie<P, I> child))
+                {
+                    child = new MetadataTrie<P, I>(comparer);
+                    current._children.Add(normalizedString, child);
+                }
+                current = child;
+            }
+        }
+
+        internal bool Contains(IEnumerable<string> metadata)
+        {
+            MetadataTrie<P, I> current = this;
+            foreach (string m in metadata)
+            {
+                if (String.IsNullOrEmpty(m))
+                {
+                    return false;
+                }
+                if (!current._children.TryGetValue(_normalize(m), out current))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+
+    public enum MatchOnMetadataOptions
+    {
+        CaseSensitive,
+        CaseInsensitive,
+        PathLike
+    }
+
+    public static class MatchOnMetadataConstants
+    {
+        public const MatchOnMetadataOptions MatchOnMetadataOptionsDefaultValue = MatchOnMetadataOptions.CaseSensitive;
     }
 }

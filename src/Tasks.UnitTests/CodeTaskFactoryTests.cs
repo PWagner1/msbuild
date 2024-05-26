@@ -1,19 +1,22 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
-using System.IO;
 using System;
+using System.IO;
 using System.Linq;
 using Microsoft.Build.Framework;
-using Microsoft.Build.Utilities;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Utilities;
 using Xunit;
+
+#nullable disable
 
 namespace Microsoft.Build.UnitTests
 {
 #if FEATURE_CODETASKFACTORY
 
     using System.CodeDom.Compiler;
+    using Microsoft.Build.Tasks.UnitTests;
 
     public sealed class CodeTaskFactoryTests
     {
@@ -24,9 +27,9 @@ namespace Microsoft.Build.UnitTests
         public void BuildTaskSimpleCodeFactory()
         {
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName=`CustomTaskFromCodeFactory_BuildTaskSimpleCodeFactory` TaskFactory=`CodeTaskFactory` AssemblyFile=`$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll` >
-                         <ParameterGroup>     
+                         <ParameterGroup>
                              <Text/>
                           </ParameterGroup>
                             <Task>
@@ -46,17 +49,17 @@ namespace Microsoft.Build.UnitTests
 
         /// <summary>
         /// Test the simple case where we have a string parameter and we want to log that.
-        /// Specifically testing that even when the ToolsVersion is post-4.0, and thus 
-        /// Microsoft.Build.Tasks.v4.0.dll is expected to NOT be in MSBuildToolsPath, that 
+        /// Specifically testing that even when the ToolsVersion is post-4.0, and thus
+        /// Microsoft.Build.Tasks.v4.0.dll is expected to NOT be in MSBuildToolsPath, that
         /// we will redirect under the covers to use the current tasks instead.
         /// </summary>
         [Fact]
         public void BuildTaskSimpleCodeFactory_RedirectFrom4()
         {
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName=`CustomTaskFromCodeFactory_BuildTaskSimpleCodeFactory` TaskFactory=`CodeTaskFactory` AssemblyFile=`$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll` >
-                         <ParameterGroup>     
+                         <ParameterGroup>
                              <Text/>
                           </ParameterGroup>
                             <Task>
@@ -77,17 +80,17 @@ namespace Microsoft.Build.UnitTests
 
         /// <summary>
         /// Test the simple case where we have a string parameter and we want to log that.
-        /// Specifically testing that even when the ToolsVersion is post-12.0, and thus 
-        /// Microsoft.Build.Tasks.v12.0.dll is expected to NOT be in MSBuildToolsPath, that 
+        /// Specifically testing that even when the ToolsVersion is post-12.0, and thus
+        /// Microsoft.Build.Tasks.v12.0.dll is expected to NOT be in MSBuildToolsPath, that
         /// we will redirect under the covers to use the current tasks instead.
         /// </summary>
         [Fact]
         public void BuildTaskSimpleCodeFactory_RedirectFrom12()
         {
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName=`CustomTaskFromCodeFactory_BuildTaskSimpleCodeFactory` TaskFactory=`CodeTaskFactory` AssemblyFile=`$(MSBuildToolsPath)\Microsoft.Build.Tasks.v12.0.dll` >
-                         <ParameterGroup>     
+                         <ParameterGroup>
                              <Text/>
                           </ParameterGroup>
                             <Task>
@@ -109,17 +112,17 @@ namespace Microsoft.Build.UnitTests
         /// <summary>
         /// Test the simple case where we have a string parameter and we want to log that.
         /// Specifically testing that even when the ToolsVersion is post-4.0, and we have redirection
-        /// logic in place for the AssemblyFile case to deal with Microsoft.Build.Tasks.v4.0.dll not 
-        /// being in MSBuildToolsPath anymore, that this does NOT affect full fusion AssemblyNames -- 
-        /// it's picked up from the GAC, where it is anyway, so there's no need to redirect. 
+        /// logic in place for the AssemblyFile case to deal with Microsoft.Build.Tasks.v4.0.dll not
+        /// being in MSBuildToolsPath anymore, that this does NOT affect full fusion AssemblyNames --
+        /// it's picked up from the GAC, where it is anyway, so there's no need to redirect.
         /// </summary>
         [Fact]
         public void BuildTaskSimpleCodeFactory_NoAssemblyNameRedirect()
         {
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName=`CustomTaskFromCodeFactory_BuildTaskSimpleCodeFactory` TaskFactory=`CodeTaskFactory` AssemblyName=`Microsoft.Build.Tasks.Core, Version=15.1.0.0` >
-                         <ParameterGroup>     
+                         <ParameterGroup>
                              <Text/>
                           </ParameterGroup>
                             <Task>
@@ -145,9 +148,9 @@ namespace Microsoft.Build.UnitTests
         public void VerifyRequiredAttribute()
         {
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName=`CustomTaskFromCodeFactory_VerifyRequiredAttribute` TaskFactory=`CodeTaskFactory` AssemblyFile=`$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll` >
-                         <ParameterGroup>     
+                         <ParameterGroup>
                              <Text Required='true'/>
                           </ParameterGroup>
                             <Task>
@@ -172,9 +175,9 @@ namespace Microsoft.Build.UnitTests
         public void RuntimeException()
         {
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName=`CustomTaskFromCodeFactory_RuntimeException` TaskFactory=`CodeTaskFactory` AssemblyFile=`$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll` >
-                         <ParameterGroup>     
+                         <ParameterGroup>
                              <Text/>
                           </ParameterGroup>
                             <Task>
@@ -197,13 +200,12 @@ namespace Microsoft.Build.UnitTests
         /// Verify we get an error if a the languages attribute is set but it is empty
         /// </summary>
         [Fact]
-        [Trait("Category", "mono-osx-failing")]
         public void EmptyLanguage()
         {
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName=`CustomTaskFromCodeFactory_EmptyLanguage` TaskFactory=`CodeTaskFactory` AssemblyFile=`$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll` >
-                         <ParameterGroup>     
+                         <ParameterGroup>
                              <Text/>
                           </ParameterGroup>
                             <Task>
@@ -226,13 +228,12 @@ namespace Microsoft.Build.UnitTests
         /// Verify we get an error if a the Type attribute is set but it is empty
         /// </summary>
         [Fact]
-        [Trait("Category", "mono-osx-failing")]
         public void EmptyType()
         {
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName=`CustomTaskFromCodeFactory_EmptyType` TaskFactory=`CodeTaskFactory` AssemblyFile=`$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll` >
-                         <ParameterGroup>     
+                         <ParameterGroup>
                              <Text/>
                           </ParameterGroup>
                             <Task>
@@ -255,13 +256,12 @@ namespace Microsoft.Build.UnitTests
         /// Verify we get an error if a the source attribute is set but it is empty
         /// </summary>
         [Fact]
-        [Trait("Category", "mono-osx-failing")]
         public void EmptySource()
         {
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName=`CustomTaskFromCodeFactory_EmptySource` TaskFactory=`CodeTaskFactory` AssemblyFile=`$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll` >
-                         <ParameterGroup>     
+                         <ParameterGroup>
                              <Text/>
                           </ParameterGroup>
                             <Task>
@@ -284,13 +284,12 @@ namespace Microsoft.Build.UnitTests
         /// Verify we get an error if a reference is missing an include attribute is set but it is empty
         /// </summary>
         [Fact]
-        [Trait("Category", "mono-osx-failing")]
         public void EmptyReferenceInclude()
         {
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName=`CustomTaskFromCodeFactory_EmptyReferenceInclude` TaskFactory=`CodeTaskFactory` AssemblyFile=`$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll` >
-                         <ParameterGroup>     
+                         <ParameterGroup>
                              <Text/>
                           </ParameterGroup>
                             <Task>
@@ -314,13 +313,12 @@ namespace Microsoft.Build.UnitTests
         /// Verify we get an error if a Using statement is missing an namespace attribute is set but it is empty
         /// </summary>
         [Fact]
-        [Trait("Category", "mono-osx-failing")]
         public void EmptyUsingNamespace()
         {
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName=`CustomTaskFromCodeFactory_EmptyUsingNamespace` TaskFactory=`CodeTaskFactory` AssemblyFile=`$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll` >
-                         <ParameterGroup>     
+                         <ParameterGroup>
                              <Text/>
                           </ParameterGroup>
                             <Task>
@@ -347,9 +345,9 @@ namespace Microsoft.Build.UnitTests
         public void ReferenceNotPath()
         {
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName=`CustomTaskFromCodeFactory_ReferenceNotPath` TaskFactory=`CodeTaskFactory` AssemblyFile=`$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll` >
-                         <ParameterGroup>     
+                         <ParameterGroup>
                              <Text/>
                           </ParameterGroup>
                             <Task>
@@ -372,13 +370,12 @@ namespace Microsoft.Build.UnitTests
         /// Verify we get an error a reference has strange chars
         /// </summary>
         [Fact]
-        [Trait("Category", "mono-osx-failing")]
         public void ReferenceInvalidChars()
         {
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName=`CustomTaskFromCodeFactory_ReferenceInvalidChars` TaskFactory=`CodeTaskFactory` AssemblyFile=`$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll` >
-                         <ParameterGroup>     
+                         <ParameterGroup>
                              <Text/>
                           </ParameterGroup>
                             <Task>
@@ -402,13 +399,12 @@ namespace Microsoft.Build.UnitTests
         /// Verify we get an error if a using has invalid chars
         /// </summary>
         [Fact]
-        [Trait("Category", "mono-osx-failing")]
         public void UsingInvalidChars()
         {
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName=`CustomTaskFromCodeFactory_UsingInvalidChars` TaskFactory=`CodeTaskFactory` AssemblyFile=`$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll` >
-                         <ParameterGroup>     
+                         <ParameterGroup>
                              <Text/>
                           </ParameterGroup>
                             <Task>
@@ -436,9 +432,9 @@ namespace Microsoft.Build.UnitTests
             string tempFileName = "Moose_" + Guid.NewGuid().ToString() + ".cs";
 
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName=`CustomTaskFromCodeFactory_SourcesInvalidFile` TaskFactory=`CodeTaskFactory` AssemblyFile=`$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll` >
-                         <ParameterGroup>     
+                         <ParameterGroup>
                              <Text/>
                           </ParameterGroup>
                             <Task>
@@ -460,13 +456,12 @@ namespace Microsoft.Build.UnitTests
         /// Verify we get an error if a the code element is missing
         /// </summary>
         [Fact]
-        [Trait("Category", "mono-osx-failing")]
         public void MissingCodeElement()
         {
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName=`CustomTaskFromCodeFactory_MissingCodeElement` TaskFactory=`CodeTaskFactory` AssemblyFile=`$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll` >
-                         <ParameterGroup>     
+                         <ParameterGroup>
                              <Text/>
                           </ParameterGroup>
                             <Task>
@@ -488,9 +483,9 @@ namespace Microsoft.Build.UnitTests
         public void BuildTaskSimpleCodeFactoryTestExtraUsing()
         {
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName=`CustomTaskFromCodeFactory_BuildTaskSimpleCodeFactoryTestExtraUsing` TaskFactory=`CodeTaskFactory` AssemblyFile=`$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll` >
-                         <ParameterGroup>     
+                         <ParameterGroup>
                              <Text/>
                           </ParameterGroup>
                             <Task>
@@ -518,7 +513,7 @@ namespace Microsoft.Build.UnitTests
         public void BuildTaskDateCodeFactory()
         {
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName=`DateTaskFromCodeFactory_BuildTaskDateCodeFactory` TaskFactory=`CodeTaskFactory` AssemblyFile=`$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll`>
                             <ParameterGroup>
                                <CurrentDate ParameterType=`System.String` Output=`true` />
@@ -549,7 +544,7 @@ namespace Microsoft.Build.UnitTests
         public void MethodImplmentationVB()
         {
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName=`CodeMethod_MethodImplmentationVB` TaskFactory=`CodeTaskFactory` AssemblyFile=`$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll`>
                         <ParameterGroup>
                             <Text ParameterType='System.String' />
@@ -581,9 +576,9 @@ namespace Microsoft.Build.UnitTests
         public void BuildTaskSimpleCodeFactoryTestSystemVB()
         {
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName=`CustomTaskFromCodeFactory_BuildTaskSimpleCodeFactoryTestSystemVB` TaskFactory=`CodeTaskFactory` AssemblyFile=`$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll` >
-                         <ParameterGroup>     
+                         <ParameterGroup>
                              <Text/>
                           </ParameterGroup>
                             <Task>
@@ -610,9 +605,9 @@ namespace Microsoft.Build.UnitTests
         public void BuildTaskSimpleCodeFactoryTestSystemCS()
         {
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName=`CustomTaskFromCodeFactory_BuildTaskSimpleCodeFactoryTestSystemCS` TaskFactory=`CodeTaskFactory` AssemblyFile=`$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll` >
-                         <ParameterGroup>     
+                         <ParameterGroup>
                              <Text/>
                           </ParameterGroup>
                             <Task>
@@ -632,7 +627,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Make sure we can pass in extra references than the automatic ones. For example the c# compiler does not pass in 
+        /// Make sure we can pass in extra references than the automatic ones. For example the c# compiler does not pass in
         /// system.dll. So lets test that case
         /// </summary>
         [Fact]
@@ -654,9 +649,9 @@ namespace Microsoft.Build.UnitTests
             }
 
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName=`CustomTaskFromCodeFactory_BuildTaskSimpleCodeFactoryTestExtraReferenceCS` TaskFactory=`CodeTaskFactory` AssemblyFile=`$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll` >
-                         <ParameterGroup>     
+                         <ParameterGroup>
                              <Text/>
                           </ParameterGroup>
                             <Task>
@@ -681,7 +676,6 @@ namespace Microsoft.Build.UnitTests
         /// jscript .net works
         /// </summary>
         [Fact]
-        [Trait("Category", "mono-osx-failing")]
         public void MethodImplementationJScriptNet()
         {
             if (!CodeDomProvider.IsDefinedLanguage("js"))
@@ -691,7 +685,7 @@ namespace Microsoft.Build.UnitTests
             }
 
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName=`CodeMethod_MethodImplementationJScriptNet` TaskFactory=`CodeTaskFactory` AssemblyFile=`$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll`>
                         <ParameterGroup>
                             <Text ParameterType='System.String' />
@@ -724,7 +718,7 @@ namespace Microsoft.Build.UnitTests
         public void MethodImplementation()
         {
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName=`CodeMethod_MethodImplementation` TaskFactory=`CodeTaskFactory` AssemblyFile=`$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll`>
                         <ParameterGroup>
                             <Text ParameterType='System.String' />
@@ -757,7 +751,7 @@ namespace Microsoft.Build.UnitTests
         public void ClassImplementationTest()
         {
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName=`LogNameValue_ClassImplementationTest` TaskFactory=`CodeTaskFactory` AssemblyFile=`$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll`>
                         <ParameterGroup>
                             <Name ParameterType='System.String' />
@@ -823,7 +817,7 @@ namespace Microsoft.Build.UnitTests
         public void ClassImplementationTestDoesNotInheritFromITask()
         {
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName=`ClassImplementationTestDoesNotInheritFromITask` TaskFactory=`CodeTaskFactory` AssemblyFile=`$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll`>
                         <ParameterGroup>
                             <Name ParameterType='System.String' />
@@ -877,13 +871,12 @@ namespace Microsoft.Build.UnitTests
         /// Verify we get an error if a the Type attribute is set but it is empty
         /// </summary>
         [Fact]
-        [Trait("Category", "mono-osx-failing")]
         public void MultipleCodeElements()
         {
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName=`CustomTaskFromCodeFactory_EmptyType` TaskFactory=`CodeTaskFactory` AssemblyFile=`$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll` >
-                         <ParameterGroup>     
+                         <ParameterGroup>
                              <Text/>
                           </ParameterGroup>
                             <Task>
@@ -909,13 +902,12 @@ namespace Microsoft.Build.UnitTests
         /// Verify we get an error if a the Type attribute is set but it is empty
         /// </summary>
         [Fact]
-        [Trait("Category", "mono-osx-failing")]
         public void ReferenceNestedInCode()
         {
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName=`CustomTaskFromCodeFactory_EmptyType` TaskFactory=`CodeTaskFactory` AssemblyFile=`$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll` >
-                         <ParameterGroup>     
+                         <ParameterGroup>
                              <Text/>
                           </ParameterGroup>
                             <Task>
@@ -943,13 +935,12 @@ namespace Microsoft.Build.UnitTests
         /// Verify we get an error if there is an unknown element in the task tag
         /// </summary>
         [Fact]
-        [Trait("Category", "mono-osx-failing")]
         public void UnknownElementInTask()
         {
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName=`CustomTaskFromCodeFactory_EmptyType` TaskFactory=`CodeTaskFactory` AssemblyFile=`$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll` >
-                         <ParameterGroup>     
+                         <ParameterGroup>
                              <Text/>
                           </ParameterGroup>
                             <Task>
@@ -1023,7 +1014,7 @@ namespace Microsoft.Build.UnitTests
             try
             {
                 string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName=`LogNameValue_ClassSourcesTest` TaskFactory=`CodeTaskFactory` AssemblyFile=`$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll`>
                         <ParameterGroup>
                             <Name ParameterType='System.String' />
@@ -1052,16 +1043,15 @@ namespace Microsoft.Build.UnitTests
 
         /// <summary>
         /// Code factory test where the TMP directory does not exist.
-        /// See https://github.com/Microsoft/msbuild/issues/328 for details.
+        /// See https://github.com/dotnet/msbuild/issues/328 for details.
         /// </summary>
         [Fact]
-        [Trait("Category", "mono-osx-failing")]
         public void BuildTaskSimpleCodeFactoryTempDirectoryDoesntExist()
         {
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName=`CustomTaskFromCodeFactory_BuildTaskSimpleCodeFactory` TaskFactory=`CodeTaskFactory` AssemblyFile=`$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll` >
-                         <ParameterGroup>     
+                         <ParameterGroup>
                              <Text/>
                           </ParameterGroup>
                             <Task>
@@ -1101,6 +1091,111 @@ namespace Microsoft.Build.UnitTests
                 FileUtilities.DeleteDirectoryNoThrow(newTempPath, true);
             }
         }
+
+        /// <summary>
+        /// Test the simple case where we have a string parameter and we want to log that.
+        /// </summary>
+        [Fact]
+        public void RedundantMSBuildReferences()
+        {
+            string projectFileContents = @"
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
+                        <UsingTask TaskName=`CustomTaskFromCodeFactory_RedundantMSBuildReferences` TaskFactory=`CodeTaskFactory` AssemblyFile=`$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll` >
+                         <ParameterGroup>
+                             <Text/>
+                          </ParameterGroup>
+                            <Task>
+                              <Reference Include='$(MSBuildToolsPath)\Microsoft.Build.Framework.dll' />
+                              <Reference Include='$(MSBuildToolsPath)\Microsoft.Build.Utilities.Core.dll' />
+
+                                <Code>
+                                     Log.LogMessage(MessageImportance.High, Text);
+                                </Code>
+                            </Task>
+                        </UsingTask>
+                        <Target Name=`Build`>
+                            <CustomTaskFromCodeFactory_RedundantMSBuildReferences Text=`Hello, World!` />
+                        </Target>
+                    </Project>";
+
+            MockLogger mockLogger = Helpers.BuildProjectWithNewOMExpectSuccess(projectFileContents);
+            mockLogger.AssertLogContains("Hello, World!");
+        }
+
+        [Fact]
+        public void EmbedsGeneratedFromSourceFileInBinlog()
+        {
+            string taskName = "HelloTask";
+
+            string sourceContent = $$"""
+                namespace InlineTask
+                {
+                    using Microsoft.Build.Utilities;
+
+                    public class {{taskName}} : Task
+                    {
+                        public override bool Execute()
+                        {
+                            Log.LogMessage("Hello, world!");
+                            return !Log.HasLoggedErrors;
+                        }
+                    }
+                }
+                """;
+
+            CodeTaskFactoryEmbeddedFileInBinlogTestHelper.BuildFromSourceAndCheckForEmbeddedFileInBinlog(
+                FactoryType.CodeTaskFactory, taskName, sourceContent, true);
+        }
+
+        [Fact]
+        public void EmbedsGeneratedFromSourceFileInBinlogWhenFailsToCompile()
+        {
+            string taskName = "HelloTask";
+
+            string sourceContent =  $$"""
+                namespace InlineTask
+                {
+                    using Microsoft.Build.Utilities;
+
+                    public class {{taskName}} : Task
+                    {
+                """;
+
+            CodeTaskFactoryEmbeddedFileInBinlogTestHelper.BuildFromSourceAndCheckForEmbeddedFileInBinlog(
+                FactoryType.CodeTaskFactory, taskName, sourceContent, false);
+        }
+
+        [Fact]
+        public void EmbedsGeneratedFileInBinlog()
+        {
+            string taskXml = @"
+                <Task>
+                    <Code Type=""Fragment"" Language=""cs"">
+                        <![CDATA[
+                              Log.LogMessage(""Hello, World!"");
+                		   ]]>
+                    </Code>
+                </Task>";
+
+            CodeTaskFactoryEmbeddedFileInBinlogTestHelper.BuildAndCheckForEmbeddedFileInBinlog(
+                FactoryType.CodeTaskFactory, "HelloTask", taskXml, true);
+        }
+
+        [Fact]
+        public void EmbedsGeneratedFileInBinlogWhenFailsToCompile()
+        {
+            string taskXml = @"
+                <Task>
+                    <Code Type=""Fragment"" Language=""cs"">
+                        <![CDATA[
+                              Log.LogMessage(""Hello, World!
+                		   ]]>
+                    </Code>
+                </Task>";
+
+            CodeTaskFactoryEmbeddedFileInBinlogTestHelper.BuildAndCheckForEmbeddedFileInBinlog(
+                FactoryType.CodeTaskFactory, "HelloTask", taskXml, false);
+        }
     }
 #else
     public sealed class CodeTaskFactoryTests
@@ -1109,9 +1204,9 @@ namespace Microsoft.Build.UnitTests
         public void CodeTaskFactoryNotSupported()
         {
             string projectFileContents = @"
-                    <Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003' ToolsVersion='msbuilddefaulttoolsversion'>
+                    <Project ToolsVersion='msbuilddefaulttoolsversion'>
                         <UsingTask TaskName=`CustomTaskFromCodeFactory_BuildTaskSimpleCodeFactory` TaskFactory=`CodeTaskFactory` AssemblyFile=`$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll` >
-                         <ParameterGroup>     
+                         <ParameterGroup>
                              <Text/>
                           </ParameterGroup>
                             <Task>
@@ -1136,4 +1231,3 @@ namespace Microsoft.Build.UnitTests
     }
 #endif
 }
-

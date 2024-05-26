@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.IO;
 using System.Text;
@@ -12,13 +16,13 @@ using Microsoft.Build.Shared;
 namespace Microsoft.Build.UnitTests
 {
     /***************************************************************************
-     * 
+     *
      * Class:       OldVSProjectFileReader_Tests
      * Owner:       RGoel
-     * 
-     * This class contains the unit tests for the "OldVSProjectFileReader" class.  
+     *
+     * This class contains the unit tests for the "OldVSProjectFileReader" class.
      * See the comments in that class for a description of its purpose.
-     * 
+     *
      **************************************************************************/
     [TestClass]
     public class OldVSProjectFileReader_Tests
@@ -27,10 +31,10 @@ namespace Microsoft.Build.UnitTests
          *
          * Method:      OldVSProjectFileReader_Tests.CreateTemporaryProjectFile
          * Owner:       RGoel
-         * 
-         * Helper method which creates a temporary text file on disk with the 
+         *
+         * Helper method which creates a temporary text file on disk with the
          * specified contents.  Returns the temp filename as an [out] parameter.
-         * 
+         *
          **********************************************************************/
         private void CreateTemporaryProjectFile
             (
@@ -49,10 +53,10 @@ namespace Microsoft.Build.UnitTests
          *
          * Method:      OldVSProjectFileReader_Tests.DeleteTemporaryProjectFile
          * Owner:       RGoel
-         * 
-         * Helper method to delete the temporary file created via 
+         *
+         * Helper method to delete the temporary file created via
          * "CreateTemporaryProjectFile".
-         * 
+         *
          **********************************************************************/
         private void DeleteTemporaryProjectFile
             (
@@ -66,28 +70,28 @@ namespace Microsoft.Build.UnitTests
          *
          * Method:      OldVSProjectFileReader_Tests.NoSpecialCharacters
          * Owner:       RGoel
-         * 
-         * Tests the OldVSProjectFileReader class, using a project file that 
+         *
+         * Tests the OldVSProjectFileReader class, using a project file that
          * does not contain any special characters.
-         * 
+         *
          **********************************************************************/
         [TestMethod]
-        public void NoSpecialCharacters 
+        public void NoSpecialCharacters
             (
             )
         {
             // The contents of the project file that we'll be testing.  Look at the
             // right side, for a cleaner copy without all the escaping.
-            string projectFileContents = 
+            string projectFileContents =
 
                 "<VisualStudioProject>\r\n" +                   //      <VisualStudioProject>
-                "\r\n" +                                        //      
+                "\r\n" +                                        //
                 "  <VisualBasic\r\n" +                          //        <VisualBasic
                 "    ProjectType = \"Local\"\r\n" +             //          ProjectType = "Local"
                 "    ProductVersion = \"7.10.3022\"\r\n" +      //          ProductVersion = "7.10.3022"
                 "  >\r\n" +                                     //        >
                 "  </VisualBasic>\r\n" +                        //        </VisualBasic>
-                "\r\n" +                                        //      
+                "\r\n" +                                        //
                 "</VisualStudioProject>\r\n";                   //      </VisualStudioProject>
 
             // Create a temp file on disk with the above contents.
@@ -157,7 +161,7 @@ namespace Microsoft.Build.UnitTests
             // Read the next 20 characters into our buffer.
             charactersRead = reader.Read(characterBuffer, 0, 20);
 
-            // Read the next 20 characters into our buffer.  But actually, since 
+            // Read the next 20 characters into our buffer.  But actually, since
             // we're almost at the end of the file, we expect that only 7 characters
             // will actually be read.
             charactersRead = reader.Read(characterBuffer, 0, 20);
@@ -176,34 +180,34 @@ namespace Microsoft.Build.UnitTests
             this.DeleteTemporaryProjectFile(projectFilename);
         }
 
-        
+
         /***********************************************************************
          *
          * Method:      OldVSProjectFileReader_Tests.XmlAttributesWithSpecialCharacters
          * Owner:       RGoel
-         * 
-         * Tests the OldVSProjectFileReader class, using a project file that 
+         *
+         * Tests the OldVSProjectFileReader class, using a project file that
          * contains special characters in some of the XML attribute values.
-         * 
+         *
          **********************************************************************/
         [TestMethod]
-        public void XmlAttributesWithSpecialCharacters 
+        public void XmlAttributesWithSpecialCharacters
             (
             )
         {
             // The contents of the project file that we'll be testing.  Look at the
             // right side, for a cleaner copy without all the escaping.
-            string projectFileContents = 
+            string projectFileContents =
 
                 "<VisualStudioProject>\r\n" +                   //      <VisualStudioProject>
-                "\r\n" +                                        //      
+                "\r\n" +                                        //
                 "  <VisualBasic\r\n" +                          //        <VisualBasic
                 "    ProjectType = \"Lo<cal\"\r\n" +            //          ProjectType = "Lo<cal"
                 "    ProductVersion = \"7<.10.>3022\"\r\n" +    //          ProductVersion = "7<.10.>3022"
                 "    A=\"blah>\" B=\"bloo<\"\r\n" +             //          A="blah>" B="bloo<"
                 "  >\r\n" +                                     //        >
                 "  </VisualBasic>\r\n" +                        //        </VisualBasic>
-                "\r\n" +                                        //      
+                "\r\n" +                                        //
                 "</VisualStudioProject>\r\n";                   //      </VisualStudioProject>
 
             // Create a temp file on disk with the above contents.
@@ -242,7 +246,7 @@ namespace Microsoft.Build.UnitTests
             // Read the remainder of the file.  Confirm that the < and > characters within
             // an attribute value got translated correctly.
             string restOfFile = reader.ReadToEnd();
-            Assert.AreEqual("10.&gt;3022\"\r\n    A=\"blah&gt;\" B=\"bloo&lt;\"\r\n  >\r\n  </VisualBasic>\r\n\r\n</VisualStudioProject>\r\n", 
+            Assert.AreEqual("10.&gt;3022\"\r\n    A=\"blah&gt;\" B=\"bloo&lt;\"\r\n  >\r\n  </VisualBasic>\r\n\r\n</VisualStudioProject>\r\n",
                 restOfFile);
 
             // Clean up.
@@ -254,12 +258,12 @@ namespace Microsoft.Build.UnitTests
          *
          * Method:      OldVSProjectFileReader_Tests.MultipleElementsOnSameLine
          * Owner:       RGoel
-         * 
-         * Tests the OldVSProjectFileReader class, using a project file that 
-         * contains multiple XML elements with attributes on the same line.  
+         *
+         * Tests the OldVSProjectFileReader class, using a project file that
+         * contains multiple XML elements with attributes on the same line.
          * This will actually never happen in a real VS7/Everett project file,
          * but it's good to test it anyway.
-         * 
+         *
          **********************************************************************/
         [TestMethod]
         public void MultipleElementsOnSameLine
@@ -268,7 +272,7 @@ namespace Microsoft.Build.UnitTests
         {
             // The contents of the project file that we'll be testing.  Look at the
             // right side, for a cleaner copy without all the escaping.
-            string projectFileContents = 
+            string projectFileContents =
 
                 "<Elem1 Attrib1=\"bl>>ah\"/><Elem2 Attrib2=\"bl<<oo\"/>";  //  <Elem1 Attrib1="bl>>ah"/><Elem2 Attrib2="bl<<oo"/>
 
@@ -283,7 +287,7 @@ namespace Microsoft.Build.UnitTests
             // an attribute value got translated correctly, but the < and > characters occurring
             // *outside* an attribute value are not touched.
             string wholeFile = reader.ReadToEnd();
-            Assert.AreEqual("<Elem1 Attrib1=\"bl&gt;&gt;ah\"/><Elem2 Attrib2=\"bl&lt;&lt;oo\"/>\r\n", 
+            Assert.AreEqual("<Elem1 Attrib1=\"bl&gt;&gt;ah\"/><Elem2 Attrib2=\"bl&lt;&lt;oo\"/>\r\n",
                 wholeFile);
 
             // Clean up.
@@ -303,7 +307,7 @@ namespace Microsoft.Build.UnitTests
             )
         {
             // The contents of the project file that we'll be testing.
-            string projectFileContents = 
+            string projectFileContents =
                 "<Elem1 Attrib1 = '1234<56789 is a \"true\" statement'/>";
 
             // Create a temp file on disk with the above contents.
@@ -317,7 +321,7 @@ namespace Microsoft.Build.UnitTests
             // an attribute value got translated correctly, but the < and > characters occurring
             // *outside* an attribute value are not touched.
             string wholeFile = reader.ReadToEnd();
-            Assert.AreEqual("<Elem1 Attrib1 = '1234&lt;56789 is a \"true\" statement'/>\r\n", 
+            Assert.AreEqual("<Elem1 Attrib1 = '1234&lt;56789 is a \"true\" statement'/>\r\n",
                 wholeFile);
 
             // Clean up.
@@ -412,7 +416,7 @@ namespace Microsoft.Build.UnitTests
             )
         {
             // The contents of the project file that we'll be testing.
-            string projectFileContents = 
+            string projectFileContents =
                 "<Elem1 StartArguments = \"???action=16&requestid=1000036&#14CA053601F66928BF0550E395A714E72C8D6066???  /HeadTraxStartversion 5.6.0.66 /RunningFromHeadTraxStart yes /HTXMutexName HTXMutex344\"/>";
 
             // Create a temp file on disk with the above contents.
@@ -425,7 +429,7 @@ namespace Microsoft.Build.UnitTests
             // Read the whole file into a string.  Confirm that the & character within
             // an attribute value got translated correctly.
             string wholeFile = reader.ReadToEnd();
-            Assert.AreEqual("<Elem1 StartArguments = \"???action=16&amp;requestid=1000036&amp;#14CA053601F66928BF0550E395A714E72C8D6066???  /HeadTraxStartversion 5.6.0.66 /RunningFromHeadTraxStart yes /HTXMutexName HTXMutex344\"/>\r\n", 
+            Assert.AreEqual("<Elem1 StartArguments = \"???action=16&amp;requestid=1000036&amp;#14CA053601F66928BF0550E395A714E72C8D6066???  /HeadTraxStartversion 5.6.0.66 /RunningFromHeadTraxStart yes /HTXMutexName HTXMutex344\"/>\r\n",
                 wholeFile);
 
             // Clean up.
@@ -453,7 +457,7 @@ namespace Microsoft.Build.UnitTests
             // Instantiate our class with the project file.
             OldVSProjectFileReader reader = new OldVSProjectFileReader(projectFilename);
 
-            // Read the whole file into a string.  
+            // Read the whole file into a string.
             string wholeFile = reader.ReadToEnd();
             Assert.IsTrue(wholeFile.Length > 0, "High-bit character was stripped.");
 
@@ -480,7 +484,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Tests that a single ampersand replacement works correctly at the beginning of 
+        /// Tests that a single ampersand replacement works correctly at the beginning of
         /// a string, middle of a string, and end of a string.
         /// </summary>
         [TestMethod]

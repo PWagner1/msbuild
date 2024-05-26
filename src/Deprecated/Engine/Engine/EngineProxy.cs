@@ -1,5 +1,9 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
 
 using System;
 using System.Collections;
@@ -152,12 +156,12 @@ namespace Microsoft.Build.BuildEngine
 
             if (ContinueOnError)
             {
-                // Convert the error into a warning.  We do this because the whole point of 
+                // Convert the error into a warning.  We do this because the whole point of
                 // ContinueOnError is that a project author expects that the task might fail,
                 // but wants to ignore the failures.  This implies that we shouldn't be logging
                 // errors either, because you should never have a successful build with errors.
                 BuildWarningEventArgs warningEvent = new BuildWarningEventArgs
-                        (   e.Subcategory,
+                        (e.Subcategory,
                             e.Code,
                             e.File,
                             e.LineNumber,
@@ -172,11 +176,11 @@ namespace Microsoft.Build.BuildEngine
                 loggingServices.LogWarningEvent(warningEvent);
 
                 // Log a message explaining why we converted the previous error into a warning.
-                loggingServices.LogComment(buildEventContext,MessageImportance.Normal, "ErrorConvertedIntoWarning");
+                loggingServices.LogComment(buildEventContext, MessageImportance.Normal, "ErrorConvertedIntoWarning");
             }
             else
             {
-                if(e.GetType().Equals(BuildErrorEventArgsType))
+                if (e.GetType().Equals(BuildErrorEventArgsType))
                 {
                     // We'd like to add the project file to the subcategory, but since this property
                     // is read-only on the BuildErrorEventArgs type, this requires creating a new
@@ -221,7 +225,7 @@ namespace Microsoft.Build.BuildEngine
             {
                 // We'd like to add the project file to the message, but since this property
                 // is read-only on the BuildWarningEventArgs type, this requires creating a new
-                // instance.  However, if some task logged a custom warning type, we don't want 
+                // instance.  However, if some task logged a custom warning type, we don't want
                 // to impolitely throw the custom type data away.
 
                 string message = GetUpdatedMessage(e.File, e.Message, parentProjectFullFileName);
@@ -264,7 +268,7 @@ namespace Microsoft.Build.BuildEngine
             }
 
             // Don't bother adding the project file path if it's already in the file part
-            if(String.Equals(file, parentProjectFullFileName, StringComparison.OrdinalIgnoreCase))
+            if (String.Equals(file, parentProjectFullFileName, StringComparison.OrdinalIgnoreCase))
             {
                 return message;
             }
@@ -291,7 +295,7 @@ namespace Microsoft.Build.BuildEngine
             if (parentModule.IsRunningMultipleNodes && !e.GetType().IsSerializable)
             {
                 loggingServices.LogWarning(buildEventContext, new BuildEventFileInfo(string.Empty), "ExpectedEventToBeSerializable", e.GetType().Name);
-                    return;
+                return;
             }
             e.BuildEventContext = buildEventContext;
             loggingServices.LogMessageEvent(e);
@@ -308,7 +312,7 @@ namespace Microsoft.Build.BuildEngine
             if (parentModule.IsRunningMultipleNodes && !e.GetType().IsSerializable)
             {
                 loggingServices.LogWarning(buildEventContext, new BuildEventFileInfo(string.Empty), "ExpectedEventToBeSerializable", e.GetType().Name);
-                    return;
+                return;
             }
 
             e.BuildEventContext = buildEventContext;
@@ -483,16 +487,16 @@ namespace Microsoft.Build.BuildEngine
         /// <summary>
         /// Not implemented for the proxy
         /// </summary>
-	public void Yield()
-	{
-	}
+        public void Yield()
+        {
+        }
 
         /// <summary>
         /// Not implemented for the proxy
         /// </summary>
-	public void Reacquire()
-	{
-	}
+        public void Reacquire()
+        {
+        }
 
         /// <summary>
         /// Stub implementation -- forwards to engine being proxied.
@@ -515,7 +519,7 @@ namespace Microsoft.Build.BuildEngine
             (
             string[] projectFileNames,
             string[] targetNames,
-            IDictionary [] globalProperties,
+            IDictionary[] globalProperties,
             IList<string>[] removeGlobalProperties,
             string[] toolsVersions,
             bool returnTargetOutputs
@@ -558,7 +562,7 @@ namespace Microsoft.Build.BuildEngine
             ILease lease = (ILease)base.InitializeLifetimeService();
 
             // Set how long a lease should be initially. Once a lease expires
-            // the remote object will be disconnected and it will be marked as being availiable 
+            // the remote object will be disconnected and it will be marked as being availiable
             // for garbage collection
             int initialLeaseTime = 1;
 
@@ -567,9 +571,9 @@ namespace Microsoft.Build.BuildEngine
             if (!String.IsNullOrEmpty(initialLeaseTimeFromEnvironment))
             {
                 int leaseTimeFromEnvironment;
-                if (int.TryParse(initialLeaseTimeFromEnvironment , out leaseTimeFromEnvironment) && leaseTimeFromEnvironment > 0)
+                if (int.TryParse(initialLeaseTimeFromEnvironment, out leaseTimeFromEnvironment) && leaseTimeFromEnvironment > 0)
                 {
-                      initialLeaseTime = leaseTimeFromEnvironment;
+                    initialLeaseTime = leaseTimeFromEnvironment;
                 }
             }
 
@@ -580,16 +584,16 @@ namespace Microsoft.Build.BuildEngine
             // increase the lease time allowing the object to stay in memory
             sponsor = new ClientSponsor();
 
-            // When a new lease is requested lets make it last 1 minutes longer. 
+            // When a new lease is requested lets make it last 1 minutes longer.
             int leaseExtensionTime = 1;
 
             string leaseExtensionTimeFromEnvironment = Environment.GetEnvironmentVariable("MSBUILDENGINEPROXYLEASEEXTENSIONTIME");
             if (!String.IsNullOrEmpty(leaseExtensionTimeFromEnvironment))
             {
                 int leaseExtensionFromEnvironment;
-                if (int.TryParse(leaseExtensionTimeFromEnvironment , out leaseExtensionFromEnvironment) && leaseExtensionFromEnvironment > 0)
+                if (int.TryParse(leaseExtensionTimeFromEnvironment, out leaseExtensionFromEnvironment) && leaseExtensionFromEnvironment > 0)
                 {
-                      leaseExtensionTime = leaseExtensionFromEnvironment;
+                    leaseExtensionTime = leaseExtensionFromEnvironment;
                 }
             }
 

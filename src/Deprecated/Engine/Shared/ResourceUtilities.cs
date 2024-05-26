@@ -1,9 +1,15 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
 
 using System;
+#if !BUILDINGAPPXTASKS && DEBUG
 using System.Resources;
 using System.Diagnostics;
+#endif
 using System.Globalization;
 using System.Text.RegularExpressions;
 
@@ -66,7 +72,7 @@ namespace Microsoft.Build.BuildEngine.Shared
         /// <summary>
         /// Loads the specified string resource and formats it with the arguments passed in. If the string resource has an MSBuild
         /// message code and help keyword associated with it, they too are returned.
-        /// 
+        ///
         /// PERF WARNING: calling a method that takes a variable number of arguments is expensive, because memory is allocated for
         /// the array of arguments -- do not call this method repeatedly in performance-critical scenarios
         /// </summary>
@@ -88,7 +94,7 @@ namespace Microsoft.Build.BuildEngine.Shared
         /// <summary>
         /// Looks up a string in the resources, and formats it with the arguments passed in. If the string resource has an MSBuild
         /// message code and help keyword associated with it, they are discarded.
-        /// 
+        ///
         /// PERF WARNING: calling a method that takes a variable number of arguments is expensive, because memory is allocated for
         /// the array of arguments -- do not call this method repeatedly in performance-critical scenarios
         /// </summary>
@@ -107,7 +113,7 @@ namespace Microsoft.Build.BuildEngine.Shared
 
         /// <summary>
         /// Formats the given string using the variable arguments passed in.
-        /// 
+        ///
         /// PERF WARNING: calling a method that takes a variable number of arguments is expensive, because memory is allocated for
         /// the array of arguments -- do not call this method repeatedly in performance-critical scenarios
         /// </summary>
@@ -125,7 +131,7 @@ namespace Microsoft.Build.BuildEngine.Shared
             {
 #if DEBUG
 
-    #if VALIDATERESOURCESTRINGS
+#if VALIDATERESOURCESTRINGS
                 // The code below reveals many places in our codebase where
                 // we're not using all of the data given to us to format
                 // strings -- but there are too many to presently fix.
@@ -136,12 +142,12 @@ namespace Microsoft.Build.BuildEngine.Shared
                 // String.Format() will throw a FormatException if args does
                 // not have enough elements to match each format parameter.
                 // However, it provides no feedback in the case when args contains
-                // more elements than necessary to replace each format 
+                // more elements than necessary to replace each format
                 // parameter.  We'd like to know if we're providing too much
                 // data in cases like these, so we'll fail if this code runs.
                 //
                 // See DevDiv Bugs 15210 for more information.
-                                
+
                 // We create an array with one fewer element
                 object[] trimmedArgs = new object[args.Length - 1];
                 Array.Copy(args, 0, trimmedArgs, 0, args.Length - 1);
@@ -164,8 +170,8 @@ namespace Microsoft.Build.BuildEngine.Shared
                     caughtFormatException,
                     String.Format("The provided format string '{0}' had fewer format parameters than the number of format args, '{1}'.", unformatted, args.Length)
                 );
-    #endif 
-               
+#endif
+
 #endif
                 // Format the string, using the variable arguments passed in.
                 // NOTE: all String methods are thread-safe

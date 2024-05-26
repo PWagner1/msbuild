@@ -1,5 +1,9 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
 
 using System;
 using System.Collections.Generic;
@@ -21,10 +25,10 @@ namespace Microsoft.Build.BuildEngine
     {
         #region Fields
 
-        Project parentProject;
-        List<ItemDefinitionLibrary.BuildItemDefinitionGroupXml> itemDefinitions;
-        ItemDefinitionsDictionary itemDefinitionsDictionary;
-        bool evaluated;
+        private Project parentProject;
+        private List<ItemDefinitionLibrary.BuildItemDefinitionGroupXml> itemDefinitions;
+        private ItemDefinitionsDictionary itemDefinitionsDictionary;
+        private bool evaluated;
 
         #endregion
 
@@ -169,17 +173,17 @@ namespace Microsoft.Build.BuildEngine
         /// <remarks>
         /// Only used by ItemDefinitionLibrary -- private and nested inside it as no other class should know about this.
         /// Since at present this has no OM or editing support, and is not passed around,
-        /// there are currently no separate classes for the child tags, and no separate BuildItemDefinitionGroup class. 
+        /// there are currently no separate classes for the child tags, and no separate BuildItemDefinitionGroup class.
         /// They can be broken out in future if necessary.
         /// </remarks>
         private class BuildItemDefinitionGroupXml
         {
             #region Fields
 
-            XmlElement element;
-            Project parentProject;
-            XmlAttribute conditionAttribute;
-            string condition;
+            private XmlElement element;
+            private Project parentProject;
+            private XmlAttribute conditionAttribute;
+            private string condition;
 
             #endregion
 
@@ -207,7 +211,7 @@ namespace Microsoft.Build.BuildEngine
             #region Public Methods
 
             /// <summary>
-            /// Given the properties and dictionary of previously encountered item definitions, evaluates 
+            /// Given the properties and dictionary of previously encountered item definitions, evaluates
             /// this group of item definitions and adds to the dictionary as necessary.
             /// </summary>
             /// <exception cref="InvalidProjectFileException">If the item definitions are incorrectly defined</exception>
@@ -229,7 +233,7 @@ namespace Microsoft.Build.BuildEngine
             }
 
             /// <summary>
-            /// Given the properties and dictionary of previously encountered item definitions, evaluates 
+            /// Given the properties and dictionary of previously encountered item definitions, evaluates
             /// this specific item definition element and adds to the dictionary as necessary.
             /// </summary>
             /// <exception cref="InvalidProjectFileException">If the item definition is incorrectly defined</exception>
@@ -260,7 +264,7 @@ namespace Microsoft.Build.BuildEngine
             }
 
             /// <summary>
-            /// Given the properties and dictionary of previously encountered item definitions, evaluates 
+            /// Given the properties and dictionary of previously encountered item definitions, evaluates
             /// this specific item definition child element and adds to the dictionary as necessary.
             /// </summary>
             /// <exception cref="InvalidProjectFileException">If the item definition is incorrectly defined</exception>
@@ -299,7 +303,7 @@ namespace Microsoft.Build.BuildEngine
                     itemDefinitionsDictionary.Add(itemType, metadataDictionary);
                 }
 
-                // We only store the evaluated value; build items store the unevaluated value as well, but apparently only to 
+                // We only store the evaluated value; build items store the unevaluated value as well, but apparently only to
                 // gather recursive portions (its re-evaluation always goes back to the XML).
                 // Overwrite any existing default value for this particular metadata
                 metadataDictionary[itemDefinitionChildElement.Name] = evaluatedMetadataValue;
@@ -317,8 +321,8 @@ namespace Microsoft.Build.BuildEngine
     /// </summary>
     internal class SpecificItemDefinitionLibrary
     {
-        string itemType;
-        ItemDefinitionLibrary itemDefinitionLibrary;
+        private string itemType;
+        private ItemDefinitionLibrary itemDefinitionLibrary;
 
         /// <summary>
         /// Constructor

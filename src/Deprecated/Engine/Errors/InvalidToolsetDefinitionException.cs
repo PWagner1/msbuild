@@ -1,5 +1,9 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
 
 using System;
 
@@ -90,7 +94,7 @@ namespace Microsoft.Build.BuildEngine
         /// <param name="info"></param>
         /// <param name="context"></param>
         [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
-        override public void GetObjectData(SerializationInfo info, StreamingContext context)
+        public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             ErrorUtilities.VerifyThrowArgumentNull(info, nameof(info));
 
@@ -115,7 +119,7 @@ namespace Microsoft.Build.BuildEngine
 
         /// <summary>
         /// Throws an InvalidToolsetDefinitionException.
-        /// 
+        ///
         /// PERF WARNING: calling a method that takes a variable number of arguments
         /// is expensive, because memory is allocated for the array of arguments -- do
         /// not call this method repeatedly in performance-critical scenarios
@@ -134,7 +138,7 @@ namespace Microsoft.Build.BuildEngine
         /// <summary>
         /// Throws an InvalidToolsetDefinitionException including a specified inner exception,
         /// which may be interesting to hosts.
-        /// 
+        ///
         /// PERF WARNING: calling a method that takes a variable number of arguments
         /// is expensive, because memory is allocated for the array of arguments -- do
         /// not call this method repeatedly in performance-critical scenarios
@@ -154,7 +158,7 @@ namespace Microsoft.Build.BuildEngine
             string errorCode;
             string helpKeyword;
             string message = ResourceUtilities.FormatResourceString(out errorCode, out helpKeyword, resourceName, args);
-            
+
             throw new InvalidToolsetDefinitionException(message, errorCode, innerException);
         }
 

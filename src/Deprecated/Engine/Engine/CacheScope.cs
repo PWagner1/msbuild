@@ -1,5 +1,9 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
 
 using System;
 using System.Collections;
@@ -16,9 +20,9 @@ namespace Microsoft.Build.BuildEngine
     /// threads. It is also lock free for multiple readers (via use of Hashtable as
     /// the backing store).
     /// We use a ReaderWriterLock in here so that when a request comes in for multiple
-    /// cache entries we guarantee that all the entries come from a consistent view of 
+    /// cache entries we guarantee that all the entries come from a consistent view of
     /// the cache at some point in time. Without a lock we might get a write in between
-    /// the reads and half of the entries would represent the values before the write and 
+    /// the reads and half of the entries would represent the values before the write and
     /// the rest after. This is unacceptable as at no point in time the cache actually contained
     /// the entries that would be returned without the lock. This is required by the caching APIs
     /// provided to the tasks which support retrieving multiple entries at once.
@@ -32,10 +36,10 @@ namespace Microsoft.Build.BuildEngine
         /// </summary>
         internal CacheScope(string scopeName, BuildPropertyGroup scopeProperties, string scopeToolsVersion)
         {
-            // Make certain we don't cache a reference to a Project object, which would defeat 
+            // Make certain we don't cache a reference to a Project object, which would defeat
             // the purpose of this cache
-            scopeProperties.ClearParentProject(); 
-            
+            scopeProperties.ClearParentProject();
+
             this.scopeName = scopeName;
             this.scopeToolsVersion = scopeToolsVersion;
             this.scopeProperties = scopeProperties;
@@ -54,7 +58,7 @@ namespace Microsoft.Build.BuildEngine
                 return this.scopeProperties;
             }
         }
-        
+
         /// <summary>
         /// Usually the project file name
         /// </summary>
@@ -157,7 +161,7 @@ namespace Microsoft.Build.BuildEngine
             {
                 return (CacheEntry)cacheContents[name];
             }
-            
+
             return null;
         }
 
@@ -211,7 +215,7 @@ namespace Microsoft.Build.BuildEngine
         }
 
         /// <summary>
-        /// This method returns true if the cache entry for a given name is present in the cache. 
+        /// This method returns true if the cache entry for a given name is present in the cache.
         /// This method is thread safe.
         /// </summary>
         internal bool ContainsCacheEntry(string name)
@@ -227,7 +231,7 @@ namespace Microsoft.Build.BuildEngine
         {
             ErrorUtilities.VerifyThrow(buildResult != null, "Expect a non-null build result");
 
-            // Don't cache results if they are marked as uncacheable 
+            // Don't cache results if they are marked as uncacheable
             if (!buildResult.UseResultCache)
             {
                 return;
@@ -242,15 +246,15 @@ namespace Microsoft.Build.BuildEngine
                     // If the project file is malformed the build may fail without initializing the initialtargets or
                     // the default targests fields. The retrieval code expects non-null values
                     // so it is necessary to replace null with empty string
-                    ErrorUtilities.VerifyThrow(!buildResult.EvaluationResult || (buildResult.InitialTargets != null 
-                                               && buildResult.DefaultTargets != null), 
+                    ErrorUtilities.VerifyThrow(!buildResult.EvaluationResult || (buildResult.InitialTargets != null
+                                               && buildResult.DefaultTargets != null),
                                                "Expect initial targets to be non-null for successful builds");
                     string defaultTargets = buildResult.DefaultTargets ?? String.Empty;
                     PropertyCacheEntry defaultTargetsCacheEntry = new PropertyCacheEntry(Constants.defaultTargetCacheName, defaultTargets);
                     AddCacheEntryInternal(defaultTargetsCacheEntry);
 
                     string initialTargets = buildResult.InitialTargets ?? String.Empty;
-                    PropertyCacheEntry initialTargetsCacheEntry = new PropertyCacheEntry(Constants.initialTargetCacheName, initialTargets );
+                    PropertyCacheEntry initialTargetsCacheEntry = new PropertyCacheEntry(Constants.initialTargetCacheName, initialTargets);
                     AddCacheEntryInternal(initialTargetsCacheEntry);
                 }
 
@@ -350,7 +354,7 @@ namespace Microsoft.Build.BuildEngine
             ErrorUtilities.VerifyThrow(defaultTargetsCacheEntry != null && initialTargetsCacheEntry != null,
                 "We should have both the initial and default targets in the cache");
 
-            ArrayList targetsToBuild = new ArrayList(initialTargetsCacheEntry.Value.Split(new char[] {';'}, StringSplitOptions.RemoveEmptyEntries));
+            ArrayList targetsToBuild = new ArrayList(initialTargetsCacheEntry.Value.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries));
 
             if (buildRequest.TargetNames == null || buildRequest.TargetNames.Length == 0)
             {
@@ -413,8 +417,8 @@ namespace Microsoft.Build.BuildEngine
 
             actuallyBuiltTargets = targetsToBuild;
 
-            return new BuildResult(outputsByTargetName, resultByTarget, overallSuccess, buildRequest.HandleId, buildRequest.RequestId, 
-                int.Parse(projectIdCacheEntry.Value, CultureInfo.InvariantCulture), false /* use results cache */, 
+            return new BuildResult(outputsByTargetName, resultByTarget, overallSuccess, buildRequest.HandleId, buildRequest.RequestId,
+                int.Parse(projectIdCacheEntry.Value, CultureInfo.InvariantCulture), false /* use results cache */,
                 defaultTargetsCacheEntry.Value, initialTargetsCacheEntry.Value, 0, 0, 0);
         }
 

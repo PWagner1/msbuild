@@ -1,8 +1,10 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Generic;
 using Microsoft.Build.Shared;
+
+#nullable disable
 
 namespace Microsoft.Build.BackEnd
 {
@@ -48,12 +50,11 @@ namespace Microsoft.Build.BackEnd
         public void DeserializeAndRoutePacket(int nodeId, NodePacketType packetType, ITranslator translator)
         {
             // PERF: Not using VerifyThrow to avoid boxing of packetType in the non-error case
-            if (!_packetFactories.ContainsKey(packetType))
+            if (!_packetFactories.TryGetValue(packetType, out PacketFactoryRecord record))
             {
                 ErrorUtilities.ThrowInternalError("No packet handler for type {0}", packetType);
             }
 
-            PacketFactoryRecord record = _packetFactories[packetType];
             record.DeserializeAndRoutePacket(nodeId, translator);
         }
 

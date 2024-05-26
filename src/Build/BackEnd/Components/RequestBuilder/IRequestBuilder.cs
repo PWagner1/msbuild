@@ -1,8 +1,10 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Build.Execution;
 using NodeLoggingContext = Microsoft.Build.BackEnd.Logging.NodeLoggingContext;
+
+#nullable disable
 
 namespace Microsoft.Build.BackEnd
 {
@@ -49,6 +51,11 @@ namespace Microsoft.Build.BackEnd
         event BuildRequestBlockedDelegate OnBuildRequestBlocked;
 
         /// <summary>
+        /// Raised when resources are requested.
+        /// </summary>
+        event ResourceRequestDelegate OnResourceRequest;
+
+        /// <summary>
         /// Builds the request contained in the specified entry.
         /// </summary>
         /// <param name="nodeLoggingContext">The logging context for the node.</param>
@@ -59,6 +66,11 @@ namespace Microsoft.Build.BackEnd
         /// Continues building a request which was previously waiting for results.
         /// </summary>
         void ContinueRequest();
+
+        /// <summary>
+        /// Continues building a request which was previously waiting for a resource grant.
+        /// </summary>
+        void ContinueRequestWithResources(ResourceResponse response);
 
         /// <summary>
         /// Cancels an existing request.

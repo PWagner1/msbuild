@@ -1,5 +1,5 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections;
@@ -8,7 +8,9 @@ using System.IO;
 using System.Security;
 using System.Text;
 using System.Xml;
+#if !NETFRAMEWORK
 using Microsoft.Build.Shared;
+#endif
 
 using XMakeAttributes = Microsoft.Build.Shared.XMakeAttributes;
 using ProjectFileErrorUtilities = Microsoft.Build.Shared.ProjectFileErrorUtilities;
@@ -16,6 +18,8 @@ using BuildEventFileInfo = Microsoft.Build.Shared.BuildEventFileInfo;
 using ErrorUtilities = Microsoft.Build.Shared.ErrorUtilities;
 using System.Collections.ObjectModel;
 using System.Linq;
+
+#nullable disable
 
 namespace Microsoft.Build.Construction
 {
@@ -43,7 +47,7 @@ namespace Microsoft.Build.Construction
         /// <summary>
         /// Web Deployment (.wdproj) projects
         /// </summary>
-        WebDeploymentProject, //  MSBuildFormat, but Whidbey-era ones specify ProjectReferences differently
+        WebDeploymentProject, // MSBuildFormat, but Whidbey-era ones specify ProjectReferences differently
         /// <summary>
         /// Project inside an Enterprise Template project
         /// </summary>
@@ -94,6 +98,7 @@ namespace Microsoft.Build.Construction
         #endregion
         #region Member data
         private string _relativePath;         // Relative from .SLN file.  For example, "WindowsApplication1\WindowsApplication1.csproj"
+        private string _absolutePath;         // Absolute path to the project file
         private readonly List<string> _dependencies;     // A list of strings representing the Guids of the dependent projects.
         private IReadOnlyList<string> _dependenciesAsReadonly;
         private string _uniqueProjectName;    // For example, "MySlnFolder\MySubSlnFolder\Windows_Application1"
@@ -102,7 +107,7 @@ namespace Microsoft.Build.Construction
         /// <summary>
         /// The project configuration in given solution configuration
         /// K: full solution configuration name (cfg + platform)
-        /// V: project configuration 
+        /// V: project configuration
         /// </summary>
         private readonly Dictionary<string, ProjectConfigurationInSolution> _projectConfigurations;
         private IReadOnlyDictionary<string, ProjectConfigurationInSolution> _projectConfigurationsReadOnly;
@@ -145,16 +150,19 @@ namespace Microsoft.Build.Construction
         /// </summary>
         public string RelativePath
         {
-            get { return _relativePath; }
+            get
+            {
+                return _relativePath;
+            }
+
             internal set
             {
-#if NETFRAMEWORK && !MONO
+#if NETFRAMEWORK
                 // Avoid loading System.Runtime.InteropServices.RuntimeInformation in full-framework
                 // cases. It caused https://github.com/NuGet/Home/issues/6918.
                 _relativePath = value;
 #else
-                _relativePath = FileUtilities.MaybeAdjustFilePath(value,
-                                                    baseDirectory:ParentSolution.SolutionFileDirectory ?? String.Empty);
+                _relativePath = FileUtilities.MaybeAdjustFilePath(value, ParentSolution.SolutionFileDirectory);
 #endif
             }
         }
@@ -162,7 +170,37 @@ namespace Microsoft.Build.Construction
         /// <summary>
         /// Returns the absolute path for this project
         /// </summary>
-        public string AbsolutePath => Path.Combine(ParentSolution.SolutionFileDirectory, RelativePath);
+        public string AbsolutePath
+        {
+            get
+            {
+                if (_absolutePath == null)
+                {
+                    _absolutePath = Path.Combine(ParentSolution.SolutionFileDirectory, _relativePath);
+
+                    // For web site projects, Visual Studio stores the URL of the site as the relative path so it cannot be normalized.
+                    // Legacy behavior dictates that we must just return the result of Path.Combine()
+                    if (!Uri.TryCreate(_relativePath, UriKind.Absolute, out Uri _))
+                    {
+                        try
+                        {
+#if NETFRAMEWORK
+                            _absolutePath = Path.GetFullPath(_absolutePath);
+#else
+                            _absolutePath = FileUtilities.NormalizePath(_absolutePath);
+#endif
+                        }
+                        catch (Exception)
+                        {
+                            // The call to GetFullPath() can throw if the relative path is some unsupported value or the paths are too long for the current file system
+                            // This falls back to previous behavior of returning a path that may not be correct but at least returns some value
+                        }
+                    }
+                }
+
+                return _absolutePath;
+            }
+        }
 
         /// <summary>
         /// The unique guid associated with this project, in "{XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX}" form
@@ -170,14 +208,14 @@ namespace Microsoft.Build.Construction
         public string ProjectGuid { get; internal set; }
 
         /// <summary>
-        /// The guid, in "{XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX}" form, of this project's 
-        /// parent project, if any. 
+        /// The guid, in "{XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX}" form, of this project's
+        /// parent project, if any.
         /// </summary>
         public string ParentProjectGuid { get; internal set; }
 
         /// <summary>
-        /// List of guids, in "{XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX}" form, mapping to projects 
-        /// that this project has a build order dependency on, as defined in the solution file. 
+        /// List of guids, in "{XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX}" form, mapping to projects
+        /// that this project has a build order dependency on, as defined in the solution file.
         /// </summary>
         public IReadOnlyList<string> Dependencies => _dependenciesAsReadonly ?? (_dependenciesAsReadonly = _dependencies.AsReadOnly());
 
@@ -201,9 +239,9 @@ namespace Microsoft.Build.Construction
         public SolutionProjectType ProjectType { get; set; }
 
         /// <summary>
-        /// Only applies to websites -- for other project types, references are 
+        /// Only applies to websites -- for other project types, references are
         /// either specified as Dependencies above, or as ProjectReferences in the
-        /// project file, which the solution doesn't have insight into. 
+        /// project file, which the solution doesn't have insight into.
         /// </summary>
         internal List<string> ProjectReferences { get; } = new List<string>();
 
@@ -232,7 +270,7 @@ namespace Microsoft.Build.Construction
         }
 
         /// <summary>
-        /// Set the requested project configuration. 
+        /// Set the requested project configuration.
         /// </summary>
         internal void SetProjectConfiguration(string configurationName, ProjectConfigurationInSolution configuration)
         {
@@ -261,12 +299,13 @@ namespace Microsoft.Build.Construction
             try
             {
                 // Read project thru a XmlReader with proper setting to avoid DTD processing
-                var xrSettings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Ignore };
+                var xrSettings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Ignore, CloseInput = true };
                 var projectDocument = new XmlDocument();
 
-                using (XmlReader xmlReader = XmlReader.Create(AbsolutePath, xrSettings))
+                FileStream fs = File.OpenRead(AbsolutePath);
+                using (XmlReader xmlReader = XmlReader.Create(fs, xrSettings))
                 {
-                    // Load the project file and get the first node    
+                    // Load the project file and get the first node
                     projectDocument.Load(xmlReader);
                 }
 
@@ -303,7 +342,7 @@ namespace Microsoft.Build.Construction
                     // This is a bit of a special case, but an rptproj file will contain a Project with no schema that is
                     // not an MSBuild file. It will however have ToolsVersion="2.0" which is not supported with an empty
                     // schema. This is not a great solution, but it should cover the customer reported issue. See:
-                    // https://github.com/Microsoft/msbuild/issues/2064
+                    // https://github.com/dotnet/msbuild/issues/2064
                     if (emptyNamespace && !projectElementInvalid && mainProjectElement.GetAttribute("ToolsVersion") != "2.0")
                     {
                         _canBeMSBuildProjectFile = true;
@@ -463,7 +502,7 @@ namespace Microsoft.Build.Construction
             // This is where we're going to work on the final string to return to the caller.
             var cleanProjectName = new StringBuilder(projectName);
 
-            // Replace each unclean character with a clean one            
+            // Replace each unclean character with a clean one
             foreach (char uncleanChar in s_charsToCleanse)
             {
                 cleanProjectName.Replace(uncleanChar, cleanCharacter);

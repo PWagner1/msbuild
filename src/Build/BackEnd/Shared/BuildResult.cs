@@ -1,13 +1,16 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using Microsoft.Build.BackEnd;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
+
+#nullable disable
 
 namespace Microsoft.Build.Execution
 {
@@ -113,7 +116,14 @@ namespace Microsoft.Build.Execution
         /// </summary>
         private ProjectInstance _projectStateAfterBuild;
 
+        /// <summary>
+        /// The flags provide additional control over the build results and may affect the cached value.
+        /// </summary>
+        private BuildRequestDataFlags _buildRequestDataFlags;
+
         private string _schedulerInducedError;
+
+        private HashSet<string> _projectTargets;
 
         /// <summary>
         /// Constructor for serialization.
@@ -167,6 +177,8 @@ namespace Microsoft.Build.Execution
             _requestException = existingResults._requestException;
             _resultsByTarget = CreateTargetResultDictionaryWithContents(existingResults, targetNames);
             _baseOverallResult = existingResults.OverallResult == BuildResultCode.Success;
+            _buildRequestDataFlags = existingResults._buildRequestDataFlags;
+            _projectStateAfterBuild = existingResults._projectStateAfterBuild;
 
             _circularDependency = existingResults._circularDependency;
         }
@@ -199,6 +211,7 @@ namespace Microsoft.Build.Execution
             _nodeRequestId = request.NodeRequestId;
             _circularDependency = false;
             _baseOverallResult = true;
+            _buildRequestDataFlags = request.BuildRequestDataFlags;
 
             if (existingResults == null)
             {
@@ -209,6 +222,10 @@ namespace Microsoft.Build.Execution
             {
                 _requestException = exception ?? existingResults._requestException;
                 _resultsByTarget = targetNames == null ? existingResults._resultsByTarget : CreateTargetResultDictionaryWithContents(existingResults, targetNames);
+                if (request.RequestedProjectState != null)
+                {
+                    _projectStateAfterBuild = existingResults._projectStateAfterBuild?.FilteredCopy(request.RequestedProjectState);
+                }
             }
         }
 
@@ -226,6 +243,7 @@ namespace Microsoft.Build.Execution
             _circularDependency = result._circularDependency;
             _initialTargets = result._initialTargets;
             _defaultTargets = result._defaultTargets;
+            _projectTargets = result._projectTargets;
             _baseOverallResult = result.OverallResult == BuildResultCode.Success;
         }
 
@@ -242,6 +260,7 @@ namespace Microsoft.Build.Execution
             _circularDependency = result._circularDependency;
             _initialTargets = result._initialTargets;
             _defaultTargets = result._defaultTargets;
+            _projectTargets = result._projectTargets;
             _baseOverallResult = result.OverallResult == BuildResultCode.Success;
         }
 
@@ -304,7 +323,7 @@ namespace Microsoft.Build.Execution
         }
 
         /// <summary>
-        /// Returns the exception generated while this result was run, if any. 
+        /// Returns the exception generated while this result was run, if any.
         /// </summary>
         public Exception Exception
         {
@@ -374,6 +393,12 @@ namespace Microsoft.Build.Execution
         }
 
         /// <summary>
+        /// Gets the flags that were used in the build request to which these results are associated.
+        /// See <see cref="Execution.BuildRequestDataFlags"/> for examples of the available flags.
+        /// </summary>
+        public BuildRequestDataFlags BuildRequestDataFlags => _buildRequestDataFlags;
+
+        /// <summary>
         /// Returns the node packet type.
         /// </summary>
         NodePacketType INodePacket.Type
@@ -432,6 +457,17 @@ namespace Microsoft.Build.Execution
         }
 
         /// <summary>
+        /// The defined targets for the project associated with this build result.
+        /// </summary>
+        internal HashSet<string> ProjectTargets
+        {
+            [DebuggerStepThrough]
+            get => _projectTargets;
+            [DebuggerStepThrough]
+            set => _projectTargets = value;
+        }
+
+        /// <summary>
         /// Container used to transport errors from the scheduler (issued while computing a build result)
         /// to the TaskHost that has the proper logging context (project id, target id, task id, file location)
         /// </summary>
@@ -464,12 +500,37 @@ namespace Microsoft.Build.Execution
         {
             ErrorUtilities.VerifyThrowArgumentNull(target, nameof(target));
             ErrorUtilities.VerifyThrowArgumentNull(result, nameof(result));
-            if (_resultsByTarget.ContainsKey(target))
+
+            lock (this)
             {
-                ErrorUtilities.VerifyThrow(_resultsByTarget[target].ResultCode == TargetResultCode.Skipped, "Items already exist for target {0}.", target);
+                _resultsByTarget ??= CreateTargetResultDictionary(1);
+            }
+
+            if (_resultsByTarget.TryGetValue(target, out TargetResult targetResult))
+            {
+                ErrorUtilities.VerifyThrow(targetResult.ResultCode == TargetResultCode.Skipped, "Items already exist for target {0}.", target);
             }
 
             _resultsByTarget[target] = result;
+        }
+
+        /// <summary>
+        /// Keep the results only for targets in <paramref name="targetsToKeep"/>.
+        /// </summary>
+        /// <param name="targetsToKeep">The targets whose results to keep.</param>
+        internal void KeepSpecificTargetResults(IReadOnlyCollection<string> targetsToKeep)
+        {
+            ErrorUtilities.VerifyThrow(
+                targetsToKeep.Count > 0,
+                $"{nameof(targetsToKeep)} should contain at least one target.");
+
+            foreach (string target in _resultsByTarget.Keys)
+            {
+                if (!targetsToKeep.Contains(target))
+                {
+                    _ = _resultsByTarget.TryRemove(target, out _);
+                }
+            }
         }
 
         /// <summary>
@@ -529,6 +590,7 @@ namespace Microsoft.Build.Execution
             translator.Translate(ref _nodeRequestId);
             translator.Translate(ref _initialTargets);
             translator.Translate(ref _defaultTargets);
+            translator.Translate(ref _projectTargets);
             translator.Translate(ref _circularDependency);
             translator.TranslateException(ref _requestException);
             translator.TranslateDictionary(ref _resultsByTarget, TargetResult.FactoryForDeserialization, CreateTargetResultDictionary);
@@ -537,6 +599,7 @@ namespace Microsoft.Build.Execution
             translator.Translate(ref _savedCurrentDirectory);
             translator.Translate(ref _schedulerInducedError);
             translator.TranslateDictionary(ref _savedEnvironmentVariables, StringComparer.OrdinalIgnoreCase);
+            translator.TranslateEnum(ref _buildRequestDataFlags, (int)_buildRequestDataFlags);
         }
 
         /// <summary>
@@ -554,9 +617,9 @@ namespace Microsoft.Build.Execution
         /// </summary>
         internal void CacheIfPossible()
         {
-            foreach (string target in _resultsByTarget.Keys)
+            foreach (KeyValuePair<string, TargetResult> targetResultPair in _resultsByTarget)
             {
-                _resultsByTarget[target].CacheItems(ConfigurationId, target);
+                targetResultPair.Value.CacheItems(ConfigurationId, targetResultPair.Key);
             }
         }
 
@@ -613,8 +676,8 @@ namespace Microsoft.Build.Execution
         }
 
         /// <summary>
-        /// Creates the target result dictionary and populates it with however many target results are 
-        /// available given the list of targets passed. 
+        /// Creates the target result dictionary and populates it with however many target results are
+        /// available given the list of targets passed.
         /// </summary>
         private static ConcurrentDictionary<string, TargetResult> CreateTargetResultDictionaryWithContents(BuildResult existingResults, string[] targetNames)
         {

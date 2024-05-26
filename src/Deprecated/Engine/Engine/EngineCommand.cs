@@ -1,5 +1,9 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
 
 using System;
 using Microsoft.Build.BuildEngine.Shared;
@@ -91,16 +95,16 @@ namespace Microsoft.Build.BuildEngine
     }
     #endregion
 
-   #region ChangeTraversalType
+    #region ChangeTraversalType
     /// <summary>
     /// Wrapper class for a changing the traversal approach used by the TEM
     /// </summary>
     internal class ChangeTraversalTypeCommand : EngineCommand
     {
         /// <summary>
-        /// Create a command that will switch the traversal of the system to breadthFirst traversal or depth first traveral. 
-        /// changeLocalTraversalOnly is used to determine whether or not to change the traversal for the whole system or only the current node. 
-        /// changeLocalTraversalOnly is set to true in the when a node is first started and in the updateNodeSettings method as these traversal changes are for the local node only. The reason 
+        /// Create a command that will switch the traversal of the system to breadthFirst traversal or depth first traveral.
+        /// changeLocalTraversalOnly is used to determine whether or not to change the traversal for the whole system or only the current node.
+        /// changeLocalTraversalOnly is set to true in the when a node is first started and in the updateNodeSettings method as these traversal changes are for the local node only. The reason
         /// is because updateNodeSettings is called when the parent has told the node to switch traversal types, there is no need to forward the change to the engine again.
         /// Also, when a node starts up it is set to breadth first traversal, this is the default so the parent engine need not be notified of this change.
         /// </summary>

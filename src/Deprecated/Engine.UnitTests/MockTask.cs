@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.IO;
 using System.Reflection;
@@ -232,7 +236,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Null ITaskItem[] output parameter. 
+        /// Null ITaskItem[] output parameter.
         /// </summary>
         /// <owner>danmose</owner>
         [Output]
@@ -246,7 +250,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Empty string output parameter. 
+        /// Empty string output parameter.
         /// </summary>
         /// <owner>danmose</owner>
         [Output]
@@ -259,7 +263,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Empty string output parameter. 
+        /// Empty string output parameter.
         /// </summary>
         /// <owner>danmose</owner>
         [Output]
@@ -273,7 +277,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// ITaskItem output parameter. 
+        /// ITaskItem output parameter.
         /// </summary>
         /// <owner>danmose</owner>
         [Output]
@@ -287,7 +291,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// string output parameter. 
+        /// string output parameter.
         /// </summary>
         /// <owner>danmose</owner>
         [Output]
@@ -300,7 +304,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// string array output parameter. 
+        /// string array output parameter.
         /// </summary>
         /// <owner>danmose</owner>
         [Output]
@@ -313,7 +317,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// int output parameter. 
+        /// int output parameter.
         /// </summary>
         /// <owner>danmose</owner>
         [Output]
@@ -326,7 +330,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// int array output parameter. 
+        /// int array output parameter.
         /// </summary>
         /// <owner>danmose</owner>
         [Output]
@@ -339,7 +343,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// object array output parameter. 
+        /// object array output parameter.
         /// </summary>
         /// <owner>danmose</owner>
         [Output]
@@ -399,7 +403,7 @@ namespace Microsoft.Build.UnitTests
             }
         }
     }
-    
+
     /// <summary>
     /// A simple mock task for use with Unit Testing.
     /// </summary>
@@ -425,7 +429,7 @@ namespace Microsoft.Build.UnitTests
         {
             get {return this.e;}
             set {this.e = value;}
-        }        
+        }
 
         /// <summary>
         /// Access the host object.
@@ -435,7 +439,7 @@ namespace Microsoft.Build.UnitTests
         {
             get {return null;}
             set {}
-        }        
+        }
 
         /// <summary>
         /// Main Execute method of the task does nothing.

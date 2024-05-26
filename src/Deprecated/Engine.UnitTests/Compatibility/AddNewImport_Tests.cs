@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -18,7 +22,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
     /// <summary>
     /// Indirection delegate type for AddNewImport Method invocation
     /// </summary>
-    public delegate void AddNewImportDelegate(Project p, string path, string condition); 
+    public delegate void AddNewImportDelegate(Project p, string path, string condition);
 
     /// <summary>
     /// indirection for  tests of Project.AddNewImport and ImportCollection.AddNewImport
@@ -26,7 +30,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
     public abstract class AddNewImportTests
     {
         #region Indirection Delegates
-     
+
         /// <summary>
         /// Indirection delegate for AddNewImport Method invocation
         /// </summary>
@@ -34,12 +38,12 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         {
             get;
             set;
-        } 
+        }
 
         #endregion
 
         /// <summary>
-        ///  AddNewImport Test, Empty 
+        ///  AddNewImport Test, Empty
         /// </summary>
         [Test]
         [ExpectedException(typeof(ArgumentException))]
@@ -50,7 +54,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         }
 
         /// <summary>
-        ///  AddNewImport Test, Null 
+        ///  AddNewImport Test, Null
         /// </summary>
         [Test]
         [ExpectedException(typeof(ArgumentNullException))]
@@ -61,7 +65,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         }
 
         /// <summary>
-        ///  AddNewImport Test, Where imported file does not exist 
+        ///  AddNewImport Test, Where imported file does not exist
         /// </summary>
         [Test]
         public void AddNewImportFile_DoesNotExist()
@@ -91,7 +95,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         }
 
         /// <summary>
-        ///  AddNewImport Test, Import a file with an empty condition. 
+        ///  AddNewImport Test, Import a file with an empty condition.
         /// </summary>
         [Test]
         public void AddNewImportFile_EmptyCondition()
@@ -272,7 +276,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
                 Assertion.AssertEquals(0, p.Imports.Count);
                 object o = p.EvaluatedItems;  // force evaluation of imported projects.
                 Assertion.AssertEquals(2, CompatibilityTestHelpers.CountNodesWithName(p.Xml, "Import"));  // 2 in xml
-                Assertion.AssertEquals(1, p.Imports.Count); // 1 in OM. 
+                Assertion.AssertEquals(1, p.Imports.Count); // 1 in OM.
             }
             finally
             {
@@ -328,7 +332,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
                 InvokeAddNewImportMethod(p, projectPath, "true");
                 Assertion.AssertEquals(0, p.Imports.Count);
                 object o = p.EvaluatedItems;  // force evaluation of imported projects.
-                Assertion.AssertEquals(0, p.Imports.Count); // This is bonkers, should be 1 because the XML DOES contain the import node.
+                Assertion.AssertEquals(0, p.Imports.Count); // Should be 1 because the XML DOES contain the import node.
             }
             finally
             {

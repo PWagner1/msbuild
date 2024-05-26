@@ -1,11 +1,16 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
+#if FEATURE_APPDOMAIN
 using System;
+#endif
 using System.Diagnostics;
 
 using Microsoft.Build.Execution;
+using Microsoft.Build.Framework;
 using Microsoft.Build.Logging;
+#nullable disable
+
 namespace Microsoft.Build.BackEnd
 {
     /// <summary>
@@ -40,7 +45,7 @@ namespace Microsoft.Build.BackEnd
         /// </summary>
         private LoggingNodeConfiguration _loggingNodeConfiguration;
 
-#if FEATURE_APPDOMAIN
+#pragma warning disable 1572 // appDomainSetup not always there
         /// <summary>
         /// Constructor
         /// </summary>
@@ -49,43 +54,24 @@ namespace Microsoft.Build.BackEnd
         /// <param name="forwardingLoggers">The forwarding loggers.</param>
         /// <param name="appDomainSetup">The AppDomain setup information.</param>
         /// <param name="loggingNodeConfiguration">The logging configuration for the node.</param>
-        public NodeConfiguration
-            (
+        public NodeConfiguration(
             int nodeId,
             BuildParameters buildParameters,
             LoggerDescription[] forwardingLoggers,
+#if FEATURE_APPDOMAIN
             AppDomainSetup appDomainSetup,
-            LoggingNodeConfiguration loggingNodeConfiguration
-            )
-        {
-            _nodeId = nodeId;
-            _buildParameters = buildParameters;
-            _forwardingLoggers = forwardingLoggers;
-            _appDomainSetup = appDomainSetup;
-            _loggingNodeConfiguration = loggingNodeConfiguration;
-        }
-#else
-        /// <summary>
-        /// Constructor
-        /// </summary>
-        /// <param name="nodeId">The node id.</param>
-        /// <param name="buildParameters">The build parameters</param>
-        /// <param name="forwardingLoggers">The forwarding loggers.</param>
-        /// <param name="loggingNodeConfiguration">The logging configuration for the node.</param>
-        public NodeConfiguration
-            (
-            int nodeId,
-            BuildParameters buildParameters,
-            LoggerDescription[] forwardingLoggers,
-            LoggingNodeConfiguration loggingNodeConfiguration
-            )
-        {
-            _nodeId = nodeId;
-            _buildParameters = buildParameters;
-            _forwardingLoggers = forwardingLoggers;
-            _loggingNodeConfiguration = loggingNodeConfiguration;
-        }
 #endif
+            LoggingNodeConfiguration loggingNodeConfiguration)
+        {
+            _nodeId = nodeId;
+            _buildParameters = buildParameters;
+            _forwardingLoggers = forwardingLoggers;
+#if FEATURE_APPDOMAIN
+            _appDomainSetup = appDomainSetup;
+#endif
+            _loggingNodeConfiguration = loggingNodeConfiguration;
+        }
+#pragma warning restore
 
         /// <summary>
         /// Private constructor for deserialization
@@ -150,7 +136,7 @@ namespace Microsoft.Build.BackEnd
             { return _loggingNodeConfiguration; }
         }
 
-#region INodePacket Members
+        #region INodePacket Members
 
         /// <summary>
         /// Retrieves the packet type.
@@ -162,9 +148,9 @@ namespace Microsoft.Build.BackEnd
             { return NodePacketType.NodeConfiguration; }
         }
 
-#endregion
+        #endregion
 
-#region INodePacketTranslatable Members
+        #region INodePacketTranslatable Members
 
         /// <summary>
         /// Translates the packet to/from binary form.
@@ -176,7 +162,28 @@ namespace Microsoft.Build.BackEnd
             translator.Translate(ref _buildParameters, BuildParameters.FactoryForDeserialization);
             translator.TranslateArray(ref _forwardingLoggers, LoggerDescription.FactoryForTranslation);
 #if FEATURE_APPDOMAIN
-            translator.TranslateDotNet(ref _appDomainSetup);
+            if (ChangeWaves.AreFeaturesEnabled(ChangeWaves.Wave17_10) || !Traits.Instance.EscapeHatches.IsBinaryFormatterSerializationAllowed)
+            {
+                byte[] appDomainConfigBytes = null;
+
+                // Set the configuration bytes just before serialization in case the SetConfigurationBytes was invoked during lifetime of this instance.
+                if (translator.Mode == TranslationDirection.WriteToStream)
+                {
+                    appDomainConfigBytes = _appDomainSetup?.GetConfigurationBytes();
+                }
+
+                translator.Translate(ref appDomainConfigBytes);
+
+                if (translator.Mode == TranslationDirection.ReadFromStream)
+                {
+                    _appDomainSetup = new AppDomainSetup();
+                    _appDomainSetup.SetConfigurationBytes(appDomainConfigBytes);
+                }
+            }
+            else
+            {
+                translator.TranslateDotNet(ref _appDomainSetup);
+            }
 #endif
             translator.Translate(ref _loggingNodeConfiguration);
         }
@@ -188,9 +195,10 @@ namespace Microsoft.Build.BackEnd
         {
             NodeConfiguration configuration = new NodeConfiguration();
             configuration.Translate(translator);
+
             return configuration;
         }
-#endregion
+        #endregion
 
         /// <summary>
         /// We need to clone this object since it gets modified for each node which is launched.
@@ -201,8 +209,7 @@ namespace Microsoft.Build.BackEnd
 #if FEATURE_APPDOMAIN
                 , _appDomainSetup
 #endif
-                , _loggingNodeConfiguration
-                );
+                , _loggingNodeConfiguration);
         }
     }
 }

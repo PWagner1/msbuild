@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.Text;
 using System.IO;
@@ -16,7 +20,7 @@ namespace Microsoft.Build.UnitTests
      * Class:   ChooseTests
      * Owner:   davidle
      *
-     * 
+     *
      */
     [TestFixture]
     sealed public class ChooseTests
@@ -57,7 +61,7 @@ namespace Microsoft.Build.UnitTests
          * Method:  Basic
          * Owner:   davidle
          *
-         * 
+         *
          */
         [Test]
         public void ChooseNotTaken()
@@ -90,7 +94,7 @@ namespace Microsoft.Build.UnitTests
         public void NeitherConditionTaken()
         {
             Project p = ObjectModelHelpers.CreateInMemoryProject(@"
-            
+
                 <Project ToolsVersion=`3.5` xmlns=`msbuildnamespace`>
                   <Choose>
                     <When Condition=`1==2`>
@@ -115,7 +119,7 @@ namespace Microsoft.Build.UnitTests
         public void OtherwiseTaken()
         {
             Project p = ObjectModelHelpers.CreateInMemoryProject(@"
-            
+
                 <Project ToolsVersion=`3.5` xmlns=`msbuildnamespace`>
                   <Choose>
                     <When Condition=`1==2`>
@@ -144,7 +148,7 @@ namespace Microsoft.Build.UnitTests
             {
                 fExceptionCaught = false;
                 Project p = ObjectModelHelpers.CreateInMemoryProject(@"
-                
+
                     <Project ToolsVersion=`3.5` xmlns=`msbuildnamespace`>
                       <Choose>
                         <When Condition=`true`><PropertyGroup><x/></PropertyGroup></When>
@@ -174,7 +178,7 @@ namespace Microsoft.Build.UnitTests
             {
                 fExceptionCaught = false;
                 Project p = ObjectModelHelpers.CreateInMemoryProject(@"
-                
+
                     <Project ToolsVersion=`3.5` xmlns=`msbuildnamespace`>
                       <Choose>
                         <When Condition=`true`>xyz
@@ -205,7 +209,7 @@ namespace Microsoft.Build.UnitTests
             {
                 fExceptionCaught = false;
                 Project p = ObjectModelHelpers.CreateInMemoryProject(@"
-                
+
                     <Project ToolsVersion=`3.5` xmlns=`msbuildnamespace`>
                       <Choose>
                         <When Condition=`true`>
@@ -238,7 +242,7 @@ namespace Microsoft.Build.UnitTests
             {
                 fExceptionCaught = false;
                 Project p = ObjectModelHelpers.CreateInMemoryProject(@"
-                
+
                     <Project ToolsVersion=`3.5` xmlns=`msbuildnamespace`>
                       <Choose>
                         <abc/>
@@ -270,7 +274,7 @@ namespace Microsoft.Build.UnitTests
             {
                 fExceptionCaught = false;
                 Project p = ObjectModelHelpers.CreateInMemoryProject(@"
-                
+
                     <Project ToolsVersion=`3.5` xmlns=`msbuildnamespace`>
                       <Choose Condition=`true`>
                         <When Condition=`true`>
@@ -300,7 +304,7 @@ namespace Microsoft.Build.UnitTests
             {
                 fExceptionCaught = false;
                 Project p = ObjectModelHelpers.CreateInMemoryProject(@"
-                
+
                     <Project ToolsVersion=`3.5` xmlns=`msbuildnamespace`>
                       <Choose>
                         <When Condition=`true`>
@@ -331,7 +335,7 @@ namespace Microsoft.Build.UnitTests
             {
                 fExceptionCaught = false;
                 Project p = ObjectModelHelpers.CreateInMemoryProject(@"
-                
+
                     <Project ToolsVersion=`3.5` xmlns=`msbuildnamespace`>
                       <Choose>
                         abc
@@ -359,7 +363,7 @@ namespace Microsoft.Build.UnitTests
         public void PropertyAssignmentToItemListCase()
         {
             Project p = ObjectModelHelpers.CreateInMemoryProject(@"
-            
+
                 <Project ToolsVersion=`3.5` xmlns=`msbuildnamespace`>
                   <ItemGroup>
                     <x Include=`x1` />
@@ -389,7 +393,7 @@ namespace Microsoft.Build.UnitTests
         public void ItemListAndPropertiesCase()
         {
             Project p = ObjectModelHelpers.CreateInMemoryProject(@"
-            
+
                 <Project ToolsVersion=`3.5` xmlns=`msbuildnamespace`>
                   <Choose>
                     <When Condition=`1==1`>
@@ -424,7 +428,7 @@ namespace Microsoft.Build.UnitTests
             try
             {
                 Project p = ObjectModelHelpers.CreateInMemoryProject(@"
-                
+
                     <Project ToolsVersion=`3.5` xmlns=`msbuildnamespace`>
                       <ItemGroup><x Include=`x1`/></ItemGroup>
                       <Choose>
@@ -451,7 +455,7 @@ namespace Microsoft.Build.UnitTests
         public void NestedChooseAndPropertyInConditionCase()
         {
             Project p = ObjectModelHelpers.CreateInMemoryProject(@"
-            
+
                 <Project ToolsVersion=`3.5` xmlns=`msbuildnamespace`>
                   <Choose>
                     <When Condition=`1==1`>
@@ -478,7 +482,7 @@ namespace Microsoft.Build.UnitTests
         public void ChooseTakesSameWhenInPass1And2()
         {
             Project p = ObjectModelHelpers.CreateInMemoryProject(@"
-            
+
                 <Project ToolsVersion=`3.5` xmlns=`msbuildnamespace`>
                   <PropertyGroup><takefirst>true</takefirst></PropertyGroup>
                   <Choose>
@@ -505,7 +509,7 @@ namespace Microsoft.Build.UnitTests
         public void ChooseTakesOtherwiseInPass1And2()
         {
             Project p = ObjectModelHelpers.CreateInMemoryProject(@"
-            
+
                 <Project ToolsVersion=`3.5` xmlns=`msbuildnamespace`>
                   <PropertyGroup><takefirst>false</takefirst></PropertyGroup>
                   <PropertyGroup><tookfirst>false</tookfirst></PropertyGroup>

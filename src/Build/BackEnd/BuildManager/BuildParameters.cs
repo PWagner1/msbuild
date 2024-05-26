@@ -1,24 +1,30 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Threading;
 using System.Globalization;
+using System.Threading;
 using Microsoft.Build.BackEnd;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Evaluation;
+using Microsoft.Build.Experimental;
+using Microsoft.Build.Experimental.BuildCheck;
+using Microsoft.Build.Experimental.ProjectCache;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Graph;
 using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
 using ForwardingLoggerRecord = Microsoft.Build.Logging.ForwardingLoggerRecord;
 
+#nullable disable
+
 namespace Microsoft.Build.Execution
 {
-    using Utilities = Internal.Utilities;
+    using Utilities = Microsoft.Build.Internal.Utilities;
 
     /// <summary>
     /// This class represents all of the settings which must be specified to start a build.
@@ -68,7 +74,7 @@ namespace Microsoft.Build.Execution
         /// <summary>
         /// Indicates if we should dump string interning stats.
         /// </summary>
-        private static bool? s_dumpOpportunisticInternStats;
+        private static bool? s_dumpStringInterningStats;
 
         /// <summary>
         /// Indicates if we should debug the expander.
@@ -201,6 +207,10 @@ namespace Microsoft.Build.Execution
         /// </summary>
         private bool _logInitialPropertiesAndItems;
 
+        private bool _question;
+
+        private bool _isBuildCheckEnabled;
+
         /// <summary>
         /// The settings used to load the project under build
         /// </summary>
@@ -208,18 +218,20 @@ namespace Microsoft.Build.Execution
 
         private bool _interactive;
 
-        private bool _isolateProjects;
+        private ProjectIsolationMode _projectIsolationMode;
 
         private string[] _inputResultsCacheFiles;
 
         private string _outputResultsCacheFile;
+
+        private bool _reportFileAccesses;
 
         /// <summary>
         /// Constructor for those who intend to set all properties themselves.
         /// </summary>
         public BuildParameters()
         {
-            Initialize(Utilities.GetEnvironmentProperties(), new ProjectRootElementCache(false), null);
+            Initialize(Utilities.GetEnvironmentProperties(makeReadOnly: false), new ProjectRootElementCache(false), null);
         }
 
         /// <summary>
@@ -251,7 +263,7 @@ namespace Microsoft.Build.Execution
         /// <summary>
         /// Copy constructor
         /// </summary>
-        private BuildParameters(BuildParameters other)
+        internal BuildParameters(BuildParameters other, bool resetEnvironment = false)
         {
             ErrorUtilities.VerifyThrowInternalNull(other, nameof(other));
 
@@ -259,7 +271,11 @@ namespace Microsoft.Build.Execution
             _culture = other._culture;
             _defaultToolsVersion = other._defaultToolsVersion;
             _enableNodeReuse = other._enableNodeReuse;
-            _buildProcessEnvironment = other._buildProcessEnvironment != null ? new Dictionary<string, string>(other._buildProcessEnvironment) : null;
+            _buildProcessEnvironment = resetEnvironment
+                ? CommunicationsUtilities.GetEnvironmentVariables()
+                : other._buildProcessEnvironment != null
+                    ? new Dictionary<string, string>(other._buildProcessEnvironment)
+                    : null;
             _environmentProperties = other._environmentProperties != null ? new PropertyDictionary<ProjectPropertyInstance>(other._environmentProperties) : null;
             _forwardingLoggers = other._forwardingLoggers != null ? new List<ForwardingLoggerRecord>(other._forwardingLoggers) : null;
             _globalProperties = other._globalProperties != null ? new PropertyDictionary<ProjectPropertyInstance>(other._globalProperties) : null;
@@ -270,9 +286,7 @@ namespace Microsoft.Build.Execution
             _nodeExeLocation = other._nodeExeLocation;
             NodeId = other.NodeId;
             _onlyLogCriticalEvents = other._onlyLogCriticalEvents;
-#if FEATURE_THREAD_PRIORITY
             BuildThreadPriority = other.BuildThreadPriority;
-#endif
             _toolsetProvider = other._toolsetProvider;
             ToolsetDefinitionLocations = other.ToolsetDefinitionLocations;
             _toolsetProvider = other._toolsetProvider;
@@ -288,23 +302,25 @@ namespace Microsoft.Build.Execution
             _logTaskInputs = other._logTaskInputs;
             _logInitialPropertiesAndItems = other._logInitialPropertiesAndItems;
             WarningsAsErrors = other.WarningsAsErrors == null ? null : new HashSet<string>(other.WarningsAsErrors, StringComparer.OrdinalIgnoreCase);
+            WarningsNotAsErrors = other.WarningsNotAsErrors == null ? null : new HashSet<string>(other.WarningsNotAsErrors, StringComparer.OrdinalIgnoreCase);
             WarningsAsMessages = other.WarningsAsMessages == null ? null : new HashSet<string>(other.WarningsAsMessages, StringComparer.OrdinalIgnoreCase);
             _projectLoadSettings = other._projectLoadSettings;
             _interactive = other._interactive;
-            _isolateProjects = other._isolateProjects;
+            _projectIsolationMode = other.ProjectIsolationMode;
             _inputResultsCacheFiles = other._inputResultsCacheFiles;
             _outputResultsCacheFile = other._outputResultsCacheFile;
+            _reportFileAccesses = other._reportFileAccesses;
             DiscardBuildResults = other.DiscardBuildResults;
             LowPriority = other.LowPriority;
+            Question = other.Question;
+            IsBuildCheckEnabled = other.IsBuildCheckEnabled;
+            ProjectCacheDescriptor = other.ProjectCacheDescriptor;
         }
 
-#if FEATURE_THREAD_PRIORITY
         /// <summary>
         /// Gets or sets the desired thread priority for building.
         /// </summary>
         public ThreadPriority BuildThreadPriority { get; set; } = ThreadPriority.Normal;
-
-#endif
 
         /// <summary>
         /// By default if the number of processes is set to 1 we will use Asynchronous logging. However if we want to use synchronous logging when the number of cpu's is set to 1
@@ -408,7 +424,7 @@ namespace Microsoft.Build.Execution
             get
             {
                 return new ReadOnlyConvertingDictionary<string, ProjectPropertyInstance, string>(_environmentProperties,
-                    instance => ((IProperty) instance).EvaluatedValueEscaped);
+                    instance => ((IProperty)instance).EvaluatedValueEscaped);
             }
         }
 
@@ -443,7 +459,7 @@ namespace Microsoft.Build.Execution
             get
             {
                 return new ReadOnlyConvertingDictionary<string, ProjectPropertyInstance, string>(_globalProperties,
-                    instance => ((IProperty) instance).EvaluatedValueEscaped);
+                    instance => ((IProperty)instance).EvaluatedValueEscaped);
             }
 
             set
@@ -540,6 +556,11 @@ namespace Microsoft.Build.Execution
         public ISet<string> WarningsAsErrors { get; set; }
 
         /// <summary>
+        /// A list of warnings to not treat as errors. Only has any effect if WarningsAsErrors is empty.
+        /// </summary>
+        public ISet<string> WarningsNotAsErrors { get; set; }
+
+        /// <summary>
         /// A list of warnings to treat as low importance messages.
         /// </summary>
         public ISet<string> WarningsAsMessages { get; set; }
@@ -555,7 +576,7 @@ namespace Microsoft.Build.Execution
         /// <comments>
         /// toolsetProvider.Toolsets is already a readonly collection.
         /// </comments>
-        public ICollection<Toolset> Toolsets => _toolsetProvider.Toolsets;
+        public ICollection<Toolset> Toolsets => ToolsetProvider.Toolsets;
 
         /// <summary>
         /// The name of the UI culture to use during the build.
@@ -620,8 +641,16 @@ namespace Microsoft.Build.Execution
 
         /// <summary>
         /// Gets the startup directory.
+        /// It is current directory from which MSBuild command line was recently invoked.
+        /// It is communicated to working nodes as part of NodeConfiguration deserialization once the node manager acquires a particular node.
+        /// This deserialization assign this value to static backing field making it accessible from rest of build thread.
+        /// In MSBuild server node, this value is set once <see cref="ServerNodeBuildCommand"></see> is received.
         /// </summary>
-        internal static string StartupDirectory => s_startupDirectory;
+        internal static string StartupDirectory
+        {
+            get { return s_startupDirectory; }
+            set { s_startupDirectory = value; }
+        }
 
         /// <summary>
         /// Indicates whether the build plan is enabled or not.
@@ -644,7 +673,7 @@ namespace Microsoft.Build.Execution
         /// Indicates whether we should dump string interning stats
         /// </summary>
         internal static bool DumpOpportunisticInternStats => GetStaticBoolVariableOrDefault(
-            "MSBUILDDUMPOPPORTUNISTICINTERNSTATS", ref s_dumpOpportunisticInternStats, false);
+            "MSBUILDDUMPOPPORTUNISTICINTERNSTATS", ref s_dumpStringInterningStats, false);
 
         /// <summary>
         /// Indicates whether we should dump debugging information about the expander
@@ -742,17 +771,26 @@ namespace Microsoft.Build.Execution
         }
 
         /// <summary>
-        /// Gets or sets a value indicating whether projects should build in isolation.
+        /// Gets or sets a value indicating the isolation mode to use.
         /// </summary>
+        /// <remarks>
+        /// Kept for API backwards compatibility.
+        /// </remarks>
         public bool IsolateProjects
         {
-            get => _isolateProjects;
-            set => _isolateProjects = value;
+            get => ProjectIsolationMode == ProjectIsolationMode.True;
+            set => ProjectIsolationMode = value ? ProjectIsolationMode.True : ProjectIsolationMode.False;
         }
 
         /// <summary>
+        /// Gets or sets a value indicating the isolation mode to use.
+        /// </summary>
+        public ProjectIsolationMode ProjectIsolationMode { get => _projectIsolationMode; set => _projectIsolationMode = value; }
+
+        /// <summary>
         /// Input cache files that MSBuild will use to read build results from.
-        /// Setting this also turns on isolated builds.
+        /// If the isolation mode is set to <see cref="ProjectIsolationMode.False"/>,
+        /// this sets the isolation mode to <see cref="ProjectIsolationMode.True"/>.
         /// </summary>
         public string[] InputResultsCacheFiles
         {
@@ -762,13 +800,25 @@ namespace Microsoft.Build.Execution
 
         /// <summary>
         /// Output cache file where MSBuild will write the contents of its build result caches during EndBuild.
-        /// Setting this also turns on isolated builds.
+        /// If the isolation mode is set to <see cref="ProjectIsolationMode.False"/>,
+        /// this sets the isolation mode to <see cref="ProjectIsolationMode.True"/>.
         /// </summary>
         public string OutputResultsCacheFile
         {
             get => _outputResultsCacheFile;
             set => _outputResultsCacheFile = value;
         }
+
+#if FEATURE_REPORTFILEACCESSES
+        /// <summary>
+        /// Gets or sets a value indicating whether file accesses should be reported to any configured project cache plugins.
+        /// </summary>
+        public bool ReportFileAccesses
+        {
+            get => _reportFileAccesses;
+            set => _reportFileAccesses = value;
+        }
+#endif
 
         /// <summary>
         /// Determines whether MSBuild will save the results of builds after EndBuild to speed up future builds.
@@ -779,6 +829,30 @@ namespace Microsoft.Build.Execution
         /// Gets or sets a value indicating whether the build process should run as low priority.
         /// </summary>
         public bool LowPriority { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value that will error when the build process fails an incremental check.
+        /// </summary>
+        public bool Question
+        {
+            get => _question;
+            set => _question = value;
+        }
+
+        /// <summary>
+        /// Gets or sets an indication of build analysis enablement.
+        /// </summary>
+        public bool IsBuildCheckEnabled
+        {
+            get => _isBuildCheckEnabled;
+            set => _isBuildCheckEnabled = value;
+        }
+
+        /// <summary>
+        /// Gets or sets the project cache description to use for all <see cref="BuildSubmission"/> or <see cref="GraphBuildSubmission"/>
+        /// in addition to any potential project caches described in each project.
+        /// </summary>
+        public ProjectCacheDescriptor ProjectCacheDescriptor { get; set; }
 
         /// <summary>
         /// Retrieves a toolset.
@@ -804,7 +878,7 @@ namespace Microsoft.Build.Execution
 
         internal bool UsesInputCaches() => InputResultsCacheFiles != null;
 
-        internal bool SkippedResultsDoNotCauseCacheMiss() => IsolateProjects;
+        internal bool SkippedResultsDoNotCauseCacheMiss() => ProjectIsolationMode == ProjectIsolationMode.True;
 
         /// <summary>
         /// Implementation of the serialization mechanism.
@@ -835,9 +909,12 @@ namespace Microsoft.Build.Execution
             translator.Translate(ref _shutdownInProcNodeOnBuildFinish);
             translator.Translate(ref _logTaskInputs);
             translator.Translate(ref _logInitialPropertiesAndItems);
-            translator.TranslateEnum(ref _projectLoadSettings, (int) _projectLoadSettings);
+            translator.TranslateEnum(ref _projectLoadSettings, (int)_projectLoadSettings);
             translator.Translate(ref _interactive);
-            translator.Translate(ref _isolateProjects);
+            translator.Translate(ref _question);
+            translator.Translate(ref _isBuildCheckEnabled);
+            translator.TranslateEnum(ref _projectIsolationMode, (int)_projectIsolationMode);
+            translator.Translate(ref _reportFileAccesses);
 
             // ProjectRootElementCache is not transmitted.
             // ResetCaches is not transmitted.
@@ -847,7 +924,7 @@ namespace Microsoft.Build.Execution
             // LowPriority is passed as an argument to new nodes, so it doesn't need to be transmitted here.
         }
 
-#region INodePacketTranslatable Members
+        #region INodePacketTranslatable Members
 
         /// <summary>
         /// The class factory for deserialization.
@@ -857,7 +934,7 @@ namespace Microsoft.Build.Execution
             return new BuildParameters(translator);
         }
 
-#endregion
+        #endregion
 
         /// <summary>
         /// Gets the value of a boolean environment setting which is not expected to change.

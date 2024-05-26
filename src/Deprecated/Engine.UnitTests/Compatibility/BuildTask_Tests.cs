@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
+
 using System;
 using System.IO;
 using System.Xml;
@@ -146,7 +150,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         [Test]
         public void ConditionGetFromImportedProject()
         {
-            string importProjectContents = ObjectModelHelpers.CleanupFileContents(@" 
+            string importProjectContents = ObjectModelHelpers.CleanupFileContents(@"
                     <Project xmlns='msbuildnamespace'>
                         <Target Name='t2' >
                         <t2.Task Condition=""'a' == 'b'"" >
@@ -379,7 +383,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         [Test]
         public void ContinueOnErrorGetFromImportedProject()
         {
-            string importProjectContents = ObjectModelHelpers.CleanupFileContents(@" 
+            string importProjectContents = ObjectModelHelpers.CleanupFileContents(@"
                     <Project xmlns='msbuildnamespace'>
                         <Target Name='t2' >
                             <t2.Task ContinueOnError='true' />
@@ -1001,7 +1005,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         [Test]
         public void ExecuteFromImportedProject()
         {
-            string importProjectContents = ObjectModelHelpers.CleanupFileContents(@" 
+            string importProjectContents = ObjectModelHelpers.CleanupFileContents(@"
                     <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
                         <Target Name='t' >
                             <Message Text='t.message' />
@@ -1009,7 +1013,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
                     </Project>
                 ");
 
-            string parentProjectContents = ObjectModelHelpers.CleanupFileContents(@" 
+            string parentProjectContents = ObjectModelHelpers.CleanupFileContents(@"
                     <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
                         <Import Project='import.proj' />
                     </Project>
@@ -1021,7 +1025,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
             Assertion.AssertEquals(true, task.Execute());
         }
         #endregion
-        
+
         #region GetParameterNames Tests
         /// <summary>
         /// Tests BuildTask.GetParameterNames when only one parameter exists on the BuildTask
@@ -1537,7 +1541,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
         {
             if (String.IsNullOrEmpty(importProjectContents))
             {
-                importProjectContents = ObjectModelHelpers.CleanupFileContents(@" 
+                importProjectContents = ObjectModelHelpers.CleanupFileContents(@"
                     <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
                         <Target Name='t2' >
                             <t2.Task2 parameter='value' />
@@ -1551,7 +1555,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
 
             if (String.IsNullOrEmpty(parentProjectContents))
             {
-                parentProjectContents = ObjectModelHelpers.CleanupFileContents(@" 
+                parentProjectContents = ObjectModelHelpers.CleanupFileContents(@"
                     <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
                         <Target Name='t1'>
                             <t1.Task1 parameter='value' />
@@ -1568,7 +1572,7 @@ namespace Microsoft.Build.UnitTests.OM.OrcasCompatibility
 
         /// <summary>
         /// Un-registers the existing logger and registers a new copy.
-        /// We will use this when we do multiple builds so that we can safely 
+        /// We will use this when we do multiple builds so that we can safely
         /// assert on log messages for that particular build.
         /// </summary>
         private void ResetLogger()

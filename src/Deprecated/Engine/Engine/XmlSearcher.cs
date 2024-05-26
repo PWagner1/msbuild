@@ -1,5 +1,9 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
 
 using System;
 using System.IO;
@@ -53,8 +57,8 @@ namespace Microsoft.Build.BuildEngine
             // the given XmlNode in its original container document.  Element number is
             // simply a 1-based number identifying a particular XML element starting from
             // the beginning of the document, ignoring depth.  As you're walking the tree,
-            // visiting each node in order, and recursing deeper whenever possible, the Nth 
-            // element you visit has element number N.  Attribute number is simply the 
+            // visiting each node in order, and recursing deeper whenever possible, the Nth
+            // element you visit has element number N.  Attribute number is simply the
             // 1-based index of the attribute within the given Xml element.  An attribute
             // number of zero indicates that we're not searching for a particular attribute,
             // and all we care about is the element as a whole.
@@ -67,7 +71,7 @@ namespace Microsoft.Build.BuildEngine
 
             // Now that we know what element/attribute number we're searching for, find
             // it in the Xml document on disk, and grab the line/column number.
-            return GetLineColumnByNodeNumber(fileName, elementNumber, attributeNumber, 
+            return GetLineColumnByNodeNumber(fileName, elementNumber, attributeNumber,
                 out foundLineNumber, out foundColumnNumber);
         }
 
@@ -95,8 +99,8 @@ namespace Microsoft.Build.BuildEngine
 
             XmlNode elementToFind;
 
-            // First determine the XmlNode in the main hierarchy to search for.  If the passed-in 
-            // node is already an XmlElement or Text node, then we already have the node 
+            // First determine the XmlNode in the main hierarchy to search for.  If the passed-in
+            // node is already an XmlElement or Text node, then we already have the node
             // that we're searching for.  But if the passed-in node is an XmlAttribute, then
             // we want to search for the XmlElement that contains that attribute.
             // If the node is any other type, try the parent node. It's a better line number than no line number.
@@ -116,7 +120,7 @@ namespace Microsoft.Build.BuildEngine
             }
             else if (xmlNodeToFind.NodeType == XmlNodeType.Attribute)
             {
-                elementToFind = ((XmlAttribute) xmlNodeToFind).OwnerElement;
+                elementToFind = ((XmlAttribute)xmlNodeToFind).OwnerElement;
                 ErrorUtilities.VerifyThrow(elementToFind != null, "How can an xml attribute not have a parent?");
             }
             else
@@ -126,7 +130,7 @@ namespace Microsoft.Build.BuildEngine
             }
 
             // Figure out the element number for this particular XML element, by iteratively
-            // visiting every single node in the XmlDocument in sequence.  Start with the 
+            // visiting every single node in the XmlDocument in sequence.  Start with the
             // root node which is the XmlDocument node.
             XmlNode xmlNode = xmlNodeToFind.OwnerDocument;
             while (true)
@@ -178,7 +182,7 @@ namespace Microsoft.Build.BuildEngine
 
             if (xmlNode == null)
             {
-                // We visited every XmlElement in the document without finding the 
+                // We visited every XmlElement in the document without finding the
                 // specific XmlElement we were supposed to.  Oh well, too bad.
                 elementNumber = 0;
                 return false;
@@ -214,8 +218,8 @@ namespace Microsoft.Build.BuildEngine
         }
 
         /// <summary>
-        /// Read through the entire XML of a given project file, searching for the element/attribute 
-        /// specified by element number and attribute number.  Return the line number and column 
+        /// Read through the entire XML of a given project file, searching for the element/attribute
+        /// specified by element number and attribute number.  Return the line number and column
         /// number where it was found.
         /// </summary>
         /// <param name="projectFile">Path to project file on disk.</param>
@@ -253,7 +257,7 @@ namespace Microsoft.Build.BuildEngine
                     reader.DtdProcessing = DtdProcessing.Ignore;
                     int currentXmlElementNumber = 0;
 
-                    // While we haven't reached the end of the file, and we haven't found the 
+                    // While we haven't reached the end of the file, and we haven't found the
                     // specified node ...
                     while (reader.Read() && (foundColumnNumber == 0) && (foundLineNumber == 0))
                     {
@@ -275,7 +279,7 @@ namespace Microsoft.Build.BuildEngine
                                     foundLineNumber = reader.LineNumber;
                                     foundColumnNumber = reader.LinePosition;
 
-                                    if (reader.NodeType == XmlNodeType.Element) 
+                                    if (reader.NodeType == XmlNodeType.Element)
                                     {
                                         // Do a minus-one here, because the XmlTextReader points us at the first
                                         // letter of the tag name, whereas we would prefer to point at the opening
@@ -284,15 +288,15 @@ namespace Microsoft.Build.BuildEngine
                                         foundColumnNumber--;
                                     }
                                 }
-                                else if (reader.MoveToFirstAttribute()) 
+                                else if (reader.MoveToFirstAttribute())
                                 {
                                     // Caller wants a particular attribute within the element,
-                                    // and the element does have 1 or more attributes.  So let's 
+                                    // and the element does have 1 or more attributes.  So let's
                                     // try to find the right one.
                                     int currentXmlAttributeNumber = 0;
 
                                     // Loop through all the XML attributes on the current element.
-                                    do 
+                                    do
                                     {
                                         // Bump the current attribute number and check to see if this
                                         // is the one.
@@ -313,7 +317,7 @@ namespace Microsoft.Build.BuildEngine
                     }
                 }
             }
-            catch (XmlException) 
+            catch (XmlException)
             {
                 // Eat the exception.  If anything fails, we simply don't surface the line/column number.
             }

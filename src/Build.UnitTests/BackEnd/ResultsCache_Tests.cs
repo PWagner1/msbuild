@@ -1,19 +1,23 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using Microsoft.Build.Framework;
+using System.Xml;
 using Microsoft.Build.BackEnd;
+using Microsoft.Build.Construction;
+using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
+using Microsoft.Build.Framework;
 using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Unittest;
 using Shouldly;
 using Xunit;
 
-
+#nullable disable
 
 namespace Microsoft.Build.UnitTests.BackEnd
 {
@@ -143,8 +147,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 cache.AddResult(result);
 
                 cache.GetResultForRequest(request);
-            }
-           );
+            });
         }
         [Fact]
         public void TestRetrieveSubsetResults()
@@ -165,7 +168,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         }
 
         /// <summary>
-        /// If a result had multiple targets associated with it and we only requested some of their 
+        /// If a result had multiple targets associated with it and we only requested some of their
         /// results, the returned result should only contain the targets we asked for, and the overall
         /// status of the result should reflect the targets we asked for as well.
         /// </summary>
@@ -190,6 +193,153 @@ namespace Microsoft.Build.UnitTests.BackEnd
         }
 
         [Fact]
+        public void TestCacheOnDifferentBuildFlagsPerRequest_ProvideProjectStateAfterBuild()
+        {
+            string targetName = "testTarget1";
+            int submissionId = 1;
+            int nodeRequestId = 0;
+            int configurationId = 1;
+
+            BuildRequest requestWithNoBuildDataFlags = new BuildRequest(
+               submissionId,
+               nodeRequestId,
+               configurationId,
+               new string[1] { targetName } /* escapedTargets */,
+               null /* hostServices */,
+               BuildEventContext.Invalid /* parentBuildEventContext */,
+               null /* parentRequest */,
+               BuildRequestDataFlags.None);
+
+            BuildRequest requestWithProjectStateFlag = new BuildRequest(
+               submissionId,
+               nodeRequestId,
+               configurationId,
+               new string[1] { targetName } /* escapedTargets */,
+               null /* hostServices */,
+               BuildEventContext.Invalid /* parentBuildEventContext */,
+               null /* parentRequest */,
+               BuildRequestDataFlags.ProvideProjectStateAfterBuild);
+
+            BuildRequest requestWithNoBuildDataFlags2 = new BuildRequest(
+               submissionId,
+               nodeRequestId,
+               configurationId,
+               new string[1] { targetName } /* escapedTargets */,
+               null /* hostServices */,
+               BuildEventContext.Invalid /* parentBuildEventContext */,
+               null /* parentRequest */,
+               BuildRequestDataFlags.None);
+
+            BuildResult resultForRequestWithNoBuildDataFlags = new(requestWithNoBuildDataFlags);
+            resultForRequestWithNoBuildDataFlags.AddResultsForTarget(targetName, BuildResultUtilities.GetEmptySucceedingTargetResult());
+            ResultsCache cache = new();
+            cache.AddResult(resultForRequestWithNoBuildDataFlags);
+
+            ResultsCacheResponse cacheResponseForRequestWithNoBuildDataFlags = cache.SatisfyRequest(
+               requestWithNoBuildDataFlags,
+               new List<string>(),
+               new List<string>(new string[] { targetName }),
+               skippedResultsDoNotCauseCacheMiss: false);
+
+            ResultsCacheResponse cachedResponseForProjectState = cache.SatisfyRequest(
+               requestWithProjectStateFlag,
+               new List<string>(),
+               new List<string>(new string[] { targetName }),
+               skippedResultsDoNotCauseCacheMiss: false);
+
+            ResultsCacheResponse cacheResponseForNoBuildDataFlags2 = cache.SatisfyRequest(
+               requestWithNoBuildDataFlags2,
+               new List<string>(),
+               new List<string>(new string[] { targetName }),
+               skippedResultsDoNotCauseCacheMiss: false);
+
+            Assert.Equal(ResultsCacheResponseType.Satisfied, cacheResponseForRequestWithNoBuildDataFlags.Type);
+
+            // Because ProvideProjectStateAfterBuildFlag was provided as a part of BuildRequest
+            Assert.Equal(ResultsCacheResponseType.NotSatisfied, cachedResponseForProjectState.Type);
+
+            Assert.Equal(ResultsCacheResponseType.Satisfied, cacheResponseForNoBuildDataFlags2.Type);
+        }
+
+        [Fact]
+        public void TestCacheOnDifferentBuildFlagsPerRequest_ProvideSubsetOfStateAfterBuild()
+        {
+            string targetName = "testTarget1";
+            int submissionId = 1;
+            int nodeRequestId = 0;
+            int configurationId = 1;
+
+            RequestedProjectState requestedProjectState1 = new()
+            {
+                PropertyFilters = ["property1", "property2"],
+            };
+            BuildRequest requestWithSubsetFlag1 = new BuildRequest(
+                submissionId,
+                nodeRequestId,
+                configurationId,
+                new string[1] { targetName } /* escapedTargets */,
+                null /* hostServices */,
+                BuildEventContext.Invalid /* parentBuildEventContext */,
+                null /* parentRequest */,
+                BuildRequestDataFlags.ProvideSubsetOfStateAfterBuild,
+                requestedProjectState1);
+
+            RequestedProjectState requestedProjectState2 = new()
+            {
+                PropertyFilters = ["property1"],
+            };
+            BuildRequest requestWithSubsetFlag2 = new BuildRequest(
+                submissionId,
+                nodeRequestId,
+                configurationId,
+                new string[1] { targetName } /* escapedTargets */,
+                null /* hostServices */,
+                BuildEventContext.Invalid /* parentBuildEventContext */,
+                null /* parentRequest */,
+                BuildRequestDataFlags.ProvideSubsetOfStateAfterBuild,
+                requestedProjectState2);
+
+            BuildResult resultForRequestWithSubsetFlag1 = new(requestWithSubsetFlag1);
+            resultForRequestWithSubsetFlag1.AddResultsForTarget(targetName, BuildResultUtilities.GetEmptySucceedingTargetResult());
+
+            using TextReader textReader = new StringReader(@"
+              <Project>
+                <PropertyGroup>
+                  <property1>Value1</property1>
+                  <property2>Value2</property2>
+                </PropertyGroup>
+              </Project>
+            ");
+            using XmlReader xmlReader = XmlReader.Create(textReader);
+            resultForRequestWithSubsetFlag1.ProjectStateAfterBuild = new ProjectInstance(ProjectRootElement.Create(xmlReader)).FilteredCopy(requestedProjectState1);
+
+            ResultsCache cache = new();
+            cache.AddResult(resultForRequestWithSubsetFlag1);
+
+            ResultsCacheResponse cachedResponseWithSubsetFlag1 = cache.SatisfyRequest(
+                requestWithSubsetFlag1,
+                new List<string>(),
+                new List<string>(new string[] { targetName }),
+                skippedResultsDoNotCauseCacheMiss: false);
+
+            ResultsCacheResponse cachedResponseWithSubsetFlag2 = cache.SatisfyRequest(
+                requestWithSubsetFlag2,
+                new List<string>(),
+                new List<string>(new string[] { targetName }),
+                skippedResultsDoNotCauseCacheMiss: false);
+
+            // We used the same filter that was used for the ProjectInstance in the cache -> cache hit.
+            Assert.Equal(ResultsCacheResponseType.Satisfied, cachedResponseWithSubsetFlag1.Type);
+            Assert.Equal("Value1", cachedResponseWithSubsetFlag1.Results.ProjectStateAfterBuild.GetPropertyValue("property1"));
+            Assert.Equal("Value2", cachedResponseWithSubsetFlag1.Results.ProjectStateAfterBuild.GetPropertyValue("property2"));
+
+            // We used a filter that's a subset of the one used for the ProjectInstance in the cache -> cache hit.
+            Assert.Equal(ResultsCacheResponseType.Satisfied, cachedResponseWithSubsetFlag2.Type);
+            Assert.Equal("Value1", cachedResponseWithSubsetFlag2.Results.ProjectStateAfterBuild.GetPropertyValue("property1"));
+            Assert.Equal("", cachedResponseWithSubsetFlag2.Results.ProjectStateAfterBuild.GetPropertyValue("property2"));
+        }
+
+        [Fact]
         public void TestClearResultsCache()
         {
             ResultsCache cache = new ResultsCache();
@@ -209,10 +359,10 @@ namespace Microsoft.Build.UnitTests.BackEnd
         {
             get
             {
-                yield return new[] {new ResultsCache()};
+                yield return new[] { new ResultsCache() };
 
-                var request1 = new BuildRequest(1, 2, 3, new[] {"target1"}, null, BuildEventContext.Invalid, null);
-                var request2 = new BuildRequest(4, 5, 6, new[] {"target2"}, null, BuildEventContext.Invalid, null);
+                var request1 = new BuildRequest(1, 2, 3, new[] { "target1" }, null, BuildEventContext.Invalid, null);
+                var request2 = new BuildRequest(4, 5, 6, new[] { "target2" }, null, BuildEventContext.Invalid, null);
 
                 var br1 = new BuildResult(request1);
                 br1.AddResultsForTarget("target1", BuildResultUtilities.GetEmptySucceedingTargetResult());
@@ -220,7 +370,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 var resultsCache = new ResultsCache();
                 resultsCache.AddResult(br1.Clone());
 
-                yield return new[] {resultsCache};
+                yield return new[] { resultsCache };
 
                 var br2 = new BuildResult(request2);
                 br2.AddResultsForTarget("target2", BuildResultUtilities.GetEmptyFailingTargetResult());
@@ -229,7 +379,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 resultsCache2.AddResult(br1.Clone());
                 resultsCache2.AddResult(br2.Clone());
 
-                yield return new[] {resultsCache2};
+                yield return new[] { resultsCache2 };
             }
         }
 
@@ -268,7 +418,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
 
         #region Helper Methods
 
-        static internal bool AreResultsIdentical(BuildResult a, BuildResult b)
+        internal static bool AreResultsIdentical(BuildResult a, BuildResult b)
         {
             if (a.ConfigurationId != b.ConfigurationId)
             {
@@ -312,7 +462,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             return true;
         }
 
-        static internal bool AreResultsIdenticalForTargets(BuildResult a, BuildResult b, string[] targets)
+        internal static bool AreResultsIdenticalForTargets(BuildResult a, BuildResult b, string[] targets)
         {
             foreach (string target in targets)
             {
@@ -325,7 +475,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             return true;
         }
 
-        static private bool AreResultsIdenticalForTarget(BuildResult a, BuildResult b, string target)
+        private static bool AreResultsIdenticalForTarget(BuildResult a, BuildResult b, string target)
         {
             if (!a.HasResultsForTarget(target) || !b.HasResultsForTarget(target))
             {
@@ -345,7 +495,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             return true;
         }
 
-        static private bool AreItemsIdentical(IList<ITaskItem> a, IList<ITaskItem> b)
+        private static bool AreItemsIdentical(IList<ITaskItem> a, IList<ITaskItem> b)
         {
             // Exhaustive comparison of items should not be necessary since we don't merge on the item level.
             return a.Count == b.Count;

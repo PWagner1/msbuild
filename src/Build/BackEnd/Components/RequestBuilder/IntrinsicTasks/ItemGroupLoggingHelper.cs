@@ -1,13 +1,20 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+#if FEATURE_APPDOMAIN
+using System.Runtime.Remoting;
+#endif
+using Microsoft.Build.BackEnd.Logging;
+using Microsoft.Build.Collections;
+using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
-using Microsoft.Build.Utilities;
+
+#nullable disable
 
 namespace Microsoft.Build.BackEnd
 {
@@ -17,19 +24,36 @@ namespace Microsoft.Build.BackEnd
     internal static class ItemGroupLoggingHelper
     {
         /// <summary>
-        /// The default character limit for logging parameters. 10k is somewhat arbitrary, see https://github.com/microsoft/msbuild/issues/4907.
+        /// The default character limit for logging parameters. 10k is somewhat arbitrary, see https://github.com/dotnet/msbuild/issues/4907.
         /// </summary>
         internal static int parameterCharacterLimit = 40_000;
 
         /// <summary>
-        /// The default parameter limit for logging. 200 is somewhat arbitrary, see https://github.com/microsoft/msbuild/pull/5210.
+        /// The default parameter limit for logging. 200 is somewhat arbitrary, see https://github.com/dotnet/msbuild/pull/5210.
         /// </summary>
         internal static int parameterLimit = 200;
 
         internal static string ItemGroupIncludeLogMessagePrefix = ResourceUtilities.GetResourceString("ItemGroupIncludeLogMessagePrefix");
         internal static string ItemGroupRemoveLogMessage = ResourceUtilities.GetResourceString("ItemGroupRemoveLogMessage");
         internal static string OutputItemParameterMessagePrefix = ResourceUtilities.GetResourceString("OutputItemParameterMessagePrefix");
+        internal static string OutputPropertyLogMessagePrefix = ResourceUtilities.GetResourceString("OutputPropertyLogMessagePrefix");
         internal static string TaskParameterPrefix = ResourceUtilities.GetResourceString("TaskParameterPrefix");
+        internal static string SkipTargetUpToDateInputs = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("SkipTargetUpToDateInputs", string.Empty);
+        internal static string SkipTargetUpToDateOutputs = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("SkipTargetUpToDateOutputs", string.Empty);
+
+        /// <summary>
+        /// <see cref="TaskParameterEventArgs"/> by itself doesn't have the implementation
+        /// to materialize the Message as that's a declaration assembly. We inject the logic
+        /// here.
+        /// </summary>
+#pragma warning disable CA1810 // Initialize reference type static fields inline
+        static ItemGroupLoggingHelper()
+#pragma warning restore CA1810 // Initialize reference type static fields inline
+        {
+            BuildEventArgs.ResourceStringFormatter = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword;
+            TaskParameterEventArgs.MessageGetter = GetTaskParameterText;
+            TaskParameterEventArgs.DictionaryFactory = ArrayDictionary<string, string>.Create;
+        }
 
         /// <summary>
         /// Gets a text serialized value of a parameter for logging.
@@ -58,17 +82,43 @@ namespace Microsoft.Build.BackEnd
                 // If it's just one entry in the list, and it's not a task item with metadata, keep it on one line like a scalar
                 bool specialTreatmentForSingle = (parameterValue.Count == 1 && !firstEntryIsTaskItemWithSomeCustomMetadata);
 
-                if (!specialTreatmentForSingle)
+                // If the parameterName is not specified, no need to have an extra indent.
+                // Without parameterName:
+                //
+                // Input files:
+                //     a.txt
+                //     b.txt
+                //
+                // With parameterName:
+                //
+                // Input files:
+                //     ParamName=
+                //         a.txt
+                //         b.txt
+                string indent = "        ";
+                if (parameterName == null)
                 {
-                    sb.Append("\n    ");
+                    indent = "    ";
                 }
-
-                sb.Append(parameterName);
-                sb.Append('=');
 
                 if (!specialTreatmentForSingle)
                 {
                     sb.Append("\n");
+                    if (parameterName != null)
+                    {
+                        sb.Append("    ");
+                    }
+                }
+
+                if (parameterName != null)
+                {
+                    sb.Append(parameterName);
+                    sb.Append('=');
+
+                    if (!specialTreatmentForSingle)
+                    {
+                        sb.Append("\n");
+                    }
                 }
 
                 bool truncateTaskInputs = Traits.Instance.EscapeHatches.TruncateTaskInputs;
@@ -82,7 +132,7 @@ namespace Microsoft.Build.BackEnd
 
                     if (!specialTreatmentForSingle)
                     {
-                        sb.Append("        ");
+                        sb.Append(indent);
                     }
 
                     AppendStringFromParameterValue(sb, parameterValue[i], logItemMetadata);
@@ -202,6 +252,137 @@ namespace Microsoft.Build.BackEnd
             {
                 ErrorUtilities.ThrowInternalErrorUnreachable();
             }
+        }
+
+        internal static void LogTaskParameter(
+            LoggingContext loggingContext,
+            TaskParameterMessageKind messageKind,
+            string parameterName,
+            string propertyName,
+            string itemType,
+            IList items,
+            bool logItemMetadata,
+            IElementLocation location = null)
+        {
+            var args = CreateTaskParameterEventArgs(
+                loggingContext.BuildEventContext,
+                messageKind,
+                parameterName,
+                propertyName,
+                itemType,
+                items,
+                logItemMetadata,
+                DateTime.UtcNow,
+                location?.Line ?? 0,
+                location?.Column ?? 0);
+
+            loggingContext.LogBuildEvent(args);
+        }
+
+        internal static TaskParameterEventArgs CreateTaskParameterEventArgs(
+            BuildEventContext buildEventContext,
+            TaskParameterMessageKind messageKind,
+            string parameterName,
+            string propertyName,
+            string itemType,
+            IList items,
+            bool logItemMetadata,
+            DateTime timestamp,
+            int line = 0,
+            int column = 0)
+        {
+            // Only create a snapshot of items if we use AppDomains
+#if FEATURE_APPDOMAIN
+            CreateItemsSnapshot(ref items);
+#endif
+
+            var args = new TaskParameterEventArgs(
+                messageKind,
+                parameterName,
+                propertyName,
+                itemType,
+                items,
+                logItemMetadata,
+                timestamp);
+            args.BuildEventContext = buildEventContext;
+            args.LineNumber = line;
+            args.ColumnNumber = column;
+            return args;
+        }
+
+#if FEATURE_APPDOMAIN
+        private static void CreateItemsSnapshot(ref IList items)
+        {
+            if (items == null)
+            {
+                return;
+            }
+
+            // If we're in the default AppDomain, but any of the items come from a different AppDomain
+            // we need to take a snapshot of the items right now otherwise that AppDomain might get
+            // unloaded by the time we want to consume the items.
+            // If we're not in the default AppDomain, always take the items snapshot.
+            //
+            // It is unfortunate to need to be doing this check, but ResolveComReference and other tasks
+            // still use AppDomains and create a TaskParameterEventArgs in the default AppDomain, but
+            // pass it Items from another AppDomain.
+            if (AppDomain.CurrentDomain.IsDefaultAppDomain())
+            {
+                bool needsSnapshot = false;
+                foreach (var item in items)
+                {
+                    if (RemotingServices.IsTransparentProxy(item))
+                    {
+                        needsSnapshot = true;
+                        break;
+                    }
+                }
+
+                if (!needsSnapshot)
+                {
+                    return;
+                }
+            }
+
+            int count = items.Count;
+            var cloned = new object[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                var item = items[i];
+                if (item is ITaskItem taskItem)
+                {
+                    cloned[i] = new TaskItemData(taskItem);
+                }
+                else
+                {
+                    cloned[i] = item;
+                }
+            }
+
+            items = cloned;
+        }
+#endif
+
+        internal static string GetTaskParameterText(TaskParameterEventArgs args)
+        {
+            var resourceText = args.Kind switch
+            {
+                TaskParameterMessageKind.AddItem => ItemGroupIncludeLogMessagePrefix,
+                TaskParameterMessageKind.RemoveItem => ItemGroupRemoveLogMessage,
+                TaskParameterMessageKind.TaskInput => TaskParameterPrefix,
+                TaskParameterMessageKind.TaskOutput => args.PropertyName is null ? OutputItemParameterMessagePrefix : OutputPropertyLogMessagePrefix,
+                TaskParameterMessageKind.SkippedTargetInputs => SkipTargetUpToDateInputs,
+                TaskParameterMessageKind.SkippedTargetOutputs => SkipTargetUpToDateOutputs,
+                _ => throw new NotImplementedException($"Unsupported {nameof(TaskParameterMessageKind)} value: {args.Kind}")
+            };
+
+            var itemGroupText = GetParameterText(
+                resourceText,
+                args.PropertyName ?? args.ItemType,
+                args.Items,
+                args.LogItemMetadata);
+            return itemGroupText;
         }
     }
 }

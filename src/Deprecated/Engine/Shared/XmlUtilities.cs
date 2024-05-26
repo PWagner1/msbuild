@@ -1,5 +1,9 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// THE ASSEMBLY BUILT FROM THIS SOURCE FILE HAS BEEN DEPRECATED FOR YEARS. IT IS BUILT ONLY TO PROVIDE
+// BACKWARD COMPATIBILITY FOR API USERS WHO HAVE NOT YET MOVED TO UPDATED APIS. PLEASE DO NOT SEND PULL
+// REQUESTS THAT CHANGE THIS FILE WITHOUT FIRST CHECKING WITH THE MAINTAINERS THAT THE FIX IS REQUIRED.
 
 using System;
 using System.Xml;
@@ -10,7 +14,7 @@ namespace Microsoft.Build.BuildEngine.Shared
     /// This class contains utility methods for XML manipulation.
     /// </summary>
     /// <owner>SumedhK</owner>
-    static internal class XmlUtilities
+    internal static class XmlUtilities
     {
         /// <summary>
         /// This method renames an XML element.  Well, actually you can't directly
@@ -43,11 +47,11 @@ namespace Microsoft.Build.BuildEngine.Shared
                 newElement.AppendChild(newChildNode);
             }
 
-               
-            
-                // Add the new element in the same place the old element was.
-                oldElement.ParentNode?.ReplaceChild(newElement, oldElement);
-            
+
+
+            // Add the new element in the same place the old element was.
+            oldElement.ParentNode?.ReplaceChild(newElement, oldElement);
+
 
             return newElement;
         }
@@ -77,7 +81,7 @@ namespace Microsoft.Build.BuildEngine.Shared
         }
 
         /// <summary>
-        /// An XML document can have many root nodes, but usually we want the single root 
+        /// An XML document can have many root nodes, but usually we want the single root
         /// element. Callers can test each root node in turn with this method, until it returns
         /// true.
         /// </summary>
@@ -150,8 +154,8 @@ namespace Microsoft.Build.BuildEngine.Shared
         }
 
         /// <summary>
-        /// Finds the location of the first invalid character, if any, in the name of an 
-        /// item, property, or piece of metadata. Returns the location of the first invalid character, or -1 if there are none. 
+        /// Finds the location of the first invalid character, if any, in the name of an
+        /// item, property, or piece of metadata. Returns the location of the first invalid character, or -1 if there are none.
         /// Valid names must match this pattern:  [A-Za-z_][A-Za-z_0-9\-.]*
         /// Note, this is a subset of all possible valid XmlElement names: we use a subset because we also
         /// have to match this same set in our regular expressions, and allowing all valid XmlElement name
@@ -188,8 +192,8 @@ namespace Microsoft.Build.BuildEngine.Shared
         }
 
         /// <summary>
-        /// Load the xml file using XMLTextReader and locate the element and attribute specified and then 
-        /// return the value. This is a quick way to peek at the xml file whithout having the go through 
+        /// Load the xml file using XMLTextReader and locate the element and attribute specified and then
+        /// return the value. This is a quick way to peek at the xml file whithout having the go through
         /// the XMLDocument (MSDN article (Chapter 9 - Improving XML Performance)).
         /// </summary>
         internal static string GetAttributeValueForElementFromFile
@@ -231,7 +235,7 @@ namespace Microsoft.Build.BuildEngine.Shared
                     }
                 }
             }
-            catch(XmlException)
+            catch (XmlException)
             {
                 // Ignore any XML exceptions as it will be caught later on
             }
