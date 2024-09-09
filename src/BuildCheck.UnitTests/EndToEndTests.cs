@@ -4,9 +4,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text.RegularExpressions;
-using System.IO.Ports;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Xml;
 using Microsoft.Build.Experimental.BuildCheck;
 using Microsoft.Build.Shared;
@@ -38,49 +37,29 @@ public class EndToEndTests : IDisposable
 
     public void Dispose() => _env.Dispose();
 
-    [Fact]
-    public void PropertiesUsageAnalyzerTest()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void PropertiesUsageAnalyzerTest(bool buildInOutOfProcessNode)
     {
-        using TestEnvironment env = TestEnvironment.Create();
-        string contents = """
-                              <Project DefaultTargets="PrintEnvVar">
+        PrepareSampleProjectsAndConfig(
+            buildInOutOfProcessNode,
+            out TransientTestFile projectFile,
+            "PropsCheckTest.csproj");
 
-                              <!-- MyProp4 is not defined - but it's checked against empty - which is allowed -->
-                              <PropertyGroup Condition="'$(MyProp4)' == ''">
-                                <!-- MyProp3 defined here - but not used anywhere -->
-                                <!-- MyProp1 used here - but not defined -->
-                                <MyProp3>$(MyProp1)</MyProp3>
-                              </PropertyGroup>
-
-
-                              <Target Name="PrintEnvVar">
-                                  <!-- MyProp2 used here - but defined later -->
-                                  <Message Text="MyProp2 has value $(MyProp2)" Importance="High" Condition="'$(MyProp2)' == ''" />
-                                  <PropertyGroup>
-                                    <MyProp2>$(MyProp2);xxx</MyProp2>
-                                  </PropertyGroup>
-                              </Target>
-
-                              </Project>
-                              """;
-        TransientTestFolder logFolder = env.CreateFolder(createFolder: true);
-        TransientTestFile projectFile = env.CreateFile(logFolder, "myProj.proj", contents);
-
-        string output = RunnerUtilities.ExecBootstrapedMSBuild($"{projectFile.Path} -check /v:detailed", out bool success);
+        string output = RunnerUtilities.ExecBootstrapedMSBuild($"{projectFile.Path} -check", out bool success);
         _env.Output.WriteLine(output);
         _env.Output.WriteLine("=========================");
         success.ShouldBeTrue(output);
 
-        output.ShouldMatch(@"BC0201: .* Property: \[MyProp1\]");
-        output.ShouldMatch(@"BC0202: .* Property: \[MyProp2\]");
-        // since it's just suggestion, it doesn't have a colon ':'
-        output.ShouldMatch(@"BC0203 .* Property: \[MyProp3\]");
+        output.ShouldMatch(@"BC0201: .* Property: \[MyProp11\]");
+        output.ShouldMatch(@"BC0202: .* Property: \[MyPropT2\]");
+        output.ShouldMatch(@"BC0203: .* Property: \[MyProp13\]");
 
         // each finding should be found just once - but reported twice, due to summary
         Regex.Matches(output, "BC0201: .* Property").Count.ShouldBe(2);
         Regex.Matches(output, "BC0202: .* Property").Count.ShouldBe(2);
-        // since it's not an error - it's not in summary
-        Regex.Matches(output, "BC0203 .* Property").Count.ShouldBe(1);
+        Regex.Matches(output, "BC0203 .* Property").Count.ShouldBe(2);
     }
 
     [Theory]
@@ -169,7 +148,7 @@ public class EndToEndTests : IDisposable
     [InlineData("suggestion", "BC0101", new string[] { "error BC0101", "warning BC0101" })]
     [InlineData("default", "warning BC0101", new string[] { "error BC0101" })]
     [InlineData("none", null, new string[] { "BC0101" })]
-    public void EditorConfig_SeverityAppliedCorrectly(string BC0101Severity, string expectedOutputValues, string[] unexpectedOutputValues)
+    public void EditorConfig_SeverityAppliedCorrectly(string BC0101Severity, string? expectedOutputValues, string[] unexpectedOutputValues)
     {
         PrepareSampleProjectsAndConfig(true, out TransientTestFile projectFile, new List<(string, string)>() { ("BC0101", BC0101Severity) });
 
@@ -184,12 +163,44 @@ public class EndToEndTests : IDisposable
 
         if (!string.IsNullOrEmpty(expectedOutputValues))
         {
-            output.ShouldContain(expectedOutputValues);
+            output.ShouldContain(expectedOutputValues!);
         }
 
         foreach (string unexpectedOutputValue in unexpectedOutputValues)
         {
             output.ShouldNotContain(unexpectedOutputValue);
+        }
+    }
+
+    [Fact]
+    public void CheckHasAccessToAllConfigs()
+    {
+        using (var env = TestEnvironment.Create())
+        {
+            string checkCandidatePath = Path.Combine(TestAssetsRootPath, "CheckCandidate");
+            string message = ": An extra message for the analyzer";
+            string severity = "warning";
+
+            // Can't use Transitive environment due to the need to dogfood local nuget packages.
+            AddCustomDataSourceToNugetConfig(checkCandidatePath);
+            string editorConfigName = Path.Combine(checkCandidatePath, EditorConfigFileName);
+            File.WriteAllText(editorConfigName, ReadEditorConfig(
+                new List<(string, string)>() { ("X01234", severity) },
+                new List<(string, (string, string))>
+                {
+                    ("X01234",("setMessage", message))
+                },
+                checkCandidatePath));
+
+            string projectCheckBuildLog = RunnerUtilities.ExecBootstrapedMSBuild(
+                $"{Path.Combine(checkCandidatePath, $"CheckCandidate.csproj")} /m:1 -nr:False -restore -check -verbosity:n", out bool success, timeoutMilliseconds: 1200_0000);
+            success.ShouldBeTrue();
+
+            projectCheckBuildLog.ShouldContain("warning X01234");
+            projectCheckBuildLog.ShouldContain(severity + message);
+
+            // Cleanup
+            File.Delete(editorConfigName);
         }
     }
 
@@ -234,10 +245,10 @@ public class EndToEndTests : IDisposable
     }
 
     [Theory]
-    [InlineData(null, "Property is derived from environment variable: 'TEST'. Properties should be passed explicitly using the /p option.")]
-    [InlineData(true, "Property is derived from environment variable: 'TEST' with value: 'FromEnvVariable'. Properties should be passed explicitly using the /p option.")]
-    [InlineData(false, "Property is derived from environment variable: 'TEST'. Properties should be passed explicitly using the /p option.")]
-    public void NoEnvironmentVariableProperty_Test(bool? customConfigEnabled, string expectedMessage)
+    [InlineData(null, new[] { "Property is derived from environment variable: 'TestFromTarget'.", "Property is derived from environment variable: 'TestFromEvaluation'." } )]
+    [InlineData(true, new[] { "Property is derived from environment variable: 'TestFromTarget' with value: 'FromTarget'.", "Property is derived from environment variable: 'TestFromEvaluation' with value: 'FromEvaluation'." })]
+    [InlineData(false, new[] { "Property is derived from environment variable: 'TestFromTarget'.", "Property is derived from environment variable: 'TestFromEvaluation'." } )]
+    public void NoEnvironmentVariableProperty_Test(bool? customConfigEnabled, string[] expectedMessages)
     {
         List<(string RuleId, (string ConfigKey, string Value) CustomConfig)>? customConfigData = null;
 
@@ -258,7 +269,10 @@ public class EndToEndTests : IDisposable
         string output = RunnerUtilities.ExecBootstrapedMSBuild(
             $"{Path.GetFileName(projectFile.Path)} /m:1 -nr:False -restore -check", out bool success, false, _env.Output);
 
-        output.ShouldContain(expectedMessage);
+        foreach (string expectedMessage in expectedMessages)
+        {
+            output.ShouldContain(expectedMessage);
+        }
     }
 
     [Theory]
@@ -352,10 +366,43 @@ public class EndToEndTests : IDisposable
                 checkCandidatePath));
 
             string projectCheckBuildLog = RunnerUtilities.ExecBootstrapedMSBuild(
-                $"{Path.Combine(checkCandidatePath, $"{checkCandidate}.csproj")} /m:1 -nr:False -restore -check -verbosity:n", out bool _, timeoutMilliseconds: 1200_0000);
+                $"{Path.Combine(checkCandidatePath, $"{checkCandidate}.csproj")} /m:1 -nr:False -restore -check -verbosity:n", out bool _);
 
             projectCheckBuildLog.ShouldContain(expectedMessage);
-            
+
+            // Cleanup
+            File.Delete(editorConfigName);
+        }
+    }
+
+    [Theory]
+    [InlineData("X01236", "Something went wrong initializing")]
+    // These tests are for failure one different points, will be addressed in a different PR
+    // https://github.com/dotnet/msbuild/issues/10522
+    // [InlineData("X01237", "message")]
+    // [InlineData("X01238", "message")]
+    public void CustomChecksFailGracefully(string ruleId, string expectedMessage)
+    {
+        using (var env = TestEnvironment.Create())
+        {
+            string checkCandidate = "CheckCandidateWithMultipleChecksInjected";
+            string checkCandidatePath = Path.Combine(TestAssetsRootPath, checkCandidate);
+
+            // Can't use Transitive environment due to the need to dogfood local nuget packages.
+            AddCustomDataSourceToNugetConfig(checkCandidatePath);
+            string editorConfigName = Path.Combine(checkCandidatePath, EditorConfigFileName);
+            File.WriteAllText(editorConfigName, ReadEditorConfig(
+                new List<(string, string)>() { (ruleId, "warning") },
+                ruleToCustomConfig: null,
+                checkCandidatePath));
+
+            string projectCheckBuildLog = RunnerUtilities.ExecBootstrapedMSBuild(
+                $"{Path.Combine(checkCandidatePath, $"{checkCandidate}.csproj")} /m:1 -nr:False -restore -check -verbosity:n", out bool success);
+
+            success.ShouldBeTrue();
+            projectCheckBuildLog.ShouldContain(expectedMessage);
+            projectCheckBuildLog.ShouldNotContain("This check should have been disabled");
+
             // Cleanup
             File.Delete(editorConfigName);
         }
@@ -420,20 +467,23 @@ public class EndToEndTests : IDisposable
     private void PrepareSampleProjectsAndConfig(
         bool buildInOutOfProcessNode,
         out TransientTestFile projectFile,
-        IEnumerable<(string RuleId, string Severity)>? ruleToSeverity,
+        string entryProjectAssetName,
+        IEnumerable<string>? supplementalAssetNames = null,
+        IEnumerable<(string RuleId, string Severity)>? ruleToSeverity = null,
         IEnumerable<(string RuleId, (string ConfigKey, string Value) CustomConfig)>? ruleToCustomConfig = null)
     {
         string testAssetsFolderName = "SampleCheckIntegrationTest";
         TransientTestFolder workFolder = _env.CreateFolder(createFolder: true);
         TransientTestFile testFile = _env.CreateFile(workFolder, "somefile");
 
-        string contents = ReadAndAdjustProjectContent("Project1");
-        string contents2 = ReadAndAdjustProjectContent("Project2");
-        string contentsImported = ReadAndAdjustProjectContent("ImportedFile1");
+        string contents = ReadAndAdjustProjectContent(entryProjectAssetName);
+        projectFile = _env.CreateFile(workFolder, entryProjectAssetName, contents);
 
-        projectFile = _env.CreateFile(workFolder, "FooBar.csproj", contents);
-        TransientTestFile projectFile2 = _env.CreateFile(workFolder, "FooBar-Copy.csproj", contents2);
-        TransientTestFile importedFile1 = _env.CreateFile(workFolder, "ImportedFile1.props", contentsImported);
+        foreach (string supplementalAssetName in supplementalAssetNames ?? Enumerable.Empty<string>())
+        {
+            string supplementalContent = ReadAndAdjustProjectContent(supplementalAssetName);
+            TransientTestFile supplementalFile = _env.CreateFile(workFolder, supplementalAssetName, supplementalContent);
+        }
 
         _env.CreateFile(workFolder, ".editorconfig", ReadEditorConfig(ruleToSeverity, ruleToCustomConfig, testAssetsFolderName));
 
@@ -445,7 +495,9 @@ public class EndToEndTests : IDisposable
         _env.SetEnvironmentVariable("MSBUILDNOINPROCNODE", buildInOutOfProcessNode ? "1" : "0");
         _env.SetEnvironmentVariable("MSBUILDLOGPROPERTIESANDITEMSAFTEREVALUATION", "1");
 
-        _env.SetEnvironmentVariable("TEST", "FromEnvVariable");
+        // Needed for testing check BC0103
+        _env.SetEnvironmentVariable("TestFromTarget", "FromTarget");
+        _env.SetEnvironmentVariable("TestFromEvaluation", "FromEvaluation");
         _env.SetEnvironmentVariable("TestImported", "FromEnv");
 
         string ReadAndAdjustProjectContent(string fileName) =>
@@ -453,6 +505,19 @@ public class EndToEndTests : IDisposable
                 .Replace("TestFilePath", testFile.Path)
                 .Replace("WorkFolderPath", workFolder.Path);
     }
+
+    private void PrepareSampleProjectsAndConfig(
+        bool buildInOutOfProcessNode,
+        out TransientTestFile projectFile,
+        IEnumerable<(string RuleId, string Severity)>? ruleToSeverity,
+        IEnumerable<(string RuleId, (string ConfigKey, string Value) CustomConfig)>? ruleToCustomConfig = null)
+        => PrepareSampleProjectsAndConfig(
+            buildInOutOfProcessNode,
+            out projectFile,
+            "Project1.csproj",
+            new[] { "Project2.csproj", "ImportedFile1.props" },
+            ruleToSeverity,
+            ruleToCustomConfig);
 
     private string ReadEditorConfig(
         IEnumerable<(string RuleId, string Severity)>? ruleToSeverity,

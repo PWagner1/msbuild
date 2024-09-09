@@ -35,12 +35,12 @@ public class CheckConfiguration
     ///
     /// If not supported by the data source - then the setting is ignored
     /// </summary>
-    public EvaluationCheckScope? EvaluationCheckScope { get; internal init; }
+    public EvaluationCheckScope? EvaluationCheckScope { get; init; }
 
     /// <summary>
     /// The severity of the result for the rule.
     /// </summary>
-    public CheckResultSeverity? Severity { get; internal init; }
+    public CheckResultSeverity? Severity { get; init; }
 
     /// <summary>
     /// Whether the check rule is enabled.
@@ -72,7 +72,6 @@ public class CheckConfiguration
         EvaluationCheckScope = TryExtractEvaluationCheckScope(configDictionary),
         Severity = TryExtractSeverity(configDictionary),
     };
-
 
     private static EvaluationCheckScope? TryExtractEvaluationCheckScope(Dictionary<string, string>? config)
     {
